@@ -74,6 +74,11 @@ config ARCH_AT91SAM9G45
 	select HAVE_AT91_USART3
 	select HAVE_FB_ATMEL
 
+config ARCH_AT91SAM9X5
+	bool "AT91SAM9X5"
+	select CPU_ARM926T
+	select GENERIC_CLOCKEVENTS
+
 config ARCH_AT91CAP9
 	bool "AT91CAP9"
 	select CPU_ARM926T
@@ -381,6 +386,54 @@ config MACH_AT91SAM9G45EKES
 	  Engineering Sample.
 
 endif
+
+# ----------------------------------------------------------
+
+if ARCH_AT91SAM9X5
+
+choice
+	prompt "AT91SAM9x5 Variants"
+	default ARCH_AT91SAM9X5_SAM9G15
+
+config CHIP_SAM9G15
+	bool "AT91SAM9G15"
+	help
+	  Select this if you are using Atmel's AT91SAM9G15 System-on-Chip.
+
+config CHIP_SAM9G25
+	bool "AT91SAM9G25"
+	select HAVE_AT91_USART3
+	help
+	  Select this if you are using Atmel's AT91SAM9G25 System-on-Chip.
+
+config CHIP_SAM9X25
+	bool "AT91SAM9X25"
+	select HAVE_AT91_USART3
+	help
+	  Select this if you are using Atmel's AT91SAM9X25 System-on-Chip.
+
+config CHIP_SAM9G35
+	bool "AT91SAM9G35"
+	help
+	  Select this if you are using Atmel's AT91SAM9G35 System-on-Chip.
+
+config CHIP_SAM9X35
+	bool "AT91SAM9X35"
+	help
+	  Select this if you are using Atmel's AT91SAM9X35 System-on-Chip.
+endchoice
+
+comment "AT91SAM9x5 Series Board Type"
+
+config MACH_AT91SAM9X5EK
+	bool "Atmel AT91SAM9x5 Series Evaluation Kit"
+#	select HAVE_AT91_DATAFLASH_CARD
+#	select HAVE_NAND_ATMEL_BUSWIDTH_16
+	help
+	  Select this if you re using Atmel's AT91SAM9x5-EK Evaluation Kit.
+	  Supported chips are sam9g15, sam9g25, sam9x25, sam9g35 and sam9x35.
+endif
+# ----------------------------------------------------------
 
 # ----------------------------------------------------------
 
