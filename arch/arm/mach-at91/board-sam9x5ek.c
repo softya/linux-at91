@@ -50,9 +50,9 @@ static void __init ek_map_io(void)
 	/* DGBU on ttyS0. (Rx & Tx only) */
 	at91_register_uart(0, 0, 0);
 
-	/* USART0 not connected on the -EK board */
-	/* USART1 on ttyS2. (Rx, Tx, RTS, CTS) */
-	at91_register_uart(AT91SAM9X5_ID_USART1, 2, ATMEL_UART_CTS | ATMEL_UART_RTS);
+	/* USART0 on ttyS1. (Rx, Tx, RTS, CTS) */
+	//at91_register_uart(AT91SAM9X5_ID_USART0, 1, ATMEL_UART_CTS | ATMEL_UART_RTS);
+	at91_register_uart(AT91SAM9X5_ID_USART0, 1, 0);
 
 	/* set serial console to ttyS0 (ie, DBGU) */
 	at91_set_serial_console(0);
@@ -69,7 +69,7 @@ static void __init ek_init_irq(void)
  */
 static struct at91_usbh_data __initdata ek_usbh_hs_data = {
 	.ports		= 2,
-	.vbus_pin	= {AT91_PIN_PC0, },
+	.vbus_pin	= {AT91_PIN_PC24, AT91_PIN_PC23},
 };
 
 

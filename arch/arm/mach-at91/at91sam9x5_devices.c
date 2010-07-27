@@ -1023,8 +1023,8 @@ static struct resource usart0_resources[] = {
 };
 
 static struct atmel_uart_data usart0_data = {
-	.use_dma_tx	= 1,
-	.use_dma_rx	= 1,
+	.use_dma_tx	= 0,
+	.use_dma_rx	= 0,
 };
 
 static u64 usart0_dmamask = DMA_BIT_MASK(32);
@@ -1182,6 +1182,82 @@ static inline void configure_usart3_pins(unsigned pins)
 		at91_set_B_periph(AT91_PIN_PC25, 0);	/* CTS3 */
 }
 
+static struct resource uart0_resources[] = {
+	[0] = {
+		.start	= AT91SAM9X5_BASE_UART0,
+		.end	= AT91SAM9X5_BASE_UART0 + SZ_16K - 1,
+		.flags	= IORESOURCE_MEM,
+	},
+	[1] = {
+		.start	= AT91SAM9X5_ID_UART0,
+		.end	= AT91SAM9X5_ID_UART0,
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static struct atmel_uart_data uart0_data = {
+	.use_dma_tx	= 1,
+	.use_dma_rx	= 1,
+};
+
+static u64 uart0_dmamask = DMA_BIT_MASK(32);
+
+static struct platform_device at91sam9x5_uart0_device = {
+	.name		= "atmel_usart",
+	.id		= 5,
+	.dev		= {
+				.dma_mask		= &uart0_dmamask,
+				.coherent_dma_mask	= DMA_BIT_MASK(32),
+				.platform_data		= &uart0_data,
+	},
+	.resource	= uart0_resources,
+	.num_resources	= ARRAY_SIZE(uart0_resources),
+};
+
+static inline void configure_uart0_pins(unsigned pins)
+{
+	at91_set_C_periph(AT91_PIN_PC8, 1);		/* UTXD0 */
+	at91_set_C_periph(AT91_PIN_PC9, 0);		/* URXD0 */
+}
+
+static struct resource uart1_resources[] = {
+	[0] = {
+		.start	= AT91SAM9X5_BASE_UART1,
+		.end	= AT91SAM9X5_BASE_UART1 + SZ_16K - 1,
+		.flags	= IORESOURCE_MEM,
+	},
+	[1] = {
+		.start	= AT91SAM9X5_ID_UART1,
+		.end	= AT91SAM9X5_ID_UART1,
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static struct atmel_uart_data uart1_data = {
+	.use_dma_tx	= 1,
+	.use_dma_rx	= 1,
+};
+
+static u64 uart1_dmamask = DMA_BIT_MASK(32);
+
+static struct platform_device at91sam9x5_uart1_device = {
+	.name		= "atmel_usart",
+	.id		= 6,
+	.dev		= {
+				.dma_mask		= &uart1_dmamask,
+				.coherent_dma_mask	= DMA_BIT_MASK(32),
+				.platform_data		= &uart1_data,
+	},
+	.resource	= uart1_resources,
+	.num_resources	= ARRAY_SIZE(uart1_resources),
+};
+
+static inline void configure_uart1_pins(unsigned pins)
+{
+	at91_set_C_periph(AT91_PIN_PC16, 1);		/* UTXD1 */
+	at91_set_C_periph(AT91_PIN_PC17, 0);		/* URXD1 */
+}
+
 static struct platform_device *__initdata at91_usarts[ATMEL_MAX_UART];	/* the USARTs to use */
 struct platform_device *atmel_default_console_device;	/* the serial console device */
 
@@ -1214,6 +1290,16 @@ void __init at91_register_uart(unsigned id, unsigned portnr, unsigned pins)
 			pdev = &at91sam9x5_usart3_device;
 			configure_usart3_pins(pins);
 			at91_clock_associate("usart3_clk", &pdev->dev, "usart");
+			break;
+		case AT91SAM9X5_ID_UART0:
+			pdev = &at91sam9x5_uart0_device;
+			configure_uart0_pins(pins);
+			at91_clock_associate("uart0_clk", &pdev->dev, "usart");
+			break;
+		case AT91SAM9X5_ID_UART1:
+			pdev = &at91sam9x5_uart1_device;
+			configure_uart1_pins(pins);
+			at91_clock_associate("uart1_clk", &pdev->dev, "usart");
 			break;
 		default:
 			return;
