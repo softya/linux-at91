@@ -277,7 +277,6 @@ void __init at91_add_device_usba(struct usba_platform_data *data)
 void __init at91_add_device_usba(struct usba_platform_data *data) {}
 #endif
 
-#if 0
 /* --------------------------------------------------------------------
  *  Ethernet
  * -------------------------------------------------------------------- */
@@ -288,13 +287,13 @@ static struct at91_eth_data eth_data;
 
 static struct resource eth_resources[] = {
 	[0] = {
-		.start	= AT91SAM9X5_BASE_EMAC,
-		.end	= AT91SAM9X5_BASE_EMAC + SZ_16K - 1,
+		.start	= AT91SAM9X5_BASE_EMAC0,
+		.end	= AT91SAM9X5_BASE_EMAC0 + SZ_16K - 1,
 		.flags	= IORESOURCE_MEM,
 	},
 	[1] = {
-		.start	= AT91SAM9X5_ID_EMAC,
-		.end	= AT91SAM9X5_ID_EMAC,
+		.start	= AT91SAM9X5_ID_EMAC0,
+		.end	= AT91SAM9X5_ID_EMAC0,
 		.flags	= IORESOURCE_IRQ,
 	},
 };
@@ -316,33 +315,37 @@ void __init at91_add_device_eth(struct at91_eth_data *data)
 	if (!data)
 		return;
 
+
 	if (data->phy_irq_pin) {
 		at91_set_gpio_input(data->phy_irq_pin, 0);
 		at91_set_deglitch(data->phy_irq_pin, 1);
 	}
 
 	/* Pins used for MII and RMII */
-	at91_set_A_periph(AT91_PIN_PA17, 0);	/* ETXCK_EREFCK */
-	at91_set_A_periph(AT91_PIN_PA15, 0);	/* ERXDV */
-	at91_set_A_periph(AT91_PIN_PA12, 0);	/* ERX0 */
-	at91_set_A_periph(AT91_PIN_PA13, 0);	/* ERX1 */
-	at91_set_A_periph(AT91_PIN_PA16, 0);	/* ERXER */
-	at91_set_A_periph(AT91_PIN_PA14, 0);	/* ETXEN */
-	at91_set_A_periph(AT91_PIN_PA10, 0);	/* ETX0 */
-	at91_set_A_periph(AT91_PIN_PA11, 0);	/* ETX1 */
-	at91_set_A_periph(AT91_PIN_PA19, 0);	/* EMDIO */
-	at91_set_A_periph(AT91_PIN_PA18, 0);	/* EMDC */
+	at91_set_A_periph(AT91_PIN_PB4,  0);	/* ETXCK_EREFCK */
+	at91_set_A_periph(AT91_PIN_PB3,  0);	/* ERXDV */
+	at91_set_A_periph(AT91_PIN_PB0,  0);	/* ERX0 */
+	at91_set_A_periph(AT91_PIN_PB1,  0);	/* ERX1 */
+	at91_set_A_periph(AT91_PIN_PB2,  0);	/* ERXER */
+	at91_set_A_periph(AT91_PIN_PB7,  0);	/* ETXEN */
+	at91_set_A_periph(AT91_PIN_PB9,  0);	/* ETX0 */
+	at91_set_A_periph(AT91_PIN_PB10, 0);	/* ETX1 */
+	at91_set_A_periph(AT91_PIN_PB5,  0);	/* EMDIO */
+	at91_set_A_periph(AT91_PIN_PB6,  0);	/* EMDC */
 
 	if (!data->is_rmii) {
-		at91_set_B_periph(AT91_PIN_PA29, 0);	/* ECRS */
-		at91_set_B_periph(AT91_PIN_PA30, 0);	/* ECOL */
-		at91_set_B_periph(AT91_PIN_PA8,  0);	/* ERX2 */
-		at91_set_B_periph(AT91_PIN_PA9,  0);	/* ERX3 */
-		at91_set_B_periph(AT91_PIN_PA28, 0);	/* ERXCK */
-		at91_set_B_periph(AT91_PIN_PA6,  0);	/* ETX2 */
-		at91_set_B_periph(AT91_PIN_PA7,  0);	/* ETX3 */
-		at91_set_B_periph(AT91_PIN_PA27, 0);	/* ETXER */
+		at91_set_A_periph(AT91_PIN_PB16, 0);	/* ECRS */
+		at91_set_A_periph(AT91_PIN_PB17, 0);	/* ECOL */
+		at91_set_A_periph(AT91_PIN_PB13, 0);	/* ERX2 */
+		at91_set_A_periph(AT91_PIN_PB14, 0);	/* ERX3 */
+		at91_set_A_periph(AT91_PIN_PB15, 0);	/* ERXCK */
+		at91_set_A_periph(AT91_PIN_PB11, 0);	/* ETX2 */
+		at91_set_A_periph(AT91_PIN_PB12, 0);	/* ETX3 */
+		at91_set_A_periph(AT91_PIN_PB8,  0);	/* ETXER */
 	}
+
+	/* Clock */
+	at91_clock_associate("macb0_clk", &at91sam9x5_eth_device.dev, "macb_clk");
 
 	eth_data = *data;
 	platform_device_register(&at91sam9x5_eth_device);
@@ -351,7 +354,6 @@ void __init at91_add_device_eth(struct at91_eth_data *data)
 void __init at91_add_device_eth(struct at91_eth_data *data) {}
 #endif
 
-#endif
 
 /* --------------------------------------------------------------------
  *  NAND / SmartMedia

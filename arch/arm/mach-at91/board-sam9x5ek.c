@@ -51,8 +51,7 @@ static void __init ek_map_io(void)
 	at91_register_uart(0, 0, 0);
 
 	/* USART0 on ttyS1. (Rx, Tx, RTS, CTS) */
-	//at91_register_uart(AT91SAM9X5_ID_USART0, 1, ATMEL_UART_CTS | ATMEL_UART_RTS);
-	at91_register_uart(AT91SAM9X5_ID_USART0, 1, 0);
+	at91_register_uart(AT91SAM9X5_ID_USART0, 1, ATMEL_UART_CTS | ATMEL_UART_RTS);
 
 	/* set serial console to ttyS0 (ie, DBGU) */
 	at91_set_serial_console(0);
@@ -98,7 +97,7 @@ static struct spi_board_info ek_spi_devices[] = {
  * MACB Ethernet device
  */
 static struct at91_eth_data __initdata ek_macb_data = {
-	.phy_irq_pin	= AT91_PIN_PD5,
+	.phy_irq_pin	= AT91_PIN_PB18,
 	.is_rmii	= 1,
 };
 
@@ -363,6 +362,28 @@ static struct gpio_led ek_pwm_led[] = {
 #endif
 
 
+/*
+ * Test driver
+ */
+static struct platform_device ek_drv_device = {
+	.name		= "drv",
+	.id		= -1,
+	.num_resources	= 0,
+	.dev		= {
+		.platform_data	= NULL,
+	}
+};
+
+static void __init ek_add_device_drv(void)
+{
+	/* PCK0 */
+	at91_set_C_periph(AT91_PIN_PC15, 0);
+
+	platform_device_register(&ek_drv_device);
+}
+
+
+
 static void __init ek_board_init(void)
 {
 	/* Serial */
@@ -375,7 +396,7 @@ static void __init ek_board_init(void)
 	/* SPI */
 	at91_add_device_spi(ek_spi_devices, ARRAY_SIZE(ek_spi_devices));
 	/* Ethernet */
-//	at91_add_device_eth(&ek_macb_data);
+	at91_add_device_eth(&ek_macb_data);
 	/* NAND */
 	ek_add_device_nand();
 	/* I2C */
@@ -389,6 +410,8 @@ static void __init ek_board_init(void)
 	/* LEDs */
 //	at91_gpio_leds(ek_leds, ARRAY_SIZE(ek_leds));
 //	at91_pwm_leds(ek_pwm_led, ARRAY_SIZE(ek_pwm_led));
+
+	ek_add_device_drv();
 }
 
 MACHINE_START(AT91SAM9X5EK, "Atmel AT91SAM9X5-EK")
