@@ -22,11 +22,13 @@
 #define ARCH_NR_GPIOS		256
 #endif
 
+#ifndef __HAVE_ARCH_GPIO_IS_VALID
 static inline int gpio_is_valid(int number)
 {
 	/* only some non-negative numbers are valid */
 	return ((unsigned)number) < ARCH_NR_GPIOS;
 }
+#endif
 
 struct device;
 struct seq_file;
@@ -185,11 +187,13 @@ extern void gpio_unexport(unsigned gpio);
 
 #else	/* !CONFIG_HAVE_GPIO_LIB */
 
+#ifndef __HAVE_ARCH_GPIO_IS_VALID
 static inline int gpio_is_valid(int number)
 {
 	/* only non-negative numbers are valid */
 	return number >= 0;
 }
+#endif
 
 /* platforms that don't directly support access to GPIOs through I2C, SPI,
  * or other blocking infrastructure can use these wrappers.
