@@ -19,6 +19,7 @@
 #define PIN_BASE		NR_AIC_IRQS
 
 #define MAX_GPIO_BANKS		5
+#define ARCH_NR_GPIOS		256
 
 /* these pin numbers double as IRQ numbers, like AT91xxx_ID_* values */
 
@@ -188,6 +189,16 @@
 #define	AT91_PIN_PE31	(PIN_BASE + 0x80 + 31)
 
 #ifndef __ASSEMBLY__
+static inline int gpio_is_valid(int number)
+{
+	if (number >= PIN_BASE &&
+	    number < ARCH_NR_GPIOS)
+		return 1;
+	return 0;
+}
+#define __HAVE_ARCH_GPIO_IS_VALID 1
+
+
 /* setup setup routines, called from board init or driver probe() */
 extern int __init_or_module at91_set_GPIO_periph(unsigned pin, int use_pullup);
 extern int __init_or_module at91_set_A_periph(unsigned pin, int use_pullup);
