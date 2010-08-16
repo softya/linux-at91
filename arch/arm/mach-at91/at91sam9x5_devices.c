@@ -28,7 +28,6 @@
 
 #include "generic.h"
 
-#if 0
 /* --------------------------------------------------------------------
  *  HDMAC - AHB DMA Controller
  * -------------------------------------------------------------------- */
@@ -40,44 +39,69 @@ static struct at_dma_platform_data atdma_pdata = {
 	.nr_channels	= 8,
 };
 
-static struct resource hdmac_resources[] = {
+static struct resource hdmac0_resources[] = {
 	[0] = {
-		.start	= AT91_BASE_SYS + AT91_DMA,
-		.end	= AT91_BASE_SYS + AT91_DMA + SZ_512 - 1,
+		.start	= AT91_BASE_SYS + AT91_DMA0,
+		.end	= AT91_BASE_SYS + AT91_DMA0 + SZ_512 - 1,
 		.flags	= IORESOURCE_MEM,
 	},
-	[2] = {
-		.start	= AT91SAM9X5_ID_DMA,
-		.end	= AT91SAM9X5_ID_DMA,
+	[1] = {
+		.start	= AT91SAM9X5_ID_DMA0,
+		.end	= AT91SAM9X5_ID_DMA0,
 		.flags	= IORESOURCE_IRQ,
 	},
 };
 
-static struct platform_device at_hdmac_device = {
+static struct platform_device at_hdmac0_device = {
 	.name		= "at_hdmac",
-	.id		= -1,
+	.id		= 0,
 	.dev		= {
 				.dma_mask		= &hdmac_dmamask,
 				.coherent_dma_mask	= DMA_BIT_MASK(32),
 				.platform_data		= &atdma_pdata,
 	},
-	.resource	= hdmac_resources,
-	.num_resources	= ARRAY_SIZE(hdmac_resources),
+	.resource	= hdmac0_resources,
+	.num_resources	= ARRAY_SIZE(hdmac0_resources),
+};
+
+static struct resource hdmac1_resources[] = {
+	[0] = {
+		.start	= AT91_BASE_SYS + AT91_DMA1,
+		.end	= AT91_BASE_SYS + AT91_DMA1 + SZ_512 - 1,
+		.flags	= IORESOURCE_MEM,
+	},
+	[1] = {
+		.start	= AT91SAM9X5_ID_DMA1,
+		.end	= AT91SAM9X5_ID_DMA1,
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static struct platform_device at_hdmac1_device = {
+	.name	= "at_hdmac",
+	.id	= 1,
+	.dev	= {
+			.dma_mask			= &hdmac_dmamask,
+			.coherent_dma_mask		= DMA_BIT_MASK(32),
+			.platform_data			= &atdma_pdata,
+	},
+	.resource	= hdmac1_resources,
+	.num_resources	= ARRAY_SIZE(hdmac1_resources),
 };
 
 void __init at91_add_device_hdmac(void)
 {
-#if 0
 	dma_cap_set(DMA_MEMCPY, atdma_pdata.cap_mask);
 	dma_cap_set(DMA_SLAVE, atdma_pdata.cap_mask);
-	platform_device_register(&at_hdmac_device);
-#endif
+	at91_clock_associate("dma0_clk", &at_hdmac0_device.dev, "dma_clk");
+	platform_device_register(&at_hdmac0_device);
+	at91_clock_associate("dma1_clk", &at_hdmac1_device.dev, "dma_clk");
+	platform_device_register(&at_hdmac1_device);
 }
 #else
 void __init at91_add_device_hdmac(void) {}
 #endif
 
-#endif
 
 /* --------------------------------------------------------------------
  *  USB Host (OHCI)
@@ -1385,7 +1409,7 @@ void __init at91_add_device_serial(void) {}
  */
 static int __init at91_add_standard_devices(void)
 {
-//	at91_add_device_hdmac();
+	at91_add_device_hdmac();
 	at91_add_device_rtc();
 	at91_add_device_watchdog();
 	at91_add_device_tc();
