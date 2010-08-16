@@ -128,14 +128,13 @@ static struct mtd_partition * __init nand_partitions(int size, int *num_partitio
 static struct atmel_nand_data __initdata ek_nand_data = {
 	.ale		= 21,
 	.cle		= 22,
-	.rdy_pin	= AT91_PIN_PC8,
-	.enable_pin	= AT91_PIN_PC14,
+	.rdy_pin	= AT91_PIN_PD5,
+	.enable_pin	= AT91_PIN_PD4,
 	.partition_info	= nand_partitions,
 #if defined(CONFIG_MTD_NAND_AT91_BUSWIDTH_16)
 	.bus_width_16	= 1,
-#else
-	.bus_width_16	= 0,
 #endif
+	.bus_on_d0	= 0,
 };
 
 static struct sam9_smc_config __initdata ek_nand_smc_config = {
