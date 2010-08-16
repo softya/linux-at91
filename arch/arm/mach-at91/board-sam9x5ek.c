@@ -319,26 +319,25 @@ static void __init ek_add_device_buttons(void) {}
 #endif
 
 
-#if 0
 /*
  * LEDs ... these could all be PWM-driven, for variable brightness
  */
 static struct gpio_led ek_leds[] = {
 	{	/* "top" led, red, powerled */
-		.name			= "d8",
-		.gpio			= AT91_PIN_PD30,
+		.name			= "d2",
+		.gpio			= AT91_PIN_PC19,
 		.default_trigger	= "heartbeat",
 	},
 	{	/* "left" led, green, userled2, pwm3 */
-		.name			= "d6",
-		.gpio			= AT91_PIN_PD0,
+		.name			= "d3",
+		.gpio			= AT91_PIN_PC20,
 		.active_low		= 1,
 		.default_trigger	= "nand-disk",
 	},
 #if !(defined(CONFIG_LEDS_ATMEL_PWM) || defined(CONFIG_LEDS_ATMEL_PWM_MODULE))
 	{	/* "right" led, green, userled1, pwm1 */
-		.name			= "d7",
-		.gpio			= AT91_PIN_PD31,
+		.name			= "d4",
+		.gpio			= AT91_PIN_PC21,
 		.active_low		= 1,
 		.default_trigger	= "mmc0",
 	},
@@ -352,14 +351,13 @@ static struct gpio_led ek_leds[] = {
 static struct gpio_led ek_pwm_led[] = {
 #if defined(CONFIG_LEDS_ATMEL_PWM) || defined(CONFIG_LEDS_ATMEL_PWM_MODULE)
 	{	/* "right" led, green, userled1, pwm1 */
-		.name			= "d7",
+		.name			= "d4",
 		.gpio			= 1,	/* is PWM channel number */
 		.active_low		= 1,
 		.default_trigger	= "none",
 	},
 #endif
 };
-#endif
 
 
 /*
@@ -408,8 +406,8 @@ static void __init ek_board_init(void)
 	/* Push Buttons */
 	ek_add_device_buttons();
 	/* LEDs */
-//	at91_gpio_leds(ek_leds, ARRAY_SIZE(ek_leds));
-//	at91_pwm_leds(ek_pwm_led, ARRAY_SIZE(ek_pwm_led));
+	at91_gpio_leds(ek_leds, ARRAY_SIZE(ek_leds));
+	at91_pwm_leds(ek_pwm_led, ARRAY_SIZE(ek_pwm_led));
 
 	ek_add_device_drv();
 }
