@@ -395,7 +395,15 @@ void __init at91_add_device_nand(struct atmel_nand_data *data)
 		return;
 
 	csa = at91_sys_read(AT91_MATRIX_EBICSA);
-	at91_sys_write(AT91_MATRIX_EBICSA, csa | AT91_MATRIX_EBI_CS3A_SMC_NANDFLASH);
+	csa |= AT91_MATRIX_EBI_CS3A_SMC_NANDFLASH;
+
+	if (!data->bus_on_d0)
+		csa |= AT91_MATRIX_NFD0_ON_D16;
+
+	if (!data->bus_width_16)
+		csa |= AT91_MATRIX_MP_ON;
+
+	at91_sys_write(AT91_MATRIX_EBICSA, csa);
 
 	/* enable pin */
 	if (data->enable_pin)
@@ -408,6 +416,39 @@ void __init at91_add_device_nand(struct atmel_nand_data *data)
 	/* card detect pin */
 	if (data->det_pin)
 		at91_set_gpio_input(data->det_pin, 1);
+
+	/* configure NANDOE */
+	at91_set_A_periph(AT91_PIN_PD0, 1);
+	/* configure NANDWE */
+	at91_set_A_periph(AT91_PIN_PD1, 1);
+	/* configure ALE */
+	at91_set_A_periph(AT91_PIN_PD2, 1);
+	/* configure CLE */
+	at91_set_A_periph(AT91_PIN_PD3, 1);
+
+	/* configure multiplexed pins for D16~D31 */
+	if (!data->bus_on_d0) {
+		at91_set_A_periph(AT91_PIN_PD6, 1);
+		at91_set_A_periph(AT91_PIN_PD7, 1);
+		at91_set_A_periph(AT91_PIN_PD8, 1);
+		at91_set_A_periph(AT91_PIN_PD9, 1);
+		at91_set_A_periph(AT91_PIN_PD10, 1);
+		at91_set_A_periph(AT91_PIN_PD11, 1);
+		at91_set_A_periph(AT91_PIN_PD12, 1);
+		at91_set_A_periph(AT91_PIN_PD13, 1);
+
+		if (data->bus_width_16) {
+			at91_set_A_periph(AT91_PIN_PD14, 1);
+			at91_set_A_periph(AT91_PIN_PD15, 1);
+			at91_set_A_periph(AT91_PIN_PD16, 1);
+			at91_set_A_periph(AT91_PIN_PD17, 1);
+			at91_set_A_periph(AT91_PIN_PD18, 1);
+			at91_set_A_periph(AT91_PIN_PD19, 1);
+			at91_set_A_periph(AT91_PIN_PD20, 1);
+			at91_set_A_periph(AT91_PIN_PD21, 1);
+		}
+
+	}
 
 	nand_data = *data;
 	platform_device_register(&at91sam9x5_nand_device);
