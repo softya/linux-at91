@@ -94,10 +94,15 @@ static struct spi_board_info ek_spi_devices[] = {
 
 
 /*
- * MACB Ethernet device
+ * MACB Ethernet devices
  */
-static struct at91_eth_data __initdata ek_macb_data = {
+static struct at91_eth_data __initdata ek_macb0_data = {
 	.phy_irq_pin	= AT91_PIN_PB18,
+	.is_rmii	= 1,
+};
+
+static struct at91_eth_data __initdata ek_macb1_data = {
+	/*.phy_irq_pin	= AT91_PIN_PB18, !!!!!TODO!!!!! */
 	.is_rmii	= 1,
 };
 
@@ -393,7 +398,8 @@ static void __init ek_board_init(void)
 	/* SPI */
 	at91_add_device_spi(ek_spi_devices, ARRAY_SIZE(ek_spi_devices));
 	/* Ethernet */
-	at91_add_device_eth(&ek_macb_data);
+	at91_add_device_eth(0, &ek_macb0_data);
+	at91_add_device_eth(1, &ek_macb1_data);
 	/* NAND */
 	ek_add_device_nand();
 	/* I2C */
