@@ -21,6 +21,7 @@
 
 #include <mach/board.h>
 #include <mach/gpio.h>
+#include <mach/cpu.h>
 #include <mach/at91sam9x5.h>
 #include <mach/at91sam9x5_matrix.h>
 #include <mach/at91sam9_smc.h>
@@ -306,10 +307,10 @@ void __init at91_add_device_usba(struct usba_platform_data *data) {}
  * -------------------------------------------------------------------- */
 
 #if defined(CONFIG_MACB) || defined(CONFIG_MACB_MODULE)
-static u64 eth_dmamask = DMA_BIT_MASK(32);
-static struct at91_eth_data eth_data;
+static u64 eth0_dmamask = DMA_BIT_MASK(32);
+static struct at91_eth_data eth0_data;
 
-static struct resource eth_resources[] = {
+static struct resource eth0_resources[] = {
 	[0] = {
 		.start	= AT91SAM9X5_BASE_EMAC0,
 		.end	= AT91SAM9X5_BASE_EMAC0 + SZ_16K - 1,
@@ -322,57 +323,114 @@ static struct resource eth_resources[] = {
 	},
 };
 
-static struct platform_device at91sam9x5_eth_device = {
+static struct platform_device at91sam9x5_eth0_device = {
 	.name		= "macb",
-	.id		= -1,
+	.id		= 0,
 	.dev		= {
-				.dma_mask		= &eth_dmamask,
+				.dma_mask		= &eth0_dmamask,
 				.coherent_dma_mask	= DMA_BIT_MASK(32),
-				.platform_data		= &eth_data,
+				.platform_data		= &eth0_data,
 	},
-	.resource	= eth_resources,
-	.num_resources	= ARRAY_SIZE(eth_resources),
+	.resource	= eth0_resources,
+	.num_resources	= ARRAY_SIZE(eth0_resources),
 };
 
-void __init at91_add_device_eth(struct at91_eth_data *data)
+static u64 eth1_dmamask = DMA_BIT_MASK(32);
+static struct at91_eth_data eth1_data;
+
+static struct resource eth1_resources[] = {
+	[0] = {
+		.start	= AT91SAM9X5_BASE_EMAC1,
+		.end	= AT91SAM9X5_BASE_EMAC1 + SZ_16K - 1,
+		.flags	= IORESOURCE_MEM,
+	},
+	[1] = {
+		.start	= AT91SAM9X5_ID_EMAC1,
+		.end	= AT91SAM9X5_ID_EMAC1,
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static struct platform_device at91sam9x5_eth1_device = {
+	.name		= "macb",
+	.id		= 1,
+	.dev		= {
+				.dma_mask		= &eth1_dmamask,
+				.coherent_dma_mask	= DMA_BIT_MASK(32),
+				.platform_data		= &eth1_data,
+	},
+	.resource	= eth1_resources,
+	.num_resources	= ARRAY_SIZE(eth1_resources),
+};
+
+void __init at91_add_device_eth(short eth_id, struct at91_eth_data *data)
 {
 	if (!data)
 		return;
 
+	if (cpu_is_at91sam9g15())
+		return;
+
+	if (eth_id && !cpu_is_at91sam9x25())
+		return;
 
 	if (data->phy_irq_pin) {
 		at91_set_gpio_input(data->phy_irq_pin, 0);
 		at91_set_deglitch(data->phy_irq_pin, 1);
 	}
 
-	/* Pins used for MII and RMII */
-	at91_set_A_periph(AT91_PIN_PB4,  0);	/* ETXCK_EREFCK */
-	at91_set_A_periph(AT91_PIN_PB3,  0);	/* ERXDV */
-	at91_set_A_periph(AT91_PIN_PB0,  0);	/* ERX0 */
-	at91_set_A_periph(AT91_PIN_PB1,  0);	/* ERX1 */
-	at91_set_A_periph(AT91_PIN_PB2,  0);	/* ERXER */
-	at91_set_A_periph(AT91_PIN_PB7,  0);	/* ETXEN */
-	at91_set_A_periph(AT91_PIN_PB9,  0);	/* ETX0 */
-	at91_set_A_periph(AT91_PIN_PB10, 0);	/* ETX1 */
-	at91_set_A_periph(AT91_PIN_PB5,  0);	/* EMDIO */
-	at91_set_A_periph(AT91_PIN_PB6,  0);	/* EMDC */
+	if (eth_id == 0) {
+		/* Pins used for MII and RMII */
+		at91_set_A_periph(AT91_PIN_PB4,  0);	/* ETXCK_EREFCK */
+		at91_set_A_periph(AT91_PIN_PB3,  0);	/* ERXDV */
+		at91_set_A_periph(AT91_PIN_PB0,  0);	/* ERX0 */
+		at91_set_A_periph(AT91_PIN_PB1,  0);	/* ERX1 */
+		at91_set_A_periph(AT91_PIN_PB2,  0);	/* ERXER */
+		at91_set_A_periph(AT91_PIN_PB7,  0);	/* ETXEN */
+		at91_set_A_periph(AT91_PIN_PB9,  0);	/* ETX0 */
+		at91_set_A_periph(AT91_PIN_PB10, 0);	/* ETX1 */
+		at91_set_A_periph(AT91_PIN_PB5,  0);	/* EMDIO */
+		at91_set_A_periph(AT91_PIN_PB6,  0);	/* EMDC */
 
-	if (!data->is_rmii) {
-		at91_set_A_periph(AT91_PIN_PB16, 0);	/* ECRS */
-		at91_set_A_periph(AT91_PIN_PB17, 0);	/* ECOL */
-		at91_set_A_periph(AT91_PIN_PB13, 0);	/* ERX2 */
-		at91_set_A_periph(AT91_PIN_PB14, 0);	/* ERX3 */
-		at91_set_A_periph(AT91_PIN_PB15, 0);	/* ERXCK */
-		at91_set_A_periph(AT91_PIN_PB11, 0);	/* ETX2 */
-		at91_set_A_periph(AT91_PIN_PB12, 0);	/* ETX3 */
-		at91_set_A_periph(AT91_PIN_PB8,  0);	/* ETXER */
+		if (!data->is_rmii) {
+			at91_set_A_periph(AT91_PIN_PB16, 0);	/* ECRS */
+			at91_set_A_periph(AT91_PIN_PB17, 0);	/* ECOL */
+			at91_set_A_periph(AT91_PIN_PB13, 0);	/* ERX2 */
+			at91_set_A_periph(AT91_PIN_PB14, 0);	/* ERX3 */
+			at91_set_A_periph(AT91_PIN_PB15, 0);	/* ERXCK */
+			at91_set_A_periph(AT91_PIN_PB11, 0);	/* ETX2 */
+			at91_set_A_periph(AT91_PIN_PB12, 0);	/* ETX3 */
+			at91_set_A_periph(AT91_PIN_PB8,  0);	/* ETXER */
+		}
+
+		/* Clock */
+		at91_clock_associate("macb0_clk", &at91sam9x5_eth0_device.dev, "macb_clk");
+
+		eth0_data = *data;
+		platform_device_register(&at91sam9x5_eth0_device);
+	} else {
+		if (!data->is_rmii)
+			pr_warn("AT91: Only RMII available on interface %s %d.\n",
+				at91sam9x5_eth0_device.name, eth_id);
+
+		/* Pins used for RMII */
+		at91_set_B_periph(AT91_PIN_PC29,  0);	/* ETXCK_EREFCK */
+		at91_set_B_periph(AT91_PIN_PC28,  0);	/* ECRSDV */
+		at91_set_B_periph(AT91_PIN_PC20,  0);	/* ERX0 */
+		at91_set_B_periph(AT91_PIN_PC21,  0);	/* ERX1 */
+		at91_set_B_periph(AT91_PIN_PC16,  0);	/* ERXER */
+		at91_set_B_periph(AT91_PIN_PC27,  0);	/* ETXEN */
+		at91_set_B_periph(AT91_PIN_PC18,  0);	/* ETX0 */
+		at91_set_B_periph(AT91_PIN_PC19,  0);	/* ETX1 */
+		at91_set_B_periph(AT91_PIN_PC31,  0);	/* EMDIO */
+		at91_set_B_periph(AT91_PIN_PC30,  0);	/* EMDC */
+
+		/* Clock */
+		at91_clock_associate("macb1_clk", &at91sam9x5_eth1_device.dev, "macb_clk");
+
+		eth1_data = *data;
+		platform_device_register(&at91sam9x5_eth1_device);
 	}
-
-	/* Clock */
-	at91_clock_associate("macb0_clk", &at91sam9x5_eth_device.dev, "macb_clk");
-
-	eth_data = *data;
-	platform_device_register(&at91sam9x5_eth_device);
 }
 #else
 void __init at91_add_device_eth(struct at91_eth_data *data) {}

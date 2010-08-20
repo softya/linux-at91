@@ -85,7 +85,11 @@ struct at91_eth_data {
 	u8		phy_irq_pin;	/* PHY IRQ */
 	u8		is_rmii;	/* using RMII interface? */
 };
+#if defined(CONFIG_ARCH_AT91SAM9X5)
+extern void __init at91_add_device_eth(short eth_id, struct at91_eth_data *data);
+#else
 extern void __init at91_add_device_eth(struct at91_eth_data *data);
+#endif
 
 #if defined(CONFIG_ARCH_AT91SAM9260) || defined(CONFIG_ARCH_AT91SAM9263) || defined(CONFIG_ARCH_AT91SAM9G20) || defined(CONFIG_ARCH_AT91CAP9) \
 	|| defined(CONFIG_ARCH_AT91SAM9G45) || defined(CONFIG_ARCH_AT91SAM9X5) || defined(CONFIG_ARCH_AT572D940HF)
