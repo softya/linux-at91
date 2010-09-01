@@ -438,6 +438,152 @@ void __init at91_add_device_eth(struct at91_eth_data *data) {}
 
 
 /* --------------------------------------------------------------------
+ *  MMC / SD
+ * -------------------------------------------------------------------- */
+
+#if defined(CONFIG_MMC_ATMELMCI) || defined(CONFIG_MMC_ATMELMCI_MODULE)
+static u64 mmc_dmamask = DMA_BIT_MASK(32);
+static struct mci_platform_data mmc0_data, mmc1_data;
+
+static struct resource mmc0_resources[] = {
+	[0] = {
+		.start	= AT91SAM9X5_BASE_MCI0,
+		.end	= AT91SAM9X5_BASE_MCI0 + SZ_16K - 1,
+		.flags	= IORESOURCE_MEM,
+	},
+	[1] = {
+		.start	= AT91SAM9X5_ID_MCI0,
+		.end	= AT91SAM9X5_ID_MCI0,
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static struct platform_device at91sam9x5_mmc0_device = {
+	.name		= "atmel_mci",
+	.id		= 0,
+	.dev		= {
+				.dma_mask		= &mmc_dmamask,
+				.coherent_dma_mask	= DMA_BIT_MASK(32),
+				.platform_data		= &mmc0_data,
+	},
+	.resource	= mmc0_resources,
+	.num_resources	= ARRAY_SIZE(mmc0_resources),
+};
+
+static struct resource mmc1_resources[] = {
+	[0] = {
+		.start	= AT91SAM9X5_BASE_MCI1,
+		.end	= AT91SAM9X5_BASE_MCI1 + SZ_16K - 1,
+		.flags	= IORESOURCE_MEM,
+	},
+	[1] = {
+		.start	= AT91SAM9X5_ID_MCI1,
+		.end	= AT91SAM9X5_ID_MCI1,
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static struct platform_device at91sam9x5_mmc1_device = {
+	.name		= "atmel_mci",
+	.id		= 1,
+	.dev		= {
+				.dma_mask		= &mmc_dmamask,
+				.coherent_dma_mask	= DMA_BIT_MASK(32),
+				.platform_data		= &mmc1_data,
+	},
+	.resource	= mmc1_resources,
+	.num_resources	= ARRAY_SIZE(mmc1_resources),
+};
+
+/* Consider only one slot : slot 0 */
+void __init at91_add_device_mci(short mmc_id, struct mci_platform_data *data)
+{
+	struct at_dma_slave	*atslave;
+
+	if (!data)
+		return;
+
+	/* Must have at least one usable slot */
+	if (!data->slot[0].bus_width)
+		return;
+
+#if defined(CONFIG_AT_HDMAC) || defined(CONFIG_AT_HDMAC_MODULE)
+	atslave = kzalloc(sizeof(struct at_dma_slave), GFP_KERNEL);
+
+	/* DMA slave channel configuration */
+	atslave->dma_dev = &at_hdmac_device.dev;
+	atslave->reg_width = DW_DMA_SLAVE_WIDTH_32BIT;
+	atslave->cfg = ATC_FIFOCFG_HALFFIFO
+			| ATC_SRC_H2SEL_HW | ATC_DST_H2SEL_HW;
+	atslave->ctrla = ATC_SCSIZE_16 | ATC_DCSIZE_16;
+	if (mmc_id == 0)	/* MCI0 */
+		atslave->cfg |= ATC_SRC_PER(AT_DMA_ID_MCI0)
+			      | ATC_DST_PER(AT_DMA_ID_MCI0);
+
+	else			/* MCI1 */
+		atslave->cfg |= ATC_SRC_PER(AT_DMA_ID_MCI1)
+			      | ATC_DST_PER(AT_DMA_ID_MCI1);
+
+	data->dma_slave = atslave;
+#endif
+
+
+	/* input/irq */
+	if (data->slot[0].detect_pin) {
+		at91_set_gpio_input(data->slot[0].detect_pin, 1);
+		at91_set_deglitch(data->slot[0].detect_pin, 1);
+	}
+	if (data->slot[0].wp_pin)
+		at91_set_gpio_input(data->slot[0].wp_pin, 1);
+
+	if (mmc_id == 0) {		/* MCI0 */
+
+		/* CLK */
+		at91_set_A_periph(AT91_PIN_PA17, 0);
+
+		/* CMD */
+		at91_set_A_periph(AT91_PIN_PA16, 1);
+
+		/* DAT0, maybe DAT1..DAT3 */
+		at91_set_A_periph(AT91_PIN_PA15, 1);
+		if (data->slot[0].bus_width == 4) {
+			at91_set_A_periph(AT91_PIN_PA18, 1);
+			at91_set_A_periph(AT91_PIN_PA19, 1);
+			at91_set_A_periph(AT91_PIN_PA20, 1);
+		}
+
+		mmc0_data = *data;
+		at91_clock_associate("mci0_clk", &at91sam9x5_mmc0_device.dev, "mci_clk");
+		platform_device_register(&at91sam9x5_mmc0_device);
+
+	} else {			/* MCI1 */
+
+		/* CLK */
+		at91_set_B_periph(AT91_PIN_PA13, 0);
+
+		/* CMD */
+		at91_set_B_periph(AT91_PIN_PA12, 1);
+
+		/* DAT0, maybe DAT1..DAT3 */
+		at91_set_B_periph(AT91_PIN_PA11, 1);
+		if (data->slot[0].bus_width == 4) {
+			at91_set_B_periph(AT91_PIN_PA2, 1);
+			at91_set_B_periph(AT91_PIN_PA3, 1);
+			at91_set_B_periph(AT91_PIN_PA4, 1);
+		}
+
+		mmc1_data = *data;
+		at91_clock_associate("mci1_clk", &at91sam9x5_mmc1_device.dev, "mci_clk");
+		platform_device_register(&at91sam9x5_mmc1_device);
+
+	}
+}
+#else
+void __init at91_add_device_mci(short mmc_id, struct mci_platform_data *data) {}
+#endif
+
+
+/* --------------------------------------------------------------------
  *  NAND / SmartMedia
  * -------------------------------------------------------------------- */
 
