@@ -68,7 +68,7 @@ static void __init ek_init_irq(void)
  */
 static struct at91_usbh_data __initdata ek_usbh_hs_data = {
 	.ports		= 2,
-	.vbus_pin	= {AT91_PIN_PC24, AT91_PIN_PC23},
+	.vbus_pin	= {AT91_PIN_PD10, AT91_PIN_PD11},
 };
 
 
@@ -76,7 +76,7 @@ static struct at91_usbh_data __initdata ek_usbh_hs_data = {
  * USB HS Device port
  */
 static struct usba_platform_data __initdata ek_usba_udc_data = {
-	.vbus_pin	= AT91_PIN_PC0,
+	.vbus_pin	= AT91_PIN_PD9,
 };
 
 
@@ -97,13 +97,33 @@ static struct spi_board_info ek_spi_devices[] = {
  * MACB Ethernet devices
  */
 static struct at91_eth_data __initdata ek_macb0_data = {
-	.phy_irq_pin	= AT91_PIN_PB18,
+	.phy_irq_pin	= AT91_PIN_PB8,
 	.is_rmii	= 1,
 };
 
 static struct at91_eth_data __initdata ek_macb1_data = {
-	/*.phy_irq_pin	= AT91_PIN_PB18, !!!!!TODO!!!!! */
+	.phy_irq_pin	= AT91_PIN_PC26,
 	.is_rmii	= 1,
+};
+
+
+/*
+ * MCI (SD/MMC)
+ */
+static struct mci_platform_data __initdata mci0_data = {
+	.slot[0] = {
+		.bus_width	= 4,
+		.detect_pin	= AT91_PIN_PD13,
+		.wp_pin		= -1,
+	},
+};
+
+static struct mci_platform_data __initdata mci1_data = {
+	.slot[0] = {
+		.bus_width	= 4,
+		.detect_pin	= AT91_PIN_PD14,
+		.wp_pin		= -1,
+	},
 };
 
 
@@ -133,13 +153,13 @@ static struct mtd_partition * __init nand_partitions(int size, int *num_partitio
 static struct atmel_nand_data __initdata ek_nand_data = {
 	.ale		= 21,
 	.cle		= 22,
-	.rdy_pin	= AT91_PIN_PD5,
+	.rdy_pin	= AT91_PIN_PD6,
 	.enable_pin	= AT91_PIN_PD4,
 	.partition_info	= nand_partitions,
 #if defined(CONFIG_MTD_NAND_AT91_BUSWIDTH_16)
 	.bus_width_16	= 1,
 #endif
-	.bus_on_d0	= 0,
+	.bus_on_d0	= 1,
 };
 
 static struct sam9_smc_config __initdata ek_nand_smc_config = {
@@ -244,53 +264,20 @@ static struct at91_tsadcc_data ek_tsadcc_data = {
  */
 #if defined(CONFIG_KEYBOARD_GPIO) || defined(CONFIG_KEYBOARD_GPIO_MODULE)
 static struct gpio_keys_button ek_buttons[] = {
-	{	/* BP4, "leftclic" */
+	{	/* BP3, "leftclic" */
 		.code		= BTN_LEFT,
-		.gpio		= AT91_PIN_PC3,
+		.gpio		= AT91_PIN_PB18,
 		.active_low	= 1,
 		.desc		= "left_click",
 		.wakeup		= 1,
 	},
-	{	/* BP3, "rightclic" */
+	{	/* BP4, "rightclic" */
 		.code		= BTN_RIGHT,
-		.gpio		= AT91_PIN_PC2,
+		.gpio		= AT91_PIN_PB19,
 		.active_low	= 1,
 		.desc		= "right_click",
 		.wakeup		= 1,
 	},
-#if 0
-		/* BP3, "joystick" */
-	{
-		.code		= KEY_LEFT,
-		.gpio		= AT91_PIN_PB14,
-		.active_low	= 1,
-		.desc		= "Joystick Left",
-	},
-	{
-		.code		= KEY_RIGHT,
-		.gpio		= AT91_PIN_PB15,
-		.active_low	= 1,
-		.desc		= "Joystick Right",
-	},
-	{
-		.code		= KEY_UP,
-		.gpio		= AT91_PIN_PB16,
-		.active_low	= 1,
-		.desc		= "Joystick Up",
-	},
-	{
-		.code		= KEY_DOWN,
-		.gpio		= AT91_PIN_PB17,
-		.active_low	= 1,
-		.desc		= "Joystick Down",
-	},
-	{
-		.code		= KEY_ENTER,
-		.gpio		= AT91_PIN_PB18,
-		.active_low	= 1,
-		.desc		= "Joystick Press",
-	},
-#endif
 };
 
 static struct gpio_keys_platform_data ek_button_data = {
@@ -324,66 +311,34 @@ static void __init ek_add_device_buttons(void) {}
 
 
 /*
- * LEDs ... these could all be PWM-driven, for variable brightness
+ * LEDs
  */
 static struct gpio_led ek_leds[] = {
-	{	/* "top" led, red, powerled */
-		.name			= "d2",
-		.gpio			= AT91_PIN_PC19,
-		.default_trigger	= "heartbeat",
-	},
-	{	/* "left" led, green, userled2, pwm3 */
-		.name			= "d3",
-		.gpio			= AT91_PIN_PC20,
-		.active_low		= 1,
+	{	/* "left" led, blue, userled1 */
+		.name			= "d1",
+		.gpio			= AT91_PIN_PB18,
 		.default_trigger	= "nand-disk",
 	},
-#if !(defined(CONFIG_LEDS_ATMEL_PWM) || defined(CONFIG_LEDS_ATMEL_PWM_MODULE))
-	{	/* "right" led, green, userled1, pwm1 */
-		.name			= "d4",
-		.gpio			= AT91_PIN_PC21,
+	{	/* "right" led, red, userled2 */
+		.name			= "d2",
+		.gpio			= AT91_PIN_PD21,
 		.active_low		= 1,
 		.default_trigger	= "mmc0",
 	},
-#endif
 };
 
 
 /*
- * PWM Leds
+ * I2C Devices
  */
-static struct gpio_led ek_pwm_led[] = {
-#if defined(CONFIG_LEDS_ATMEL_PWM) || defined(CONFIG_LEDS_ATMEL_PWM_MODULE)
-	{	/* "right" led, green, userled1, pwm1 */
-		.name			= "d4",
-		.gpio			= 1,	/* is PWM channel number */
-		.active_low		= 1,
-		.default_trigger	= "none",
+static struct i2c_board_info __initdata ek_i2c_devices[] = {
+	{
+		I2C_BOARD_INFO("24c512", 0x50)
 	},
-#endif
+	{
+		I2C_BOARD_INFO("wm8731", 0x1b)
+	},
 };
-
-
-/*
- * Test driver
- */
-static struct platform_device ek_drv_device = {
-	.name		= "drv",
-	.id		= -1,
-	.num_resources	= 0,
-	.dev		= {
-		.platform_data	= NULL,
-	}
-};
-
-static void __init ek_add_device_drv(void)
-{
-	/* PCK0 */
-	at91_set_C_periph(AT91_PIN_PC15, 0);
-
-	platform_device_register(&ek_drv_device);
-}
-
 
 
 static void __init ek_board_init(void)
@@ -400,10 +355,13 @@ static void __init ek_board_init(void)
 	/* Ethernet */
 	at91_add_device_eth(0, &ek_macb0_data);
 	at91_add_device_eth(1, &ek_macb1_data);
+	/* MMC */
+	at91_add_device_mci(0, &mci0_data);
+	at91_add_device_mci(1, &mci1_data);
 	/* NAND */
 	ek_add_device_nand();
 	/* I2C */
-	at91_add_device_i2c(0, NULL, 0);
+	at91_add_device_i2c(0, ek_i2c_devices, ARRAY_SIZE(ek_i2c_devices));
 	/* LCD Controller */
 //	at91_add_device_lcdc(&ek_lcdc_data);
 	/* Touch Screen */
@@ -412,9 +370,10 @@ static void __init ek_board_init(void)
 	ek_add_device_buttons();
 	/* LEDs */
 	at91_gpio_leds(ek_leds, ARRAY_SIZE(ek_leds));
-	at91_pwm_leds(ek_pwm_led, ARRAY_SIZE(ek_pwm_led));
-
-	ek_add_device_drv();
+	/* PCK0 provides MCLK to the WM8731 */
+	at91_set_B_periph(AT91_PIN_PB10, 0);
+	/* SSC (for WM8731) */
+	at91_add_device_ssc(AT91SAM9X5_ID_SSC, ATMEL_SSC_TX | ATMEL_SSC_RX);
 }
 
 MACHINE_START(AT91SAM9X5EK, "Atmel AT91SAM9X5-EK")
