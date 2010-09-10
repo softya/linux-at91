@@ -626,11 +626,12 @@ void __init at91_add_device_nand(struct atmel_nand_data *data)
 	csa = at91_sys_read(AT91_MATRIX_EBICSA);
 	csa |= AT91_MATRIX_EBI_CS3A_SMC_NANDFLASH;
 
-	if (!data->bus_on_d0)
+	if (!data->bus_on_d0) {
 		csa |= AT91_MATRIX_NFD0_ON_D16;
-
-	if (!data->bus_width_16)
-		csa |= AT91_MATRIX_MP_ON;
+	       if (!data->bus_width_16)
+			csa |= AT91_MATRIX_MP_ON;
+	} else
+		csa &= ~(AT91_MATRIX_NFD0_ON_D16 | AT91_MATRIX_MP_ON);
 
 	at91_sys_write(AT91_MATRIX_EBICSA, csa);
 
