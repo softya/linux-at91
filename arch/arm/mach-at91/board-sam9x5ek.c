@@ -372,7 +372,11 @@ static void __init ek_board_init(void)
 	/* LEDs */
 	at91_gpio_leds(ek_leds, ARRAY_SIZE(ek_leds));
 	/* PCK0 provides MCLK to the WM8731 */
+	/*
+	 * NOTE: removed due to hardware design conflict.
 	at91_set_B_periph(AT91_PIN_PB10, 0);
+	 *
+	 */
 	/* SSC (for WM8731) */
 	at91_add_device_ssc(AT91SAM9X5_ID_SSC, ATMEL_SSC_TX | ATMEL_SSC_RX);
 }
