@@ -108,15 +108,12 @@
 #define		AT91_MATRIX_EBI_DBPUC		(1 << 8)	/* Data Bus Pull-up Configuration */
 #define			AT91_MATRIX_EBI_DBPU_ON			(0 << 8)
 #define			AT91_MATRIX_EBI_DBPU_OFF		(1 << 8)
-#define		AT91_MATRIX_EBI_VDDIOMSEL	(1 << 16)	/* Memory voltage selection */
-#define			AT91_MATRIX_EBI_VDDIOMSEL_1_8V		(0 << 16)
-#define			AT91_MATRIX_EBI_VDDIOMSEL_3_3V		(1 << 16)
+#define		AT91_MATRIX_EBI_DBPDC		(1 << 9)	/* Data Bus Pull-up Configuration */
+#define			AT91_MATRIX_EBI_DBPD_ON			(0 << 9)
+#define			AT91_MATRIX_EBI_DBPD_OFF		(1 << 9)
 #define		AT91_MATRIX_EBI_EBI_IOSR	(1 << 17)	/* EBI I/O slew rate selection */
 #define			AT91_MATRIX_EBI_EBI_IOSR_REDUCED	(0 << 17)
 #define			AT91_MATRIX_EBI_EBI_IOSR_NORMAL		(1 << 17)
-#define		AT91_MATRIX_EBI_DDR_IOSR	(1 << 18)	/* DDR2 dedicated port I/O slew rate selection */
-#define			AT91_MATRIX_EBI_DDR_IOSR_REDUCED	(0 << 18)
-#define			AT91_MATRIX_EBI_DDR_IOSR_NORMAL		(1 << 18)
 #define		AT91_MATRIX_NFD0_SELECT		(1 << 24)	/* NAND Flash Data Bus Selection */
 #define			AT91_MATRIX_NFD0_ON_D0			(0 << 24)
 #define			AT91_MATRIX_NFD0_ON_D16			(1 << 24)
