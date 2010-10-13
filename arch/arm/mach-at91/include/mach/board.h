@@ -152,6 +152,7 @@ struct atmel_uart_data {
 	short			use_dma_tx;	/* use transmit DMA? */
 	short			use_dma_rx;	/* use receive DMA? */
 	void __iomem		*regs;		/* virt. base address, if any */
+	struct at_dma_slave	*dma_tx_slave;
 	struct serial_rs485	rs485;		/* rs485 settings */
 };
 extern void __init at91_add_device_serial(void);

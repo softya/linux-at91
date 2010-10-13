@@ -1296,8 +1296,8 @@ static struct resource usart0_resources[] = {
 };
 
 static struct atmel_uart_data usart0_data = {
-	.use_dma_tx	= 0,
-	.use_dma_rx	= 0,
+	.use_dma_tx	= 1,
+	.use_dma_rx	= 0,				/* doesn't support */
 };
 
 static u64 usart0_dmamask = DMA_BIT_MASK(32);
@@ -1594,8 +1594,34 @@ void __init at91_add_device_serial(void)
 	int i;
 
 	for (i = 0; i < ATMEL_MAX_UART; i++) {
-		if (at91_usarts[i])
+		if (at91_usarts[i]) {
+#if defined(CONFIG_AT_HDMAC) || defined(CONFIG_AT_HDMAC_MODULE)
+			int peripheral_id		= platform_get_irq(at91_usarts[i], 0);
+			struct atmel_uart_data *pdata	= at91_usarts[i]->dev.platform_data;
+
+			if (pdata->use_dma_tx) {
+				struct at_dma_slave	*atslave;
+
+				atslave = kzalloc(sizeof(struct at_dma_slave), GFP_KERNEL);
+
+				/* DMA slave channel configuration */
+				if (peripheral_id == AT91SAM9X5_ID_USART0
+				    || peripheral_id == AT91SAM9X5_ID_USART1
+				    || peripheral_id == AT91SAM9X5_ID_UART0)
+					atslave->dma_dev = &at_hdmac0_device.dev;
+				else
+					atslave->dma_dev = &at_hdmac1_device.dev;
+
+				atslave->reg_width = DW_DMA_SLAVE_WIDTH_8BIT;
+				atslave->cfg = ATC_FIFOCFG_HALFFIFO
+						| ATC_SRC_H2SEL_SW | ATC_DST_H2SEL_HW
+						| (AT_DMA_ID_USART0_TX << 4); /*ATC_DST_PER(peripheral_id);*/
+
+				pdata->dma_tx_slave = atslave;
+			}
+#endif
 			platform_device_register(at91_usarts[i]);
+		}
 	}
 
 	if (!atmel_default_console_device)
