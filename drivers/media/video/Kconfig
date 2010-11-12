@@ -80,6 +80,15 @@ menuconfig VIDEO_CAPTURE_DRIVERS
 	  Some of those devices also supports FM radio.
 
 if VIDEO_CAPTURE_DRIVERS && VIDEO_V4L2
+config VIDEO_ATMEL_ISI
+	tristate "ATMEL video support"
+	depends on VIDEO_DEV
+	default n
+	---help---
+	  This module makes the ATMEL Image Sensor Interface available
+	  as a v4l2 device.
+
+	  When in doubt, say N.
 
 config VIDEO_ADV_DEBUG
 	bool "Enable advanced debug functionality"
@@ -328,6 +337,22 @@ config VIDEO_OV7670
 	  This is a Video4Linux2 sensor-level driver for the OmniVision
 	  OV7670 VGA camera.  It currently only works with the M88ALP01
 	  controller.
+
+config VIDEO_OV9655
+	tristate "OmniVision OV9655 sensor support"
+	depends on I2C && VIDEO_V4L2
+	---help---
+	  This is a Video4Linux2 sensor-level driver for the OmniVision
+	  OV9655 camera.  It is currently working with the ATMEL AT91
+	  camera controller.
+
+config VIDEO_OV2640
+	tristate "OmnVision OV2640 sensor support"
+	depends on I2C && VIDEO_V4L2
+	---help---
+	  This is a Video4Linux2 sensor-level driver for the OmniVision
+	  OV2640 camera.  It is currently working with the ATMEL AT91
+	  camera controller.
 
 config VIDEO_MT9V011
 	tristate "Micron mt9v011 sensor support"
