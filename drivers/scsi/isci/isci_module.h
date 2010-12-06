@@ -72,9 +72,10 @@
 #include <linux/list.h>
 #include <linux/types.h>
 #include <linux/spinlock.h>
+#include <linux/interrupt.h>
+#include <linux/firmware.h>
 #include <scsi/libsas.h>
 #include <scsi/scsi.h>
-#include <linux/interrupt.h>
 
 #include "sci_types.h"
 #include "sci_base_controller.h"
@@ -113,6 +114,32 @@ struct isci_module {
 	struct scsi_transport_template *stt;
 
 	int loglevel;
+};
+
+#define ISCI_FW_NAME		"isci_firmware.bin"
+
+#define ISCI_FIRMWARE_MIN_SIZE	149
+
+#define ISCI_FW_IDSIZE		12
+#define ISCI_FW_VER_OFS		ISCI_FW_IDSIZE
+#define ISCI_FW_SUBVER_OFS	ISCI_FW_VER_OFS + 1
+#define ISCI_FW_DATA_OFS	ISCI_FW_SUBVER_OFS + 1
+
+#define ISCI_FW_HDR_PHYMASK	0x1
+#define ISCI_FW_HDR_PHYGEN	0x2
+#define ISCI_FW_HDR_SASADDR	0x3
+#define ISCI_FW_HDR_EOF		0xff
+
+struct isci_firmware {
+	const u8 *id;
+	u8 version;
+	u8 subversion;
+	const u32 *phy_masks;
+	u8 phy_masks_size;
+	const u32 *phy_gens;
+	u8 phy_gens_size;
+	const u64 *sas_addrs;
+	u8 sas_addrs_size;
 };
 
 #define LOGGER_PRINT(kern_prefix, format, verb)	\
@@ -176,17 +203,15 @@ void scic_cb_logger_log_error(
 	...);
 #endif
 
-#ifdef OEM_PARAM_WORKAROUND
-
 enum sci_status isci_module_parse_oem_parameters(
 	union scic_oem_parameters *oem_params,
-	int scu_index);
-
-#endif
+	int scu_index,
+	struct isci_firmware *fw);
 
 enum sci_status isci_module_parse_user_parameters(
 	union scic_user_parameters *user_params,
-	int scu_index);
+	int scu_index,
+	struct isci_firmware *fw);
 
 #ifdef ISCI_SLAVE_ALLOC
 extern int ISCI_SLAVE_ALLOC(struct scsi_device *scsi_dev);

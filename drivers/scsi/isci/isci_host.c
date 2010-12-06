@@ -593,6 +593,68 @@ void isci_host_init_controller_names(
 		    isci_host->cache_name, isci_host->dma_pool_name, 0);
 }
 
+static int isci_verify_firmware(const struct firmware *fw,
+				struct isci_firmware *isci_fw)
+{
+	const u8 *tmp;
+
+	if (fw->size < ISCI_FIRMWARE_MIN_SIZE)
+		return -EINVAL;
+
+	tmp = fw->data;
+
+	/* 12th char should be the NULL terminate for the ID string */
+	if (tmp[11] != '\0')
+		return -EINVAL;
+
+	if (strncmp("#SCU MAGIC#", tmp, 11) != 0)
+		return -EINVAL;
+
+	isci_fw->id = tmp;
+	isci_fw->version = fw->data[ISCI_FW_VER_OFS];
+	isci_fw->subversion = fw->data[ISCI_FW_SUBVER_OFS];
+
+	tmp = fw->data + ISCI_FW_DATA_OFS;
+
+	while (*tmp != ISCI_FW_HDR_EOF) {
+		switch (*tmp) {
+		case ISCI_FW_HDR_PHYMASK:
+			tmp++;
+			isci_fw->phy_masks_size = *tmp;
+			tmp++;
+			isci_fw->phy_masks = (const u32 *)tmp;
+			tmp += sizeof(u32) * isci_fw->phy_masks_size;
+			break;
+
+		case ISCI_FW_HDR_PHYGEN:
+			tmp++;
+			isci_fw->phy_gens_size = *tmp;
+			tmp++;
+			isci_fw->phy_gens = (const u32 *)tmp;
+			tmp += sizeof(u32) * isci_fw->phy_gens_size;
+			break;
+
+		case ISCI_FW_HDR_SASADDR:
+			tmp++;
+			isci_fw->sas_addrs_size = *tmp;
+			tmp++;
+			isci_fw->sas_addrs = (const u64 *)tmp;
+			tmp += sizeof(u64) * isci_fw->sas_addrs_size;
+			break;
+
+		default:
+			isci_logger(error,
+				    "bad field in firmware binary blob\n", 0);
+			return -EINVAL;
+		}
+	}
+
+	printk(KERN_INFO "isci firmware v%u.%u loaded.\n",
+	       isci_fw->version, isci_fw->subversion);
+
+	return SCI_SUCCESS;
+}
+
 #define SCI_MAX_TIMER_COUNT 25
 
 /**
@@ -614,6 +676,8 @@ int isci_host_init(
 		= &isci_host->scic_irq_handlers[0];
 	union scic_oem_parameters scic_oem_params;
 	union scic_user_parameters scic_user_params;
+	const struct firmware *fw = NULL;
+	struct isci_firmware *isci_fw = NULL;
 
 	/*------------- SCIC controller Initialization Stuff ----------------
 	 * alloc and intialize timers, add to timer_list
@@ -682,37 +746,62 @@ int isci_host_init(
 	scic_oem_parameters_get(controller, &scic_oem_params);
 	scic_user_parameters_get(controller, &scic_user_params);
 
-#ifdef OEM_PARAM_WORKAROUND
-
-	/* grab any OEM and USER parameters specified at module load */
-	status = isci_module_parse_oem_parameters(&scic_oem_params,
-						  isci_host->controller_id
-						  );
-
-	if (status != SCI_SUCCESS) {
-		printk(KERN_WARNING "%s: isci_module_parse_oem_parameters"
-		       " failed\n", __func__);
-		err = -ENODEV;
-		goto out;
+	isci_fw = kzalloc(sizeof(struct isci_firmware), GFP_KERNEL);
+	if (!isci_fw) {
+		dev_printk(KERN_WARNING, &isci_host->pdev->dev,
+			   "allocating firmware struct failed\n");
+		dev_printk(KERN_WARNING, &isci_host->pdev->dev,
+			   "Default OEM configuration being used:"
+			   " 4 narrow ports, and default SAS Addresses\n");
+		goto set_default_params;
 	}
 
-#else
-
-	printk(KERN_WARNING "%s: WARNING! default OEM configuration being used:"
-	       " 4 narrow ports, and default SAS Addresses\n",
-	       __func__);
-
-#endif  /* OEM_PARAM_WORKAROUND */
-
-	status = isci_module_parse_user_parameters(&scic_user_params,
-						   isci_host->controller_id);
-
-	if (status != SCI_SUCCESS) {
-		printk(KERN_WARNING "%s: isci_module_parse_user_parameters"
-		       " failed\n", __func__);
-		err = -ENODEV;
-		goto out;
+	status = request_firmware(&fw, ISCI_FW_NAME, &isci_host->pdev->dev);
+	if (status) {
+		dev_printk(KERN_WARNING, &isci_host->pdev->dev,
+			   "Loading firmware failedi, using default values\n");
+		dev_printk(KERN_WARNING, &isci_host->pdev->dev,
+			   "Default OEM configuration being used:"
+			   " 4 narrow ports, and default SAS Addresses\n");
+		goto set_default_params;
 	}
+	else {
+		status = isci_verify_firmware(fw, isci_fw);
+		if (status != SCI_SUCCESS) {
+			dev_printk(KERN_WARNING, &isci_host->pdev->dev,
+				   "firmware verification failed\n");
+			dev_printk(KERN_WARNING, &isci_host->pdev->dev,
+				   "Default OEM configuration being used:"
+				   " 4 narrow ports, and default SAS "
+				   "Addresses\n");
+			goto set_default_params;
+		}
+
+		/* grab any OEM and USER parameters specified at module load */
+		status = isci_module_parse_oem_parameters(&scic_oem_params,
+						  isci_host->controller_id,
+						  isci_fw);
+		if (status != SCI_SUCCESS) {
+			dev_printk(KERN_WARNING, &isci_host->pdev->dev,
+				   "parsing firmware oem parameters failed\n");
+			err = -EINVAL;
+			goto out;
+		}
+
+		status = isci_module_parse_user_parameters(
+					&scic_user_params,
+					isci_host->controller_id,
+					isci_fw);
+		if (status != SCI_SUCCESS) {
+			dev_printk(KERN_WARNING, &isci_host->pdev->dev, 
+			       "%s: isci_module_parse_user_parameters"
+			       " failed\n", __func__);
+			err = -EINVAL;
+			goto out;
+		}
+	}
+
+ set_default_params:
 
 	status = scic_oem_parameters_set(isci_host->core_controller,
 					 &scic_oem_params
@@ -859,6 +948,10 @@ int isci_host_init(
 /* SPB_Debug: undo controller init, construct and alloc, remove from parent
  * controller list. */
  out:
+	if (isci_fw)
+		kfree(isci_fw);
+	if (fw)
+		release_firmware(fw);
 	return err;
 
 }

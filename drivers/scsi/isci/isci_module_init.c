@@ -155,92 +155,6 @@ static struct pci_driver isci_pci_driver = {
 	.remove		= __devexit_p(isci_module_pci_remove),
 };
 
-/*
- * Maintain an 'uninitialized' value for module parameters
- */
-#define UNINIT_PARAM 255
-
-#ifdef OEM_PARAM_WORKAROUND
-/*
- * OEM settable parameters. Note: These are temporary, eventually
- * we will obtain the settings for these parameters via NVRAM on
- * the SCU controller, but requires OROM support which does not
- * exist yet...
- *
- * Initialize to invalid values, will determine defaults later
- *
- * For all defined arrays:
- * elements 0-3 are for SCU0, ports 0-3
- * elements 4-7 are for SCU1, ports 0-3
- *
- * valid configurations for one SCU are:
- *  P0  P1  P2  P3
- * ----------------
- * 0xF,0x0,0x0,0x0 # 1 x4 port
- * 0x3,0x0,0x4,0x8 # Phys 0 and 1 are a x2 port, phy 2 and phy 3 are each x1
- *                 # ports
- * 0x1,0x2,0xC,0x0 # Phys 0 and 1 are each x1 ports, phy 2 and phy 3 are a x2
- *                 # port
- * 0x3,0x0,0xC,0x0 # Phys 0 and 1 are a x2 port, phy 2 and phy 3 are a x2 port
- * 0x1,0x2,0x4,0x8 # Each phy is a x1 port (this is the default configuration)
- *
- * if there is a port/phy on which you do not wish to override the default
- * values, use the value assigned to UNINIT_PARAM.
- */
-static unsigned int phy_mask[SCI_MAX_PHYS * SCI_MAX_CONTROLLERS] = {
-	UNINIT_PARAM,
-	UNINIT_PARAM,
-	UNINIT_PARAM,
-	UNINIT_PARAM,
-	UNINIT_PARAM,
-	UNINIT_PARAM,
-	UNINIT_PARAM,
-	UNINIT_PARAM
-};
-
-static unsigned int phy_mask_num;
-module_param_array(phy_mask, int, &phy_mask_num, 0);
-MODULE_PARM_DESC(phy_mask, "phy mask for all 8 ports");
-
-/*
- * sas_addresses[] will contain NULL pointers when not set during
- * module load.
- *
- * if there is a port/phy on which you do not wish to override the default
- * values, use the value "0000000000000000". SAS address of zero's is
- * considered invalid and will not be used.
- */
-static char *sas_addresses[SCI_MAX_PHYS * SCI_MAX_CONTROLLERS];
-
-static unsigned int addr_num;
-module_param_array(sas_addresses, charp, &addr_num, 0);
-MODULE_PARM_DESC(sas_addresses, "sas addresses for all 8 ports");
-
-#endif
-
-/*
- * User settable parameters. Initialize to invalid values, will
- * determine defaults later
- *
- * For all defined arrays:
- * elements 0-3 are for SCU0, ports 0-3
- * elements 4-7 are for SCU1, ports 0-3
- */
-static unsigned int phy_gen[SCI_MAX_PHYS * SCI_MAX_CONTROLLERS] = {
-	UNINIT_PARAM,
-	UNINIT_PARAM,
-	UNINIT_PARAM,
-	UNINIT_PARAM,
-	UNINIT_PARAM,
-	UNINIT_PARAM,
-	UNINIT_PARAM,
-	UNINIT_PARAM
-};
-
-static unsigned int phy_gen_num;
-module_param_array(phy_gen, int, &phy_gen_num, 0);
-MODULE_PARM_DESC(phy_gen, "phy generation assignment for all 8 ports");
-
 /* linux isci specific settings */
 int loglevel = 3;
 module_param(loglevel, int, S_IRUGO | S_IWUSR);
@@ -657,8 +571,6 @@ static int isci_module_enable_interrupts(
 	return err;
 }
 
-#ifdef OEM_PARAM_WORKAROUND
-
 /**
  * isci_module_parse_oem_parameters() - This method will take OEM parameters
  *    from the module init parameters and copy them to oem_params. This will
@@ -671,7 +583,8 @@ static int isci_module_enable_interrupts(
  */
 enum sci_status isci_module_parse_oem_parameters(
 	union scic_oem_parameters *oem_params,
-	int scu_index)
+	int scu_index,
+	struct isci_firmware *fw)
 {
 	int i;
 
@@ -683,58 +596,26 @@ enum sci_status isci_module_parse_oem_parameters(
 	}
 
 	for (i = 0; i < SCI_MAX_PHYS; i++) {
-		unsigned int array_idx = i + (SCI_MAX_PHYS * scu_index);
+		int array_idx = i + (SCI_MAX_PHYS * scu_index);
+		u64 sas_addr = fw->sas_addrs[array_idx];
 
-		char *p = sas_addresses[array_idx];
-
-		u32 saddr_high;
-		u32 saddr_low;
-		int addr_idx;
-		u32 addr_len = 0;
-
-		saddr_high = 0;
-		saddr_low = 0;
-
-		if (p != NULL)
-			addr_len = strlen(p);
-
-		if ((p != NULL) && (addr_len < 16)) {
-
-			for (addr_idx = 0; addr_idx < addr_len; addr_idx++) {
-				unsigned char d = isdigit(p[addr_idx])
-						  ? p[addr_idx] - '0'
-						  : p[addr_idx] - 'A' + 10;
-
-				if (addr_idx < 8)
-					saddr_high |= (unsigned int)d
-						      << ((7 - addr_idx) * 4);
-				else
-					saddr_low |= (unsigned int)d
-						     << ((15 - addr_idx) * 4);
-			}
-
-			if (!(saddr_high == 0 && saddr_low == 0)) {
-				oem_params->sds1.phys[i].sas_address.high
-					= saddr_high;
-				oem_params->sds1.phys[i].sas_address.low
-					= saddr_low;
-			}
-
+		if (sas_addr != 0) {
+			oem_params->sds1.phys[i].sas_address.low =
+				(u32)(sas_addr & 0xffffffff);
+			oem_params->sds1.phys[i].sas_address.high =
+				(u32)((sas_addr >> 32) & 0xffffffff);
 		}
 	}
 
 	for (i = 0; i < SCI_MAX_PORTS; i++) {
-		unsigned int array_idx = i + (SCI_MAX_PORTS * scu_index);
-		unsigned int pmask = phy_mask[array_idx];
+		int array_idx = i + (SCI_MAX_PORTS * scu_index);
+		u32 pmask = fw->phy_masks[array_idx];
 
-		if (pmask != UNINIT_PARAM)
-			oem_params->sds1.ports[i].phy_mask = pmask;
+		oem_params->sds1.ports[i].phy_mask = pmask;
 	}
 
 	return SCI_SUCCESS;
 }
-
-#endif
 
 /**
  * isci_module_parse_user_parameters() - This method will take user parameters
@@ -748,7 +629,8 @@ enum sci_status isci_module_parse_oem_parameters(
  */
 enum sci_status isci_module_parse_user_parameters(
 	union scic_user_parameters *user_params,
-	int scu_index)
+	int scu_index,
+	struct isci_firmware *fw)
 {
 	int i;
 
@@ -759,12 +641,10 @@ enum sci_status isci_module_parse_user_parameters(
 	}
 
 	for (i = 0; i < SCI_MAX_PORTS; i++) {
-		unsigned int array_idx = i + (SCI_MAX_PORTS * scu_index);
-		unsigned int gen = phy_gen[array_idx];
+		int array_idx = i + (SCI_MAX_PORTS * scu_index);
+		u32 gen = fw->phy_gens[array_idx];
 
-		/* only grab values that are not set as uninitialized */
-		if (gen != UNINIT_PARAM)
-			user_params->sds1.phys[i].max_speed_generation = gen;
+		user_params->sds1.phys[i].max_speed_generation = gen;
 
 	}
 
