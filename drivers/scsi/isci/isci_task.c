@@ -269,86 +269,32 @@ int isci_task_execute_task(
 			isci_host_can_dequeue(isci_host, 1);
 
 		} else {
+			/* build and send the request. */
+			status = isci_request_execute(isci_host, task, &request,
+						      gfp_flags);
 
-			/* Guard against abort requests while starting the
-			 * I/O.
-			 */
-			spin_lock_irqsave(&task->task_state_lock, flags);
-
-			if (unlikely(task->task_state_flags
-				     & SAS_TASK_STATE_ABORTED)) {
-
-				/* Task was aborted by the midlayers before
-				 * it was dequeued here.
-				 */
-				spin_unlock_irqrestore(&task->task_state_lock,
-						       flags
-						       );
-
-				isci_logger(warning,
-					    "task %p already aborted!\n",
-					    task
-					    );
-
-				isci_task_complete_for_upper_layer(
-					task,
-					SAS_TASK_UNDELIVERED,
-					SAM_STAT_TASK_ABORTED,
-					isci_perform_normal_io_completion
-					);
-
-				isci_host_can_dequeue(isci_host, 1);
-
-			} else {
-
-				spin_unlock_irqrestore(
-					&task->task_state_lock, flags
-					);
-
-				/* build and send the request. */
-				status = isci_request_execute(
-					isci_host,
-					task,
-					&request,
-					gfp_flags
-					);
-
+			if (status == SCI_SUCCESS) {
 				spin_lock_irqsave(&task->task_state_lock, flags);
-
-				if (likely(SCI_SUCCESS == status)) {
-
-					task->task_state_flags
-						|= SAS_TASK_AT_INITIATOR;
-
-					spin_unlock_irqrestore(
-						&task->task_state_lock, flags
-						);
-
-				} else {
-
-					spin_unlock_irqrestore(
-						&task->task_state_lock, flags
-						);
-
-					/* Indicate QUEUE_FULL so that the scsi
-					 * midlayer retries. if the request
-					 * failed for rmenote device reasons,
-					 * it gets returned as
-					 * SAS_TASK_UNDELIVERED next time
-					 * through.
-					 */
-					isci_task_complete_for_upper_layer(
+				task->task_state_flags |= SAS_TASK_AT_INITIATOR;
+				spin_unlock_irqrestore(&task->task_state_lock, flags);
+			} else {
+				/* Indicate QUEUE_FULL so that the scsi
+				 * midlayer retries. if the request
+				 * failed for remote device reasons,
+				 * it gets returned as
+				 * SAS_TASK_UNDELIVERED next time
+				 * through.
+				 */
+				isci_task_complete_for_upper_layer(
 						task,
 						SAS_TASK_COMPLETE,
 						SAS_QUEUE_FULL,
 						isci_perform_normal_io_completion
 						);
-					isci_host_can_dequeue(isci_host, 1);
-				}
+				isci_host_can_dequeue(isci_host, 1);
 			}
 		}
 		if (device) {
-
 			spin_unlock_irqrestore(&device->host_quiesce_lock,
 					       quiesce_flags
 					       );
