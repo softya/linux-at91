@@ -545,25 +545,6 @@ enum sci_status isci_module_parse_user_parameters(
 * P U B L I C    M E T H O D S
 ******************************************************************************/
 
-static ssize_t isci_show_can_queue(
-	struct device *dev,
-	struct device_attribute *attr,
-	char *buf)
-{
-	static int min_queue = 256;
-	struct isci_host *isci_host =
-		pci_get_drvdata(to_pci_dev(dev));
-
-	if (isci_host->can_queue < min_queue)
-		min_queue = isci_host->can_queue;
-	return snprintf(buf, PAGE_SIZE, "can_queue = %d, min_queue = %d\n",
-			isci_host->can_queue, min_queue);
-}
-
-static
-DEVICE_ATTR(can_queue, S_IRUGO,
-	    isci_show_can_queue, NULL);
-
 /**
  * isci_module_init_pci_function_name() - This method will initialize the name
  *    used in PCI Function initialization.
@@ -742,8 +723,6 @@ static int __devinit isci_module_pci_probe(
 		goto lib_out;
 	}
 
-	err = device_create_file(&dev_p->dev, &dev_attr_can_queue);
-
 	/*----------- SCSI Midlayer Initialization Stuff -------------------*/
 	/*
 	 *  Allocate the SCSI Host structures and link them to their
@@ -874,8 +853,6 @@ static void __devexit isci_module_pci_remove(struct pci_dev *dev_p)
 		isci_host_deinit(isci_host);
 		scic_controller_disable_interrupts(isci_host->core_controller);
 	}
-
-	device_remove_file(&dev_p->dev, &dev_attr_can_queue);
 
 	list_del(&(isci_pci->node));
 	if (list_empty(&(isci_module_struct.pci_devices)))
