@@ -197,7 +197,7 @@ struct isci_pci_func {
 		int len;
 	} pci_bar[SCI_PCI_BAR_COUNT];
 
-#if defined(PBG_HBA_BETA_BUILD)
+#if defined(CONFIG_PBG_HBA_BETA)
 	struct msix_entry msix_entries[4 + 1];
 #else
 	struct msix_entry msix_entries[SCI_NUM_MSI_X_INT + 1];

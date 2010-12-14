@@ -562,13 +562,13 @@ void scic_sds_controller_afe_initialization(
 	scic_cb_stall_execution(AFE_REGISTER_WRITE_DELAY);
 
 	/* Configure bias currents to normal */
-#if defined(PBG_HBA_A0_BUILD)
+#if defined(CONFIG_PBG_HBA_A0)
 	scu_afe_register_write(
 		this_controller, afe_bias_control, 0x00005500);
-#elif defined(PBG_HBA_A2_BUILD)
+#elif defined(CONFIG_PBG_HBA_A2)
 	scu_afe_register_write(
 		this_controller, afe_bias_control, 0x00005A00);
-#else   /* defined(PBG_HBA_BETA_BUILD)
+#else   /* defined(CONFIG_PBG_HBA_BETA)
 	 * / @todo presently program the B0 board with the same afe values as A2
 	 */
 	scu_afe_register_write(
@@ -577,12 +577,12 @@ void scic_sds_controller_afe_initialization(
 
 	scic_cb_stall_execution(AFE_REGISTER_WRITE_DELAY);
 
-#if !defined(PBG_HBA_BETA_BUILD)
+#if !defined(CONFIG_PBG_HBA_BETA)
 	/* Enable PLL */
 	scu_afe_register_write(
 		this_controller, afe_pll_control0, 0x80040908);
 	scic_cb_stall_execution(AFE_REGISTER_WRITE_DELAY);
-#else   /* defined(PBG_HBA_BETA_BUILD)
+#else   /* defined(CONFIG_PBG_HBA_BETA)
 	 * Enable PLL
 	 */
 	scu_afe_register_write(
@@ -597,15 +597,15 @@ void scic_sds_controller_afe_initialization(
 		scic_cb_stall_execution(AFE_REGISTER_WRITE_DELAY);
 	} while ((afe_status & 0x00001000) == 0);
 
-#if !defined(PBG_HBA_BETA_BUILD)
+#if !defined(CONFIG_PBG_HBA_BETA)
 	/* Shorten SAS SNW lock time (RxLock timer value from 76 us to 50 us) */
 	scu_afe_register_write(
 		this_controller, afe_pmsn_master_control0, 0x7bcc96ad);
 	scic_cb_stall_execution(AFE_REGISTER_WRITE_DELAY);
-#endif  /* !defined(PBG_HBA_BETA_BUILD) */
+#endif  /* !defined(CONFIG_PBG_HBA_BETA) */
 
 	for (phy_id = 0; phy_id < SCI_MAX_PHYS; phy_id++) {
-#if !defined(PBG_HBA_BETA_BUILD)
+#if !defined(CONFIG_PBG_HBA_BETA)
 		/*
 		 * All defaults, except the Receive Word Alignament/Comma Detect
 		 * Enable....(0xe800) */
@@ -616,24 +616,24 @@ void scic_sds_controller_afe_initialization(
 		scu_afe_register_write(
 			this_controller, scu_afe_xcvr[phy_id].afe_xcvr_control1, 0x0050100F);
 		scic_cb_stall_execution(AFE_REGISTER_WRITE_DELAY);
-#else           /* defined(PBG_HBA_BETA_BUILD)
+#else           /* defined(CONFIG_PBG_HBA_BETA)
 		 * Configure transmitter SSC parameters
 		 */
 		scu_afe_register_write(
 			this_controller, scu_afe_xcvr[phy_id].afe_tx_ssc_control, 0x00030000);
 		scic_cb_stall_execution(AFE_REGISTER_WRITE_DELAY);
-#endif          /* !defined(PBG_HBA_BETA_BUILD) */
+#endif          /* !defined(CONFIG_PBG_HBA_BETA) */
 
 		/*
 		 * Power up TX and RX out from power down (PWRDNTX and PWRDNRX)
 		 * & increase TX int & ext bias 20%....(0xe85c) */
-#if defined(PBG_HBA_A0_BUILD)
+#if defined(CONFIG_PBG_HBA_A0)
 		scu_afe_register_write(
 			this_controller, scu_afe_xcvr[phy_id].afe_channel_control, 0x000003D4);
-#elif defined(PBG_HBA_A2_BUILD)
+#elif defined(CONFIG_PBG_HBA_A2)
 		scu_afe_register_write(
 			this_controller, scu_afe_xcvr[phy_id].afe_channel_control, 0x000003F0);
-#else           /* defined(PBG_HBA_BETA_BUILD)
+#else           /* defined(CONFIG_PBG_HBA_BETA)
 		 * Power down TX and RX (PWRDNTX and PWRDNRX)
 		 */
 		scu_afe_register_write(
@@ -648,7 +648,7 @@ void scic_sds_controller_afe_initialization(
 #endif
 		scic_cb_stall_execution(AFE_REGISTER_WRITE_DELAY);
 
-#if defined(PBG_HBA_A0_BUILD) || defined(PBG_HBA_A2_BUILD)
+#if defined(CONFIG_PBG_HBA_A0) || defined(CONFIG_PBG_HBA_A2)
 		/* Enable TX equalization (0xe824) */
 		scu_afe_register_write(
 			this_controller, scu_afe_xcvr[phy_id].afe_tx_control, 0x00040000);
@@ -663,13 +663,13 @@ void scic_sds_controller_afe_initialization(
 		scic_cb_stall_execution(AFE_REGISTER_WRITE_DELAY);
 
 		/* Leave DFE/FFE on */
-#if defined(PBG_HBA_A0_BUILD)
+#if defined(CONFIG_PBG_HBA_A0)
 		scu_afe_register_write(
 			this_controller, scu_afe_xcvr[phy_id].afe_rx_ssc_control0, 0x3F09983F);
-#elif defined(PBG_HBA_A2_BUILD)
+#elif defined(CONFIG_PBG_HBA_A2)
 		scu_afe_register_write(
 			this_controller, scu_afe_xcvr[phy_id].afe_rx_ssc_control0, 0x3F11103F);
-#else           /* defined(PBG_HBA_BETA_BUILD) */
+#else           /* defined(CONFIG_PBG_HBA_BETA) */
 		scu_afe_register_write(
 			this_controller, scu_afe_xcvr[phy_id].afe_rx_ssc_control0, 0x3F11103F);
 		scic_cb_stall_execution(AFE_REGISTER_WRITE_DELAY);

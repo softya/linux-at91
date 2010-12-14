@@ -87,9 +87,9 @@
 extern int loglevel;
 
 #define COMPILER_ERR_NO_STEP_TYPE "NO Stepping type compile switch specified:\n" \
-	"   PBG_HBA_A0_BUILD\n"	\
-	"   PBG_HBA_A2_BUILD\n"	\
-	"   PBG_HBA_BETA_BUILD\n"
+	"   CONFIG_PBG_HBA_A0\n"	\
+	"   CONFIG_PBG_HBA_A2\n"	\
+	"   CONFIG_PBG_HBA_BETA\n"
 
 /**
  * struct isci_module - This class represents single interface to the libsas

@@ -87,7 +87,7 @@ static struct isci_module isci_module_struct = {
 
 };
 
-#if defined(PBG_HBA_A0_BUILD) || defined(PBG_HBA_A2_BUILD)
+#if defined(CONFIG_PBG_HBA_A0) || defined(CONFIG_PBG_HBA_A2)
 /*
  * For the FPGA and all of the A-Step Silicon, the chip package could
  * contain up to two SCU controllers (SCU-0 & SCU-1). Each SCU
@@ -112,7 +112,7 @@ static DEFINE_PCI_DEVICE_TABLE(isci_id_table) = {
 	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, 0x1D67), 0, 0, 1 },
 	{}
 };
-#elif defined(PBG_HBA_BETA_BUILD)
+#elif defined(CONFIG_PBG_HBA_BETA)
 /*
  *  For B-step the silicon, the definition of the driver_data field
  *  changed. B-step silicon now presents only one PCI function, but
@@ -834,7 +834,7 @@ static int __devinit isci_module_pci_probe(
 	struct isci_pci_func *isci_pci;
 	int err = 0, ctlr_count = 0, count, core_lib_idx;
 
-#if defined(PBG_HBA_A0_BUILD) || defined(PBG_HBA_A2_BUILD)
+#if defined(CONFIG_PBG_HBA_A0) || defined(CONFIG_PBG_HBA_A2)
 	unsigned int scu_idx = (unsigned int)device_id_p->driver_data;
 #endif
 	bool found = false;
@@ -936,10 +936,10 @@ static int __devinit isci_module_pci_probe(
 	INIT_LIST_HEAD(&(isci_pci->node));
 
 	/*------------- Linux Kernel Module Init stuff ----------------------*/
-#if defined(PBG_HBA_A0_BUILD) || defined(PBG_HBA_A2_BUILD)
+#if defined(CONFIG_PBG_HBA_A0) || defined(CONFIG_PBG_HBA_A2)
 	/* Setup names based on the controller index */
 	isci_host_init_controller_names(&(isci_pci->ctrl[0]), scu_idx);
-#elif defined(PBG_HBA_BETA_BUILD)
+#elif defined(CONFIG_PBG_HBA_BETA)
 	/*
 	 *  Setup controller names for each controller on this PCI function.
 	 *  Also link the isci_module to each controller's parent field and

@@ -178,7 +178,7 @@ static enum sci_status scic_sds_phy_link_layer_initialization(
 	/* Set the enable spinup period but disable the ability to send notify enable spinup */
 	SCU_SAS_ENSPINUP_WRITE(this_phy, SCU_ENSPINUP_GEN_VAL(COUNT, 0x33));
 
-#if defined(PBG_HBA_A0_BUILD) || defined(PBG_HBA_A2_BUILD) || defined(PBG_HBA_BETA_BUILD)
+#if defined(CONFIG_PBG_HBA_A0) || defined(CONFIG_PBG_HBA_A2) || defined(CONFIG_PBG_HBA_BETA)
 	/* / @todo Provide a way to write this register correctly */
 	scu_link_layer_register_write(this_phy, afe_lookup_table_control, 0x02108421);
 #else
@@ -231,13 +231,13 @@ static enum sci_status scic_sds_phy_link_layer_initialization(
 	 * the PMC expander which shuts down PHYs if the expander PHY generates too
 	 * many breaks.  This time value will guarantee that the initiator PHY will
 	 * generate the break. */
-#if defined(PBG_HBA_A0_BUILD) || defined(PBG_HBA_A2_BUILD)
+#if defined(CONFIG_PBG_HBA_A0) || defined(CONFIG_PBG_HBA_A2)
 	scu_link_layer_register_write(
 		this_phy,
 		maximum_arbitration_wait_timer_timeout,
 		SCIC_SDS_PHY_MAX_ARBITRATION_WAIT_TIME
 		);
-#endif  /* defined(PBG_HBA_A0_BUILD) || defined(PBG_HBA_A2_BUILD) */
+#endif  /* defined(CONFIG_PBG_HBA_A0) || defined(CONFIG_PBG_HBA_A2) */
 
 	/*
 	 * Set the link layer hang detection to 500ms (0x1F4) from its default
