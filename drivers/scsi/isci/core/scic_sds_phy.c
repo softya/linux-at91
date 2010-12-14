@@ -192,13 +192,9 @@ static enum sci_status scic_sds_phy_link_layer_initialization(
 		user_parameters.sds1.no_outbound_task_timeout
 		);
 
-#if PHY_MAX_LINK_SPEED_GENERATION == SCIC_SDS_PARM_GEN1_SPEED
-#define COMPILED_MAX_LINK_RATE SCU_SAS_LINK_LAYER_CONTROL_MAX_LINK_RATE_GEN1
-#elif PHY_MAX_LINK_SPEED_GENERATION == SCIC_SDS_PARM_GEN2_SPEED
-#define COMPILED_MAX_LINK_RATE SCU_SAS_LINK_LAYER_CONTROL_MAX_LINK_RATE_GEN2
-#else
+/* #define COMPILED_MAX_LINK_RATE SCU_SAS_LINK_LAYER_CONTROL_MAX_LINK_RATE_GEN1 */
+/* #define COMPILED_MAX_LINK_RATE SCU_SAS_LINK_LAYER_CONTROL_MAX_LINK_RATE_GEN2 */
 #define COMPILED_MAX_LINK_RATE SCU_SAS_LINK_LAYER_CONTROL_MAX_LINK_RATE_GEN3
-#endif  /* PHY_MAX_LINK_SPEED_GENERATION */
 
 	if (this_phy->owning_port->owning_controller->user_parameters.sds1.
 	    phys[this_phy->phy_index].max_speed_generation == SCIC_SDS_PARM_GEN3_SPEED) {
