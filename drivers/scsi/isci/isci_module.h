@@ -116,7 +116,7 @@ struct isci_module {
 	int loglevel;
 };
 
-#define ISCI_FW_NAME		"isci_firmware.bin"
+#define ISCI_FW_NAME		"isci/isci_firmware.bin"
 
 #define ISCI_FIRMWARE_MIN_SIZE	149
 

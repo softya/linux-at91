@@ -934,5 +934,6 @@ static __exit void isci_module_exit(
 	sas_release_transport(isci_module_struct.stt);
 }
 
+MODULE_FIRMWARE(ISCI_FW_NAME);
 module_init(isci_module_init);
 module_exit(isci_module_exit);

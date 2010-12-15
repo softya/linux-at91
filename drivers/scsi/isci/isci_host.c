@@ -711,7 +711,7 @@ int isci_host_init(
 	status = request_firmware(&fw, ISCI_FW_NAME, &isci_host->pdev->dev);
 	if (status) {
 		dev_printk(KERN_WARNING, &isci_host->pdev->dev,
-			   "Loading firmware failedi, using default values\n");
+			   "Loading firmware failed, using default values\n");
 		dev_printk(KERN_WARNING, &isci_host->pdev->dev,
 			   "Default OEM configuration being used:"
 			   " 4 narrow ports, and default SAS Addresses\n");
