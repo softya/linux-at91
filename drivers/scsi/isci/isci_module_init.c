@@ -159,9 +159,6 @@ static struct pci_driver isci_pci_driver = {
 int loglevel = 3;
 module_param(loglevel, int, S_IRUGO | S_IWUSR);
 
-static int disable_msix;
-module_param(disable_msix, int, S_IRUGO | S_IWUSR);
-
 static inline int dev_is_sata(struct domain_device *dev)
 {
 	return dev->rphy->identify.target_port_protocols & SAS_PROTOCOL_SATA;
@@ -409,14 +406,10 @@ static int isci_module_enable_interrupts(struct isci_pci_func *isci_pci)
 	for (i = 0; i < sci_num_msix_entries; i++)
 		isci_pci->msix_entries[i].entry = i;
 
-	if (!disable_msix)
-		err = pci_enable_msix(dev_p,
-				      isci_pci->msix_entries,
-				      sci_num_msix_entries);
+	err = pci_enable_msix(dev_p, isci_pci->msix_entries,
+			      sci_num_msix_entries);
 
 	if (!err) { /* Successfully enabled MSIX */
-
-		isci_pci->msix_int_enabled = 1;
 		for (i = 0; i < sci_num_msix_entries; i++) {
 			u32 ctl_idx =
 				(isci_pci->msix_entries[i].entry < 2) ? 0 : 1;
@@ -453,8 +446,6 @@ static int isci_module_enable_interrupts(struct isci_pci_func *isci_pci)
 
 	} else {
 intx:
-		isci_logger(trace, "using legacy interrupts\n", 0);
-		isci_pci->msix_int_enabled = 0;
 		err = devm_request_irq(&dev_p->dev,
 				       isci_pci->k_pci_dev->irq,
 				       isci_legacy_isr,
@@ -883,9 +874,6 @@ static void __devexit isci_module_pci_remove(struct pci_dev *dev_p)
 		isci_host_deinit(isci_host);
 		scic_controller_disable_interrupts(isci_host->core_controller);
 	}
-
-	if (isci_pci->msix_int_enabled)
-		pci_disable_msix(dev_p);
 
 	device_remove_file(&dev_p->dev, &dev_attr_can_queue);
 

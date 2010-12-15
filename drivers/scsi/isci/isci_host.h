@@ -145,24 +145,11 @@ struct isci_host {
 	struct pci_dev *pdev;
 	u8 sas_addr[SAS_ADDR_SIZE];
 
-#ifdef RCJ
-	struct pci_bar_info {
-		unsigned long phys_addr;
-		void *virt_addr;
-		int len;
-	} pci_bar[SCI_PCI_BAR_COUNT];
-
-	struct msix_entry msix_entries[SCI_NUM_MSI_X_INT + 1];
-	int msix_int_enabled;
-#endif
 	enum isci_status status;
 	struct Scsi_Host *shost;
 	struct isci_module *parent;
 	struct isci_pci_func *parent_pci_function;
 	struct tasklet_struct completion_tasklet;
-#ifdef RCJ
-	struct list_head node;
-#endif
 	struct list_head mdl_struct_list;
 	struct list_head requests_to_complete;
 	struct list_head requests_to_abort;
@@ -202,7 +189,6 @@ struct isci_pci_func {
 #else
 	struct msix_entry msix_entries[SCI_NUM_MSI_X_INT + 1];
 #endif
-	int msix_int_enabled;
 	int core_lib_array_index;
 	SCI_LIBRARY_HANDLE_T core_lib_handle;
 

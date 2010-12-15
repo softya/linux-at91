@@ -790,8 +790,10 @@ int isci_host_init(
 		goto out;
 	}
 
-	/* @todo: use both MSI-X interrupts */
-	if (isci_host->parent_pci_function->msix_int_enabled) {
+	/* @todo: use both MSI-X interrupts, and don't do indirect
+	 * calls to the handlers just register direct calls
+	 */
+	if (isci_host->pdev->msix_enabled) {
 		status = scic_controller_get_handler_methods(
 			SCIC_MSIX_INTERRUPT_TYPE,
 			SCI_MSIX_DOUBLE_VECTOR,
