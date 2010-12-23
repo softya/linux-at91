@@ -86,10 +86,13 @@ static void scic_sds_stp_request_started_soft_reset_await_h2d_asserted_completio
 static void scic_sds_stp_request_started_soft_reset_await_h2d_diagnostic_completion_enter(
 	struct sci_base_object *object)
 {
-	enum sci_status status;
 	struct scic_sds_request *this_request = (struct scic_sds_request *)object;
-	struct sata_fis_reg_h2d *h2d_fis;
+	sci_base_controller_request_handler_t continue_io;
 	struct scu_task_context *task_context;
+	struct sata_fis_reg_h2d *h2d_fis;
+	struct scic_sds_controller *scic;
+	enum sci_status status;
+	u32 state;
 
 	/* Clear the SRST bit */
 	h2d_fis = scic_stp_io_request_get_h2d_reg_address(this_request);
@@ -100,11 +103,12 @@ static void scic_sds_stp_request_started_soft_reset_await_h2d_diagnostic_complet
 		this_request->owning_controller, this_request->io_tag);
 	task_context->control_frame = 0;
 
-	status = this_request->owning_controller->state_handlers->parent.continue_io_handler(
-		&this_request->owning_controller->parent,
-		&this_request->target_device->parent,
-		&this_request->parent
-		);
+	scic = this_request->owning_controller;
+	state = scic->parent.state_machine.current_state_id;
+	continue_io = scic_sds_controller_state_handler_table[state].base.continue_io;
+
+	status = continue_io(&scic->parent, &this_request->target_device->parent,
+			     &this_request->parent);
 
 	if (status == SCI_SUCCESS) {
 		SET_STATE_HANDLER(

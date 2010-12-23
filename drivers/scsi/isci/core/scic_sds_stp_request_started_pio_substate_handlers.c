@@ -92,9 +92,11 @@ static enum sci_status scic_sds_stp_request_pio_data_out_trasmit_data_frame(
 	struct scic_sds_request *this_request,
 	u32 length)
 {
-	enum sci_status status = SCI_SUCCESS;
-	struct scu_sgl_element *current_sgl;
 	struct scic_sds_stp_request *this_sds_stp_request = (struct scic_sds_stp_request *)this_request;
+	sci_base_controller_request_handler_t continue_io;
+	struct scu_sgl_element *current_sgl;
+	struct scic_sds_controller *scic;
+	u32 state;
 
 	/*
 	 * Recycle the TC and reconstruct it for sending out DATA FIS containing
@@ -104,11 +106,10 @@ static enum sci_status scic_sds_stp_request_pio_data_out_trasmit_data_frame(
 		this_request->io_tag
 		);
 
-	if (this_sds_stp_request->type.pio.request_current.sgl_set == SCU_SGL_ELEMENT_PAIR_A) {
+	if (this_sds_stp_request->type.pio.request_current.sgl_set == SCU_SGL_ELEMENT_PAIR_A)
 		current_sgl = &(this_sds_stp_request->type.pio.request_current.sgl_pair->A);
-	} else {
+	else
 		current_sgl = &(this_sds_stp_request->type.pio.request_current.sgl_pair->B);
-	}
 
 	/* update the TC */
 	task_context->command_iu_upper = current_sgl->address_upper;
@@ -117,14 +118,11 @@ static enum sci_status scic_sds_stp_request_pio_data_out_trasmit_data_frame(
 	task_context->type.stp.fis_type = SATA_FIS_TYPE_DATA;
 
 	/* send the new TC out. */
-	status = this_request->owning_controller->state_handlers->parent.continue_io_handler(
-		&this_request->owning_controller->parent,
-		&this_request->target_device->parent,
-		&this_request->parent
-		);
-
-	return status;
-
+	scic = this_request->owning_controller;
+	state = scic->parent.state_machine.current_state_id;
+	continue_io = scic_sds_controller_state_handler_table[state].base.continue_io;
+	return continue_io(&scic->parent, &this_request->target_device->parent,
+			   &this_request->parent);
 }
 
 /**

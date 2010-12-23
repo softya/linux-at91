@@ -228,55 +228,55 @@ struct sci_base_controller_state_handler {
 	 * The start_handler specifies the method invoked when a user attempts to
 	 * start a controller.
 	 */
-	sci_base_controller_timed_handler_t start_handler;
+	sci_base_controller_timed_handler_t start;
 
 	/**
 	 * The stop_handler specifies the method invoked when a user attempts to
 	 * stop a controller.
 	 */
-	sci_base_controller_timed_handler_t stop_handler;
+	sci_base_controller_timed_handler_t stop;
 
 	/**
 	 * The reset_handler specifies the method invoked when a user attempts to
 	 * reset a controller.
 	 */
-	sci_base_controller_handler_t reset_handler;
+	sci_base_controller_handler_t reset;
 
 	/**
 	 * The initialize_handler specifies the method invoked when a user
 	 * attempts to initialize a controller.
 	 */
-	sci_base_controller_handler_t initialize_handler;
+	sci_base_controller_handler_t initialize;
 
 	/**
 	 * The start_io_handler specifies the method invoked when a user
 	 * attempts to start an IO request for a controller.
 	 */
-	sci_base_controller_start_request_handler_t start_io_handler;
+	sci_base_controller_start_request_handler_t start_io;
 
 	/**
 	 * The complete_io_handler specifies the method invoked when a user
 	 * attempts to complete an IO request for a controller.
 	 */
-	sci_base_controller_request_handler_t complete_io_handler;
+	sci_base_controller_request_handler_t complete_io;
 
 	/**
 	 * The continue_io_handler specifies the method invoked when a user
 	 * attempts to continue an IO request for a controller.
 	 */
-	sci_base_controller_request_handler_t continue_io_handler;
+	sci_base_controller_request_handler_t continue_io;
 
 	/**
 	 * The start_task_handler specifies the method invoked when a user
 	 * attempts to start a task management request for a controller.
 	 */
-	sci_base_controller_start_request_handler_t start_task_handler;
+	sci_base_controller_start_request_handler_t start_task;
 
 	/**
 	 * The complete_task_handler specifies the method invoked when a user
 	 * attempts to complete a task management request for a controller.
 	 */
-	sci_base_controller_request_handler_t complete_task_handler;
+	sci_base_controller_request_handler_t complete_task;
 
 };
 

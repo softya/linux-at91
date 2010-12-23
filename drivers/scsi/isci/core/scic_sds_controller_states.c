@@ -84,9 +84,6 @@ static void scic_sds_controller_initial_state_enter(
 
 	this_controller = (struct scic_sds_controller *)object;
 
-	scic_sds_controller_set_base_state_handlers(
-		this_controller, SCI_BASE_CONTROLLER_STATE_INITIAL);
-
 	sci_base_state_machine_change_state(
 		&this_controller->parent.state_machine, SCI_BASE_CONTROLLER_STATE_RESET);
 }
@@ -103,12 +100,6 @@ static void scic_sds_controller_initial_state_enter(
 static void scic_sds_controller_reset_state_enter(
 	struct sci_base_object *object)
 {
-	struct scic_sds_controller *this_controller;
-
-	this_controller = (struct scic_sds_controller *)object;
-
-	scic_sds_controller_set_base_state_handlers(
-		this_controller, SCI_BASE_CONTROLLER_STATE_RESET);
 }
 
 /**
@@ -123,12 +114,6 @@ static void scic_sds_controller_reset_state_enter(
 static void scic_sds_controller_initializing_state_enter(
 	struct sci_base_object *object)
 {
-	struct scic_sds_controller *this_controller;
-
-	this_controller = (struct scic_sds_controller *)object;
-
-	scic_sds_controller_set_base_state_handlers(
-		this_controller, SCI_BASE_CONTROLLER_STATE_INITIALIZING);
 }
 
 /**
@@ -143,12 +128,6 @@ static void scic_sds_controller_initializing_state_enter(
 static void scic_sds_controller_initialized_state_enter(
 	struct sci_base_object *object)
 {
-	struct scic_sds_controller *this_controller;
-
-	this_controller = (struct scic_sds_controller *)object;
-
-	scic_sds_controller_set_base_state_handlers(
-		this_controller, SCI_BASE_CONTROLLER_STATE_INITIALIZED);
 }
 
 /**
@@ -163,12 +142,6 @@ static void scic_sds_controller_initialized_state_enter(
 static void scic_sds_controller_starting_state_enter(
 	struct sci_base_object *object)
 {
-	struct scic_sds_controller *this_controller;
-
-	this_controller = (struct scic_sds_controller *)object;
-
-	scic_sds_controller_set_base_state_handlers(
-		this_controller, SCI_BASE_CONTROLLER_STATE_STARTING);
 }
 
 /**
@@ -205,9 +178,6 @@ static void scic_sds_controller_ready_state_enter(
 	struct scic_sds_controller *this_controller;
 
 	this_controller = (struct scic_sds_controller *)object;
-
-	scic_sds_controller_set_base_state_handlers(
-		this_controller, SCI_BASE_CONTROLLER_STATE_READY);
 
 	/* set the default interrupt coalescence number and timeout value. */
 	scic_controller_set_interrupt_coalescence(
@@ -250,9 +220,6 @@ static void scic_sds_controller_stopping_state_enter(
 
 	this_controller = (struct scic_sds_controller *)object;
 
-	scic_sds_controller_set_base_state_handlers(
-		this_controller, SCI_BASE_CONTROLLER_STATE_STOPPING);
-
 	/* Stop all of the components for this controller */
 	scic_sds_controller_stop_phys(this_controller);
 	scic_sds_controller_stop_ports(this_controller);
@@ -290,12 +257,6 @@ static void scic_sds_controller_stopping_state_exit(
 static void scic_sds_controller_stopped_state_enter(
 	struct sci_base_object *object)
 {
-	struct scic_sds_controller *this_controller;
-
-	this_controller = (struct scic_sds_controller *)object;
-
-	scic_sds_controller_set_base_state_handlers(
-		this_controller, SCI_BASE_CONTROLLER_STATE_STOPPED);
 }
 
 /**
@@ -322,9 +283,6 @@ static void scic_sds_controller_resetting_state_enter(
 			       this_controller
 			       ));
 
-	scic_sds_controller_set_base_state_handlers(
-		this_controller, SCI_BASE_CONTROLLER_STATE_RESETTING);
-
 	scic_sds_controller_reset_hardware(this_controller);
 
 	sci_base_state_machine_change_state(
@@ -345,12 +303,6 @@ static void scic_sds_controller_resetting_state_enter(
 static void scic_sds_controller_failed_state_enter(
 	struct sci_base_object *object)
 {
-	struct scic_sds_controller *this_controller;
-
-	this_controller = (struct scic_sds_controller *)object;
-
-	scic_sds_controller_set_base_state_handlers(
-		this_controller, SCI_BASE_CONTROLLER_STATE_FAILED);
 }
 
 /* --------------------------------------------------------------------------- */

@@ -2221,48 +2221,58 @@ u32 scic_sds_controller_get_object_size(void)
  *
  */
 void scic_sds_controller_link_up(
-	struct scic_sds_controller *this_controller,
-	struct scic_sds_port *the_port,
-	struct scic_sds_phy *the_phy)
+	struct scic_sds_controller *scic,
+	struct scic_sds_port *sci_port,
+	struct scic_sds_phy *sci_phy)
 {
-	if (this_controller->state_handlers->link_up_handler != NULL) {
-		this_controller->state_handlers->link_up_handler(
-			this_controller, the_port, the_phy);
-	} else {
+	scic_sds_controller_phy_handler_t link_up;
+	u32 state;
+
+	state = scic->parent.state_machine.current_state_id;
+	link_up = scic_sds_controller_state_handler_table[state].link_up;
+
+	if (link_up)
+		link_up(scic, sci_port, sci_phy);
+	else {
 		SCIC_LOG_INFO((
-				      sci_base_object_get_logger(this_controller),
+				      sci_base_object_get_logger(scic),
 				      SCIC_LOG_OBJECT_CONTROLLER,
 				      "SCIC Controller linkup event from phy %d in unexpected state %n\n",
-				      the_phy->phy_index,
+				      sci_phy->phy_index,
 				      sci_base_state_machine_get_state(
-					      scic_sds_controller_get_base_state_machine(this_controller))
+					      scic_sds_controller_get_base_state_machine(scic))
 				      ));
 	}
 }
 
 /**
  *
- * @this_controller:
- * @the_port:
+ * @scic:
+ * @sci_port:
  *
  *
  */
 void scic_sds_controller_link_down(
-	struct scic_sds_controller *this_controller,
-	struct scic_sds_port *the_port,
-	struct scic_sds_phy *the_phy)
+	struct scic_sds_controller *scic,
+	struct scic_sds_port *sci_port,
+	struct scic_sds_phy *sci_phy)
 {
-	if (this_controller->state_handlers->link_down_handler != NULL) {
-		this_controller->state_handlers->link_down_handler(
-			this_controller, the_port, the_phy);
-	} else {
+	u32 state;
+	scic_sds_controller_phy_handler_t link_down;
+
+	state = scic->parent.state_machine.current_state_id;
+	link_down = scic_sds_controller_state_handler_table[state].link_down;
+
+	if (link_down)
+		link_down(scic, sci_port, sci_phy);
+	else {
 		SCIC_LOG_INFO((
-				      sci_base_object_get_logger(this_controller),
+				      sci_base_object_get_logger(scic),
 				      SCIC_LOG_OBJECT_CONTROLLER,
 				      "SCIC Controller linkdown event from phy %d in unexpected state %n\n",
-				      the_phy->phy_index,
+				      sci_phy->phy_index,
 				      sci_base_state_machine_get_state(
-					      scic_sds_controller_get_base_state_machine(this_controller))
+					      scic_sds_controller_get_base_state_machine(scic))
 				      ));
 	}
 }
@@ -2662,9 +2672,13 @@ enum sci_status scic_controller_initialize(
 	SCI_CONTROLLER_HANDLE_T controller)
 {
 	enum sci_status status = SCI_FAILURE_INVALID_STATE;
-	struct scic_sds_controller *this_controller;
+	sci_base_controller_handler_t initialize;
+	struct scic_sds_controller *scic;
+	u32 state;
 
-	this_controller = (struct scic_sds_controller *)controller;
+	scic = (struct scic_sds_controller *)controller;
+	state = scic->parent.state_machine.current_state_id;
+	initialize = scic_sds_controller_state_handler_table[state].base.initialize;
 
 	SCIC_LOG_TRACE((
 			       sci_base_object_get_logger(controller),
@@ -2673,17 +2687,15 @@ enum sci_status scic_controller_initialize(
 			       controller
 			       ));
 
-	if (this_controller->state_handlers->parent.initialize_handler != NULL) {
-		status = this_controller->state_handlers->parent.initialize_handler(
-			(struct sci_base_controller *)controller
-			);
-	} else {
+	if (initialize)
+		status = initialize(&scic->parent);
+	else {
 		SCIC_LOG_WARNING((
-					 sci_base_object_get_logger(this_controller),
+					 sci_base_object_get_logger(scic),
 					 SCIC_LOG_OBJECT_CONTROLLER,
 					 "SCIC Controller initialize operation requested in invalid state %n\n",
 					 sci_base_state_machine_get_state(
-						 scic_sds_controller_get_base_state_machine(this_controller))
+						 scic_sds_controller_get_base_state_machine(scic))
 					 ));
 	}
 
@@ -2725,9 +2737,13 @@ enum sci_status scic_controller_start(
 	u32 timeout)
 {
 	enum sci_status status = SCI_FAILURE_INVALID_STATE;
-	struct scic_sds_controller *this_controller;
+	sci_base_controller_timed_handler_t start;
+	struct scic_sds_controller *scic;
+	u32 state;
 
-	this_controller = (struct scic_sds_controller *)controller;
+	scic = (struct scic_sds_controller *)controller;
+	state = scic->parent.state_machine.current_state_id;
+	start = scic_sds_controller_state_handler_table[state].base.start;
 
 	SCIC_LOG_TRACE((
 			       sci_base_object_get_logger(controller),
@@ -2736,17 +2752,15 @@ enum sci_status scic_controller_start(
 			       controller, timeout
 			       ));
 
-	if (this_controller->state_handlers->parent.start_handler != NULL) {
-		status = this_controller->state_handlers->parent.start_handler(
-			(struct sci_base_controller *)controller, timeout
-			);
-	} else {
+	if (start)
+		status = start(&scic->parent, timeout);
+	else {
 		SCIC_LOG_WARNING((
-					 sci_base_object_get_logger(this_controller),
+					 sci_base_object_get_logger(scic),
 					 SCIC_LOG_OBJECT_CONTROLLER,
 					 "SCIC Controller start operation requested in invalid state %n\n",
 					 sci_base_state_machine_get_state(
-						 scic_sds_controller_get_base_state_machine(this_controller))
+						 scic_sds_controller_get_base_state_machine(scic))
 					 ));
 	}
 
@@ -2760,9 +2774,13 @@ enum sci_status scic_controller_stop(
 	u32 timeout)
 {
 	enum sci_status status = SCI_FAILURE_INVALID_STATE;
-	struct scic_sds_controller *this_controller;
+	sci_base_controller_timed_handler_t stop;
+	struct scic_sds_controller *scic;
+	u32 state;
 
-	this_controller = (struct scic_sds_controller *)controller;
+	scic = (struct scic_sds_controller *)controller;
+	state = scic->parent.state_machine.current_state_id;
+	stop = scic_sds_controller_state_handler_table[state].base.stop;
 
 	SCIC_LOG_TRACE((
 			       sci_base_object_get_logger(controller),
@@ -2771,17 +2789,15 @@ enum sci_status scic_controller_stop(
 			       controller, timeout
 			       ));
 
-	if (this_controller->state_handlers->parent.stop_handler != NULL) {
-		status = this_controller->state_handlers->parent.stop_handler(
-			(struct sci_base_controller *)controller, timeout
-			);
-	} else {
+	if (stop)
+		status = stop(&scic->parent, timeout);
+	else {
 		SCIC_LOG_WARNING((
-					 sci_base_object_get_logger(this_controller),
+					 sci_base_object_get_logger(scic),
 					 SCIC_LOG_OBJECT_CONTROLLER,
 					 "SCIC Controller stop operation requested in invalid state %n\n",
 					 sci_base_state_machine_get_state(
-						 scic_sds_controller_get_base_state_machine(this_controller))
+						 scic_sds_controller_get_base_state_machine(scic))
 					 ));
 	}
 
@@ -2794,9 +2810,13 @@ enum sci_status scic_controller_reset(
 	SCI_CONTROLLER_HANDLE_T controller)
 {
 	enum sci_status status = SCI_FAILURE_INVALID_STATE;
-	struct scic_sds_controller *this_controller;
+	sci_base_controller_handler_t reset;
+	struct scic_sds_controller *scic;
+	u32 state;
 
-	this_controller = (struct scic_sds_controller *)controller;
+	scic = (struct scic_sds_controller *)controller;
+	state = scic->parent.state_machine.current_state_id;
+	reset = scic_sds_controller_state_handler_table[state].base.reset;
 
 	SCIC_LOG_TRACE((
 			       sci_base_object_get_logger(controller),
@@ -2805,17 +2825,15 @@ enum sci_status scic_controller_reset(
 			       controller
 			       ));
 
-	if (this_controller->state_handlers->parent.reset_handler != NULL) {
-		status = this_controller->state_handlers->parent.reset_handler(
-			(struct sci_base_controller *)controller
-			);
-	} else {
+	if (reset)
+		status = reset(&scic->parent);
+	else {
 		SCIC_LOG_WARNING((
-					 sci_base_object_get_logger(this_controller),
+					 sci_base_object_get_logger(scic),
 					 SCIC_LOG_OBJECT_CONTROLLER,
 					 "SCIC Controller reset operation requested in invalid state %n\n",
 					 sci_base_state_machine_get_state(
-						 scic_sds_controller_get_base_state_machine(this_controller))
+						 scic_sds_controller_get_base_state_machine(scic))
 					 ));
 	}
 
@@ -2894,10 +2912,13 @@ enum sci_io_status scic_controller_start_io(
 	SCI_IO_REQUEST_HANDLE_T io_request,
 	u16 io_tag)
 {
-	enum sci_io_status status;
-	struct scic_sds_controller *this_controller;
+	u32 state;
+	struct scic_sds_controller *scic;
+	sci_base_controller_start_request_handler_t start_io;
 
-	this_controller = (struct scic_sds_controller *)controller;
+	scic = (struct scic_sds_controller *)controller;
+	state = scic->parent.state_machine.current_state_id;
+	start_io = scic_sds_controller_state_handler_table[state].base.start_io;
 
 	SCIC_LOG_TRACE((
 			       sci_base_object_get_logger(controller),
@@ -2906,14 +2927,9 @@ enum sci_io_status scic_controller_start_io(
 			       controller, remote_device, io_request, io_tag
 			       ));
 
-	status = this_controller->state_handlers->parent.start_io_handler(
-		&this_controller->parent,
-		(struct sci_base_remote_device *)remote_device,
-		(struct sci_base_request *)io_request,
-		io_tag
-		);
-
-	return status;
+	return start_io(&scic->parent,
+			(struct sci_base_remote_device *) remote_device,
+			(struct sci_base_request *)io_request, io_tag);
 }
 
 /* --------------------------------------------------------------------------- */
@@ -2923,10 +2939,13 @@ enum sci_status scic_controller_terminate_request(
 	SCI_REMOTE_DEVICE_HANDLE_T remote_device,
 	SCI_IO_REQUEST_HANDLE_T request)
 {
-	enum sci_status status;
-	struct scic_sds_controller *this_controller;
+	sci_base_controller_request_handler_t terminate_request;
+	struct scic_sds_controller *scic;
+	u32 state;
 
-	this_controller = (struct scic_sds_controller *)controller;
+	scic = (struct scic_sds_controller *)controller;
+	state = scic->parent.state_machine.current_state_id;
+	terminate_request = scic_sds_controller_state_handler_table[state].terminate_request;
 
 	SCIC_LOG_TRACE((
 			       sci_base_object_get_logger(controller),
@@ -2935,13 +2954,9 @@ enum sci_status scic_controller_terminate_request(
 			       controller, remote_device, request
 			       ));
 
-	status = this_controller->state_handlers->terminate_request_handler(
-		&this_controller->parent,
-		(struct sci_base_remote_device *)remote_device,
-		(struct sci_base_request *)request
-		);
-
-	return status;
+	return terminate_request(&scic->parent,
+				 (struct sci_base_remote_device *)remote_device,
+				 (struct sci_base_request *)request);
 }
 
 /* --------------------------------------------------------------------------- */
@@ -2951,10 +2966,13 @@ enum sci_status scic_controller_complete_io(
 	SCI_REMOTE_DEVICE_HANDLE_T remote_device,
 	SCI_IO_REQUEST_HANDLE_T io_request)
 {
-	enum sci_status status;
-	struct scic_sds_controller *this_controller;
+	u32 state;
+	struct scic_sds_controller *scic;
+	sci_base_controller_request_handler_t complete_io;
 
-	this_controller = (struct scic_sds_controller *)controller;
+	scic = (struct scic_sds_controller *)controller;
+	state = scic->parent.state_machine.current_state_id;
+	complete_io = scic_sds_controller_state_handler_table[state].base.complete_io;
 
 	SCIC_LOG_TRACE((
 			       sci_base_object_get_logger(controller),
@@ -2963,13 +2981,9 @@ enum sci_status scic_controller_complete_io(
 			       controller, remote_device, io_request
 			       ));
 
-	status = this_controller->state_handlers->parent.complete_io_handler(
-		&this_controller->parent,
-		(struct sci_base_remote_device *)remote_device,
-		(struct sci_base_request *)io_request
-		);
-
-	return status;
+	return complete_io(&scic->parent,
+			   (struct sci_base_remote_device *)remote_device,
+			   (struct sci_base_request *)io_request);
 }
 
 /* --------------------------------------------------------------------------- */
@@ -2981,10 +2995,14 @@ enum sci_task_status scic_controller_start_task(
 	SCI_TASK_REQUEST_HANDLE_T task_request,
 	u16 task_tag)
 {
-	enum sci_task_status status = SCI_FAILURE_INVALID_STATE;
-	struct scic_sds_controller *this_controller;
+	u32 state;
+	struct scic_sds_controller *scic;
+	sci_base_controller_start_request_handler_t start_task;
+	enum sci_task_status status = SCI_TASK_FAILURE_INVALID_STATE;
 
-	this_controller = (struct scic_sds_controller *)controller;
+	scic = (struct scic_sds_controller *)controller;
+	state = scic->parent.state_machine.current_state_id;
+	start_task = scic_sds_controller_state_handler_table[state].base.start_task;
 
 	SCIC_LOG_TRACE((
 			       sci_base_object_get_logger(controller),
@@ -2993,14 +3011,12 @@ enum sci_task_status scic_controller_start_task(
 			       controller, remote_device, task_request, task_tag
 			       ));
 
-	if (this_controller->state_handlers->parent.start_task_handler != NULL) {
-		status = this_controller->state_handlers->parent.start_task_handler(
-			&this_controller->parent,
-			(struct sci_base_remote_device *)remote_device,
-			(struct sci_base_request *)task_request,
-			task_tag
-			);
-	} else {
+	if (start_task)
+		status = start_task(&scic->parent,
+				    (struct sci_base_remote_device *)remote_device,
+				    (struct sci_base_request *)task_request,
+				    task_tag);
+	else {
 		SCIC_LOG_INFO((
 				      sci_base_object_get_logger(controller),
 				      SCIC_LOG_OBJECT_CONTROLLER,
@@ -3018,10 +3034,16 @@ enum sci_status scic_controller_complete_task(
 	SCI_REMOTE_DEVICE_HANDLE_T remote_device,
 	SCI_TASK_REQUEST_HANDLE_T task_request)
 {
+	u32 state;
+	struct scic_sds_controller *scic;
+	sci_base_controller_request_handler_t complete_task;
 	enum sci_status status = SCI_FAILURE_INVALID_STATE;
-	struct scic_sds_controller *this_controller;
 
-	this_controller = (struct scic_sds_controller *)controller;
+	scic = (struct scic_sds_controller *)controller;
+	state = scic->parent.state_machine.current_state_id;
+	complete_task = scic_sds_controller_state_handler_table[state].base.complete_task;
+
+	scic = (struct scic_sds_controller *)controller;
 
 	SCIC_LOG_TRACE((
 			       sci_base_object_get_logger(controller),
@@ -3030,13 +3052,11 @@ enum sci_status scic_controller_complete_task(
 			       controller, remote_device, task_request
 			       ));
 
-	if (this_controller->state_handlers->parent.complete_task_handler != NULL) {
-		status = this_controller->state_handlers->parent.complete_task_handler(
-			&this_controller->parent,
-			(struct sci_base_remote_device *)remote_device,
-			(struct sci_base_request *)task_request
-			);
-	} else {
+	if (complete_task)
+		status = complete_task(&scic->parent,
+				       (struct sci_base_remote_device *)remote_device,
+				       (struct sci_base_request *)task_request);
+	else {
 		SCIC_LOG_INFO((
 				      sci_base_object_get_logger(controller),
 				      SCIC_LOG_OBJECT_CONTROLLER,

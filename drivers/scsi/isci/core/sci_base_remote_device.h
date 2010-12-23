@@ -183,7 +183,7 @@ typedef enum sci_status (*SCI_BASE_REMOTE_DEVICE_HIGH_PRIORITY_REQUEST_COMPLETE_
 	);
 
 /**
- * struct sci_base_controller_state_handler - This structure contains all of
+ * struct sci_base_remote_device_state_handler - This structure contains all of
  *    the state handler methods common to base remote device state machines.
  *    Handler methods provide the ability to change the behavior for user
  *    requests or transitions depending on the state the machine is in.

@@ -186,12 +186,6 @@ struct scic_sds_controller {
 	void *timeout_timer;
 
 	/**
-	 * This field is the current set of state handlers assigned to this controller
-	 * object.
-	 */
-	const struct scic_sds_controller_state_handler *state_handlers;
-
-	/**
 	 * This field contains the user parameters to be utilized for this
 	 * core controller object.
 	 */
@@ -423,12 +417,11 @@ typedef void (*scic_sds_controller_phy_handler_t)(struct scic_sds_controller *,
  * handlers.
  */
 struct scic_sds_controller_state_handler {
-	struct sci_base_controller_state_handler parent;
+	struct sci_base_controller_state_handler base;
 
-	sci_base_controller_request_handler_t terminate_request_handler;
-	scic_sds_controller_phy_handler_t link_up_handler;
-	scic_sds_controller_phy_handler_t link_down_handler;
-
+	sci_base_controller_request_handler_t terminate_request;
+	scic_sds_controller_phy_handler_t link_up;
+	scic_sds_controller_phy_handler_t link_down;
 };
 
 extern const struct scic_sds_controller_state_handler
@@ -452,14 +445,6 @@ extern const struct sci_base_state scic_sds_controller_state_table[];
 	}
 
 /**
- * scic_sds_controller_set_state_handlers() -
- *
- * This is a helper macro that sets the state handlers for the controller object
- */
-#define scic_sds_controller_set_state_handlers(this_controller, handlers) \
-	((this_controller)->state_handlers = (handlers))
-
-/**
  * scic_sds_controller_get_base_state_machine() -
  *
  * This is a helper macro that gets the base state machine for the controller
@@ -476,16 +461,6 @@ extern const struct sci_base_state scic_sds_controller_state_table[];
  */
 #define scic_sds_controller_get_port_configuration_agent(controller) \
 	(&(controller)->port_agent)
-
-/**
- * scic_sds_controller_set_base_state_handlers() -
- *
- * This is a helper macro that sets the base state machine state handlers based
- * on the state id
- */
-#define scic_sds_controller_set_base_state_handlers(this_controller, state_id) \
-	scic_sds_controller_set_state_handlers(\
-		this_controller, &scic_sds_controller_state_handler_table[(state_id)])
 
 /**
  * smu_register_write() -
