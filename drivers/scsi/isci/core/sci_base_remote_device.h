@@ -273,6 +273,6 @@ struct sci_base_remote_device_state_handler {
 void sci_base_remote_device_construct(
 	struct sci_base_remote_device *this_device,
 	struct sci_base_logger *logger,
-	struct sci_base_state *state_table);
+	const struct sci_base_state *state_table);
 
 #endif /* _SCI_BASE_REMOTE_DEVICE_H_ */

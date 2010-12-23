@@ -374,49 +374,30 @@ static void scic_sds_remote_node_context_await_suspension_state_enter(
 
 /* --------------------------------------------------------------------------- */
 
-struct sci_base_state
-scic_sds_remote_node_context_state_table[
-	SCIC_SDS_REMOTE_NODE_CONTEXT_MAX_STATES] =
-{
-	{
-		SCIC_SDS_REMOTE_NODE_CONTEXT_INITIAL_STATE,
-		scic_sds_remote_node_context_initial_state_enter,
-		NULL
+const struct sci_base_state scic_sds_remote_node_context_state_table[] = {
+	[SCIC_SDS_REMOTE_NODE_CONTEXT_INITIAL_STATE] = {
+		.enter_state = scic_sds_remote_node_context_initial_state_enter,
 	},
-	{
-		SCIC_SDS_REMOTE_NODE_CONTEXT_POSTING_STATE,
-		scic_sds_remote_node_context_posting_state_enter,
-		NULL
+	[SCIC_SDS_REMOTE_NODE_CONTEXT_POSTING_STATE] = {
+		.enter_state = scic_sds_remote_node_context_posting_state_enter,
 	},
-	{
-		SCIC_SDS_REMOTE_NODE_CONTEXT_INVALIDATING_STATE,
-		scic_sds_remote_node_context_invalidating_state_enter,
-		NULL
+	[SCIC_SDS_REMOTE_NODE_CONTEXT_INVALIDATING_STATE] = {
+		.enter_state = scic_sds_remote_node_context_invalidating_state_enter,
 	},
-	{
-		SCIC_SDS_REMOTE_NODE_CONTEXT_RESUMING_STATE,
-		scic_sds_remote_node_context_resuming_state_enter,
-		NULL
+	[SCIC_SDS_REMOTE_NODE_CONTEXT_RESUMING_STATE] = {
+		.enter_state = scic_sds_remote_node_context_resuming_state_enter,
 	},
-	{
-		SCIC_SDS_REMOTE_NODE_CONTEXT_READY_STATE,
-		scic_sds_remote_node_context_ready_state_enter,
-		NULL
+	[SCIC_SDS_REMOTE_NODE_CONTEXT_READY_STATE] = {
+		.enter_state = scic_sds_remote_node_context_ready_state_enter,
 	},
-	{
-		SCIC_SDS_REMOTE_NODE_CONTEXT_TX_SUSPENDED_STATE,
-		scic_sds_remote_node_context_tx_suspended_state_enter,
-		NULL
+	[SCIC_SDS_REMOTE_NODE_CONTEXT_TX_SUSPENDED_STATE] = {
+		.enter_state = scic_sds_remote_node_context_tx_suspended_state_enter,
 	},
-	{
-		SCIC_SDS_REMOTE_NODE_CONTEXT_TX_RX_SUSPENDED_STATE,
-		scic_sds_remote_node_context_tx_rx_suspended_state_enter,
-		NULL
+	[SCIC_SDS_REMOTE_NODE_CONTEXT_TX_RX_SUSPENDED_STATE] = {
+		.enter_state = scic_sds_remote_node_context_tx_rx_suspended_state_enter,
 	},
-	{
-		SCIC_SDS_REMOTE_NODE_CONTEXT_AWAIT_SUSPENSION_STATE,
-		scic_sds_remote_node_context_await_suspension_state_enter,
-		NULL
-	}
+	[SCIC_SDS_REMOTE_NODE_CONTEXT_AWAIT_SUSPENSION_STATE] = {
+		.enter_state = scic_sds_remote_node_context_await_suspension_state_enter,
+	},
 };
 

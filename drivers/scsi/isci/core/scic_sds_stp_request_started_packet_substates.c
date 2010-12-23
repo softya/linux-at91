@@ -161,34 +161,21 @@ void scic_sds_stp_packet_request_started_completion_delay_enter(
 
 
 /* --------------------------------------------------------------------------- */
-struct sci_base_state
-scic_sds_stp_packet_request_started_substate_table
-[SCIC_SDS_STP_PACKET_REQUEST_STARTED_MAX_SUBSTATES] =
-{
-	{
-		SCIC_SDS_STP_PACKET_REQUEST_STARTED_PACKET_PHASE_AWAIT_TC_COMPLETION_SUBSTATE,
-		scic_sds_stp_packet_request_started_packet_phase_await_tc_completion_enter,
-		NULL
+const struct sci_base_state scic_sds_stp_packet_request_started_substate_table[] = {
+	[SCIC_SDS_STP_PACKET_REQUEST_STARTED_PACKET_PHASE_AWAIT_TC_COMPLETION_SUBSTATE] = {
+		.enter_state = scic_sds_stp_packet_request_started_packet_phase_await_tc_completion_enter,
 	},
-	{
-		SCIC_SDS_STP_PACKET_REQUEST_STARTED_PACKET_PHASE_AWAIT_PIO_SETUP_SUBSTATE,
-		scic_sds_stp_packet_request_started_packet_phase_await_pio_setup_enter,
-		NULL
+	[SCIC_SDS_STP_PACKET_REQUEST_STARTED_PACKET_PHASE_AWAIT_PIO_SETUP_SUBSTATE] = {
+		.enter_state = scic_sds_stp_packet_request_started_packet_phase_await_pio_setup_enter,
 	},
-	{
-		SCIC_SDS_STP_PACKET_REQUEST_STARTED_COMMAND_PHASE_AWAIT_TC_COMPLETION_SUBSTATE,
-		scic_sds_stp_packet_request_started_command_phase_await_tc_completion_enter,
-		NULL
+	[SCIC_SDS_STP_PACKET_REQUEST_STARTED_COMMAND_PHASE_AWAIT_TC_COMPLETION_SUBSTATE] = {
+		.enter_state = scic_sds_stp_packet_request_started_command_phase_await_tc_completion_enter,
 	},
-	{
-		SCIC_SDS_STP_PACKET_REQUEST_STARTED_COMMAND_PHASE_AWAIT_D2H_FIS_SUBSTATE,
-		scic_sds_stp_packet_request_started_command_phase_await_d2h_fis_enter,
-		NULL
+	[SCIC_SDS_STP_PACKET_REQUEST_STARTED_COMMAND_PHASE_AWAIT_D2H_FIS_SUBSTATE] = {
+		.enter_state = scic_sds_stp_packet_request_started_command_phase_await_d2h_fis_enter,
 	},
-	{
-		SCIC_SDS_STP_PACKET_REQUEST_STARTED_COMPLETION_DELAY_SUBSTATE,
-		scic_sds_stp_packet_request_started_completion_delay_enter,
-		NULL
+	[SCIC_SDS_STP_PACKET_REQUEST_STARTED_COMPLETION_DELAY_SUBSTATE] = {
+		.enter_state scic_sds_stp_packet_request_started_completion_delay_enter,
 	}
 };
 

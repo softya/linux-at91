@@ -266,23 +266,17 @@ static void scic_sds_port_ready_substate_configuring_exit(
 
 /* --------------------------------------------------------------------------- */
 
-struct sci_base_state
-scic_sds_port_ready_substate_table[SCIC_SDS_PORT_READY_MAX_SUBSTATES] =
-{
-	{
-		SCIC_SDS_PORT_READY_SUBSTATE_WAITING,
-		scic_sds_port_ready_substate_waiting_enter,
-		NULL
+const struct sci_base_state scic_sds_port_ready_substate_table[] = {
+	[SCIC_SDS_PORT_READY_SUBSTATE_WAITING] = {
+		.enter_state = scic_sds_port_ready_substate_waiting_enter,
 	},
-	{
-		SCIC_SDS_PORT_READY_SUBSTATE_OPERATIONAL,
-		scic_sds_port_ready_substate_operational_enter,
-		scic_sds_port_ready_substate_operational_exit
+	[SCIC_SDS_PORT_READY_SUBSTATE_OPERATIONAL] = {
+		.enter_state = scic_sds_port_ready_substate_operational_enter,
+		.exit_state  = scic_sds_port_ready_substate_operational_exit
 	},
-	{
-		SCIC_SDS_PORT_READY_SUBSTATE_CONFIGURING,
-		scic_sds_port_ready_substate_configuring_enter,
-		scic_sds_port_ready_substate_configuring_exit
-	}
+	[SCIC_SDS_PORT_READY_SUBSTATE_CONFIGURING] = {
+		.enter_state = scic_sds_port_ready_substate_configuring_enter,
+		.exit_state  = scic_sds_port_ready_substate_configuring_exit
+	},
 };
 

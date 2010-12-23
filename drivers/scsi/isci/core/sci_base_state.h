@@ -82,12 +82,6 @@ typedef void (*SCI_STATE_TRANSITION_T)(
  */
 struct sci_base_state {
 	/**
-	 * This field indicates the defined value for this state.  After
-	 * initialization this field should not change.
-	 */
-	u32 value;
-
-	/**
 	 * This field is a function pointer that defines the method to be
 	 * invoked when the state is entered.
 	 */

@@ -107,18 +107,12 @@ static void scic_sds_smp_request_started_await_tc_completion_substate_enter(
 		);
 }
 
-struct sci_base_state scic_sds_smp_request_started_substate_table
-[SCIC_SDS_SMP_REQUEST_STARTED_MAX_SUBSTATES] =
-{
-	{
-		SCIC_SDS_SMP_REQUEST_STARTED_SUBSTATE_AWAIT_RESPONSE,
-		scic_sds_smp_request_started_await_response_substate_enter,
-		NULL
+const struct sci_base_state scic_sds_smp_request_started_substate_table[] = {
+	[SCIC_SDS_SMP_REQUEST_STARTED_SUBSTATE_AWAIT_RESPONSE] = {
+		.enter_state = scic_sds_smp_request_started_await_response_substate_enter,
 	},
-	{
-		SCIC_SDS_SMP_REQUEST_STARTED_SUBSTATE_AWAIT_TC_COMPLETION,
-		scic_sds_smp_request_started_await_tc_completion_substate_enter,
-		NULL
-	}
+	[SCIC_SDS_SMP_REQUEST_STARTED_SUBSTATE_AWAIT_TC_COMPLETION] = {
+		.enter_state = scic_sds_smp_request_started_await_tc_completion_substate_enter,
+	},
 };
 

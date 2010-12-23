@@ -118,29 +118,17 @@ static void scic_sds_stp_request_started_pio_data_out_transmit_data_enter(
 
 /* --------------------------------------------------------------------------- */
 
-struct sci_base_state
-scic_sds_stp_request_started_pio_substate_table
-[SCIC_SDS_STP_REQUEST_STARTED_PIO_MAX_SUBSTATES] =
-{
-	{
-		SCIC_SDS_STP_REQUEST_STARTED_PIO_AWAIT_H2D_COMPLETION_SUBSTATE,
-		scic_sds_stp_request_started_pio_await_h2d_completion_enter,
-		NULL
+const struct sci_base_state scic_sds_stp_request_started_pio_substate_table[] = {
+	[SCIC_SDS_STP_REQUEST_STARTED_PIO_AWAIT_H2D_COMPLETION_SUBSTATE] = {
+		.enter_state = scic_sds_stp_request_started_pio_await_h2d_completion_enter,
 	},
-	{
-		SCIC_SDS_STP_REQUEST_STARTED_PIO_AWAIT_FRAME_SUBSTATE,
-		scic_sds_stp_request_started_pio_await_frame_enter,
-		NULL
+	[SCIC_SDS_STP_REQUEST_STARTED_PIO_AWAIT_FRAME_SUBSTATE] = {
+		.enter_state = scic_sds_stp_request_started_pio_await_frame_enter,
 	},
-	{
-		SCIC_SDS_STP_REQUEST_STARTED_PIO_DATA_IN_AWAIT_DATA_SUBSTATE,
-		scic_sds_stp_request_started_pio_data_in_await_data_enter,
-		NULL
+	[SCIC_SDS_STP_REQUEST_STARTED_PIO_DATA_IN_AWAIT_DATA_SUBSTATE] = {
+		.enter_state = scic_sds_stp_request_started_pio_data_in_await_data_enter,
 	},
-	{
-		SCIC_SDS_STP_REQUEST_STARTED_PIO_DATA_OUT_TRANSMIT_DATA_SUBSTATE,
-		scic_sds_stp_request_started_pio_data_out_transmit_data_enter,
-		NULL
+	[SCIC_SDS_STP_REQUEST_STARTED_PIO_DATA_OUT_TRANSMIT_DATA_SUBSTATE] = {
+		.enter_state = scic_sds_stp_request_started_pio_data_out_transmit_data_enter,
 	}
 };
-

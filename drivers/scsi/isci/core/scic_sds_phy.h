@@ -319,8 +319,8 @@ struct scic_sds_phy_state_handler {
 };
 
 extern struct scic_sds_phy_state_handler scic_sds_phy_state_handler_table[];
-extern struct sci_base_state scic_sds_phy_state_table[];
-extern struct sci_base_state scic_sds_phy_starting_substates[];
+extern const struct sci_base_state scic_sds_phy_state_table[];
+extern const struct sci_base_state scic_sds_phy_starting_substates[];
 extern struct scic_sds_phy_state_handler
 	scic_sds_phy_starting_substate_handler_table[];
 

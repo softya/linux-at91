@@ -129,24 +129,15 @@ static void scic_sds_stp_request_started_soft_reset_await_d2h_response_enter(
 
 /* --------------------------------------------------------------------------- */
 
-struct sci_base_state
-scic_sds_stp_request_started_soft_reset_substate_table
-[SCIC_SDS_STP_REQUEST_STARTED_SOFT_RESET_MAX_SUBSTATES] =
-{
-	{
-		SCIC_SDS_STP_REQUEST_STARTED_SOFT_RESET_AWAIT_H2D_ASSERTED_COMPLETION_SUBSTATE,
-		scic_sds_stp_request_started_soft_reset_await_h2d_asserted_completion_enter,
-		NULL
+const struct sci_base_state scic_sds_stp_request_started_soft_reset_substate_table[] = {
+	[SCIC_SDS_STP_REQUEST_STARTED_SOFT_RESET_AWAIT_H2D_ASSERTED_COMPLETION_SUBSTATE] = {
+		.enter_state = scic_sds_stp_request_started_soft_reset_await_h2d_asserted_completion_enter,
 	},
-	{
-		SCIC_SDS_STP_REQUEST_STARTED_SOFT_RESET_AWAIT_H2D_DIAGNOSTIC_COMPLETION_SUBSTATE,
-		scic_sds_stp_request_started_soft_reset_await_h2d_diagnostic_completion_enter,
-		NULL
+	[SCIC_SDS_STP_REQUEST_STARTED_SOFT_RESET_AWAIT_H2D_DIAGNOSTIC_COMPLETION_SUBSTATE] = {
+		.enter_state = scic_sds_stp_request_started_soft_reset_await_h2d_diagnostic_completion_enter,
 	},
-	{
-		SCIC_SDS_STP_REQUEST_STARTED_SOFT_RESET_AWAIT_D2H_RESPONSE_FRAME_SUBSTATE,
-		scic_sds_stp_request_started_soft_reset_await_d2h_response_enter,
-		NULL
-	}
+	[SCIC_SDS_STP_REQUEST_STARTED_SOFT_RESET_AWAIT_D2H_RESPONSE_FRAME_SUBSTATE] = {
+		.enter_state = scic_sds_stp_request_started_soft_reset_await_d2h_response_enter,
+	},
 };
 

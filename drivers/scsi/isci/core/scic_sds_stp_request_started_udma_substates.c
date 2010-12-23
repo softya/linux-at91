@@ -100,19 +100,12 @@ static void scic_sds_stp_request_started_udma_await_d2h_reg_fis_enter(
 
 /* --------------------------------------------------------------------------- */
 
-struct sci_base_state
-scic_sds_stp_request_started_udma_substate_table
-[SCIC_SDS_STP_REQUEST_STARTED_UDMA_MAX_SUBSTATES] =
-{
-	{
-		SCIC_SDS_STP_REQUEST_STARTED_UDMA_AWAIT_TC_COMPLETION_SUBSTATE,
-		scic_sds_stp_request_started_udma_await_tc_completion_enter,
-		NULL
+const struct sci_base_state scic_sds_stp_request_started_udma_substate_table[] = {
+	[SCIC_SDS_STP_REQUEST_STARTED_UDMA_AWAIT_TC_COMPLETION_SUBSTATE] = {
+		.enter_state = scic_sds_stp_request_started_udma_await_tc_completion_enter,
 	},
-	{
-		SCIC_SDS_STP_REQUEST_STARTED_UDMA_AWAIT_D2H_REG_FIS_SUBSTATE,
-		scic_sds_stp_request_started_udma_await_d2h_reg_fis_enter,
-		NULL
-	}
+	[SCIC_SDS_STP_REQUEST_STARTED_UDMA_AWAIT_D2H_REG_FIS_SUBSTATE] = {
+		.enter_state = scic_sds_stp_request_started_udma_await_d2h_reg_fis_enter,
+	},
 };
 

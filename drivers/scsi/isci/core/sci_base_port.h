@@ -215,6 +215,6 @@ struct sci_base_port_state_handler {
 void sci_base_port_construct(
 	struct sci_base_port *this_port,
 	struct sci_base_logger *logger,
-	struct sci_base_state *state_table);
+	const struct sci_base_state *state_table);
 
 #endif /* _SCI_BASE_PORT_H_ */

@@ -94,18 +94,12 @@ static void scic_sds_stp_request_started_non_data_await_d2h_enter(
 
 /* --------------------------------------------------------------------------- */
 
-struct sci_base_state scic_sds_stp_request_started_non_data_substate_table
-[SCIC_SDS_STP_REQUEST_STARTED_NON_DATA_MAX_SUBSTATES] =
-{
-	{
-		SCIC_SDS_STP_REQUEST_STARTED_NON_DATA_AWAIT_H2D_COMPLETION_SUBSTATE,
-		scic_sds_stp_request_started_non_data_await_h2d_completion_enter,
-		NULL
+const struct sci_base_state scic_sds_stp_request_started_non_data_substate_table[] = {
+	[SCIC_SDS_STP_REQUEST_STARTED_NON_DATA_AWAIT_H2D_COMPLETION_SUBSTATE] = {
+		.enter_state = scic_sds_stp_request_started_non_data_await_h2d_completion_enter,
 	},
-	{
-		SCIC_SDS_STP_REQUEST_STARTED_NON_DATA_AWAIT_D2H_SUBSTATE,
-		scic_sds_stp_request_started_non_data_await_d2h_enter,
-		NULL
-	}
+	[SCIC_SDS_STP_REQUEST_STARTED_NON_DATA_AWAIT_D2H_SUBSTATE] = {
+		.enter_state = scic_sds_stp_request_started_non_data_await_d2h_enter,
+	},
 };
 

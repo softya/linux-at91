@@ -303,9 +303,7 @@ struct scic_sds_remote_node_context {
 
 /* --------------------------------------------------------------------------- */
 
-extern struct sci_base_state
-	scic_sds_remote_node_context_state_table[
-	SCIC_SDS_REMOTE_NODE_CONTEXT_MAX_STATES];
+extern const struct sci_base_state scic_sds_remote_node_context_state_table[];
 
 extern struct scic_sds_remote_node_context_handlers
 	scic_sds_remote_node_context_state_handler_table[

@@ -178,26 +178,19 @@ extern struct scic_sds_io_request_state_handler
 	scic_sds_stp_request_started_udma_substate_handler_table
 [SCIC_SDS_STP_REQUEST_STARTED_UDMA_MAX_SUBSTATES];
 
-extern struct sci_base_state
-	scic_sds_stp_request_started_udma_substate_table
-[SCIC_SDS_STP_REQUEST_STARTED_UDMA_MAX_SUBSTATES];
+extern const struct sci_base_state scic_sds_stp_request_started_udma_substate_table[];
 
 extern struct scic_sds_io_request_state_handler
 	scic_sds_stp_request_started_non_data_substate_handler_table
 [SCIC_SDS_STP_REQUEST_STARTED_NON_DATA_MAX_SUBSTATES];
 
-extern struct sci_base_state
-	scic_sds_stp_request_started_non_data_substate_table
-[SCIC_SDS_STP_REQUEST_STARTED_NON_DATA_MAX_SUBSTATES];
-
+extern const struct sci_base_state scic_sds_stp_request_started_non_data_substate_table[];
 
 extern struct scic_sds_io_request_state_handler
 	scic_sds_stp_request_started_soft_reset_substate_handler_table
 [SCIC_SDS_STP_REQUEST_STARTED_SOFT_RESET_MAX_SUBSTATES];
 
-extern struct sci_base_state
-	scic_sds_stp_request_started_soft_reset_substate_table
-[SCIC_SDS_STP_REQUEST_STARTED_SOFT_RESET_MAX_SUBSTATES];
+extern const struct sci_base_state scic_sds_stp_request_started_soft_reset_substate_table[];
 
 /* --------------------------------------------------------------------------- */
 

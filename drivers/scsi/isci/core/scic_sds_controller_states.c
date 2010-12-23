@@ -355,58 +355,39 @@ static void scic_sds_controller_failed_state_enter(
 
 /* --------------------------------------------------------------------------- */
 
-struct sci_base_state
-scic_sds_controller_state_table[SCI_BASE_CONTROLLER_MAX_STATES] =
-{
-	{
-		SCI_BASE_CONTROLLER_STATE_INITIAL,
-		scic_sds_controller_initial_state_enter,
-		NULL,
+const struct sci_base_state scic_sds_controller_state_table[] = {
+	[SCI_BASE_CONTROLLER_STATE_INITIAL] = {
+		.enter_state = scic_sds_controller_initial_state_enter,
 	},
-	{
-		SCI_BASE_CONTROLLER_STATE_RESET,
-		scic_sds_controller_reset_state_enter,
-		NULL,
+	[SCI_BASE_CONTROLLER_STATE_RESET] = {
+		.enter_state = scic_sds_controller_reset_state_enter,
 	},
-	{
-		SCI_BASE_CONTROLLER_STATE_INITIALIZING,
-		scic_sds_controller_initializing_state_enter,
-		NULL,
+	[SCI_BASE_CONTROLLER_STATE_INITIALIZING] = {
+		.enter_state = scic_sds_controller_initializing_state_enter,
 	},
-	{
-		SCI_BASE_CONTROLLER_STATE_INITIALIZED,
-		scic_sds_controller_initialized_state_enter,
-		NULL,
+	[SCI_BASE_CONTROLLER_STATE_INITIALIZED] = {
+		.enter_state = scic_sds_controller_initialized_state_enter,
 	},
-	{
-		SCI_BASE_CONTROLLER_STATE_STARTING,
-		scic_sds_controller_starting_state_enter,
-		scic_sds_controller_starting_state_exit,
+	[SCI_BASE_CONTROLLER_STATE_STARTING] = {
+		.enter_state = scic_sds_controller_starting_state_enter,
+		.exit_state  = scic_sds_controller_starting_state_exit,
 	},
-	{
-		SCI_BASE_CONTROLLER_STATE_READY,
-		scic_sds_controller_ready_state_enter,
-		scic_sds_controller_ready_state_exit,
+	[SCI_BASE_CONTROLLER_STATE_READY] = {
+		.enter_state = scic_sds_controller_ready_state_enter,
+		.exit_state  = scic_sds_controller_ready_state_exit,
 	},
-	{
-		SCI_BASE_CONTROLLER_STATE_RESETTING,
-		scic_sds_controller_resetting_state_enter,
-		NULL,
+	[SCI_BASE_CONTROLLER_STATE_RESETTING] = {
+		.enter_state = scic_sds_controller_resetting_state_enter,
 	},
-	{
-		SCI_BASE_CONTROLLER_STATE_STOPPING,
-		scic_sds_controller_stopping_state_enter,
-		scic_sds_controller_stopping_state_exit,
+	[SCI_BASE_CONTROLLER_STATE_STOPPING] = {
+		.enter_state = scic_sds_controller_stopping_state_enter,
+		.exit_state = scic_sds_controller_stopping_state_exit,
 	},
-	{
-		SCI_BASE_CONTROLLER_STATE_STOPPED,
-		scic_sds_controller_stopped_state_enter,
-		NULL,
+	[SCI_BASE_CONTROLLER_STATE_STOPPED] = {
+		.enter_state = scic_sds_controller_stopped_state_enter,
 	},
-	{
-		SCI_BASE_CONTROLLER_STATE_FAILED,
-		scic_sds_controller_failed_state_enter,
-		NULL,
+	[SCI_BASE_CONTROLLER_STATE_FAILED] = {
+		.enter_state = scic_sds_controller_failed_state_enter,
 	}
 };
 

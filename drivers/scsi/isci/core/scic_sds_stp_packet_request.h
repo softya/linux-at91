@@ -103,14 +103,12 @@ enum _SCIC_SDS_STP_PACKET_REQUEST_STARTED_SUBSTATES {
 	 * suspension state then complete the IO.
 	 */
 	SCIC_SDS_STP_PACKET_REQUEST_STARTED_COMPLETION_DELAY_SUBSTATE,
-
-	SCIC_SDS_STP_PACKET_REQUEST_STARTED_MAX_SUBSTATES
 };
 
 
 
 #if !defined(DISABLE_ATAPI)
-extern struct sci_base_state scic_sds_stp_packet_request_started_substate_table[];
+extern const struct sci_base_state scic_sds_stp_packet_request_started_substate_table[];
 extern struct scic_sds_io_request_state_handler
 	scic_sds_stp_packet_request_started_substate_handler_table[];
 #endif /* !defined(DISABLE_ATAPI) */

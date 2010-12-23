@@ -333,38 +333,25 @@ static void scic_sds_phy_final_state_enter(
 
 /* --------------------------------------------------------------------------- */
 
-struct sci_base_state scic_sds_phy_state_table[SCI_BASE_PHY_MAX_STATES] =
-{
-	{
-		SCI_BASE_PHY_STATE_INITIAL,
-		scic_sds_phy_initial_state_enter,
-		NULL,
+const struct sci_base_state scic_sds_phy_state_table[] = {
+	[SCI_BASE_PHY_STATE_INITIAL] = {
+		.enter_state = scic_sds_phy_initial_state_enter,
 	},
-	{
-		SCI_BASE_PHY_STATE_STOPPED,
-		scic_sds_phy_stopped_state_enter,
-		NULL,
+	[SCI_BASE_PHY_STATE_STOPPED] = {
+		.enter_state = scic_sds_phy_stopped_state_enter,
 	},
-	{
-		SCI_BASE_PHY_STATE_STARTING,
-		scic_sds_phy_starting_state_enter,
-		NULL,
+	[SCI_BASE_PHY_STATE_STARTING] = {
+		.enter_state = scic_sds_phy_starting_state_enter,
 	},
-	{
-		SCI_BASE_PHY_STATE_READY,
-		scic_sds_phy_ready_state_enter,
-		scic_sds_phy_ready_state_exit,
+	[SCI_BASE_PHY_STATE_READY] = {
+		.enter_state = scic_sds_phy_ready_state_enter,
+		.exit_state = scic_sds_phy_ready_state_exit,
 	},
-	{
-		SCI_BASE_PHY_STATE_RESETTING,
-		scic_sds_phy_resetting_state_enter,
-		NULL,
+	[SCI_BASE_PHY_STATE_RESETTING] = {
+		.enter_state = scic_sds_phy_resetting_state_enter,
 	},
-	{
-		SCI_BASE_PHY_STATE_FINAL,
-		scic_sds_phy_final_state_enter,
-		NULL,
-	}
+	[SCI_BASE_PHY_STATE_FINAL] = {
+		.enter_state = scic_sds_phy_final_state_enter,
+	},
 };
-
 

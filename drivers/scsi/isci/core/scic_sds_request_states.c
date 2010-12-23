@@ -240,38 +240,25 @@ static void scic_sds_request_final_state_enter(
 
 /* --------------------------------------------------------------------------- */
 
-struct sci_base_state
-	scic_sds_request_state_table[SCI_BASE_REQUEST_MAX_STATES] =
-{
-	{
-		SCI_BASE_REQUEST_STATE_INITIAL,
-		scic_sds_request_initial_state_enter,
-		NULL
+const struct sci_base_state scic_sds_request_state_table[] = {
+	[SCI_BASE_REQUEST_STATE_INITIAL] = {
+		.enter_state = scic_sds_request_initial_state_enter,
 	},
-	{
-		SCI_BASE_REQUEST_STATE_CONSTRUCTED,
-		scic_sds_request_constructed_state_enter,
-		NULL
+	[SCI_BASE_REQUEST_STATE_CONSTRUCTED] = {
+		.enter_state = scic_sds_request_constructed_state_enter,
 	},
-	{
-		SCI_BASE_REQUEST_STATE_STARTED,
-		scic_sds_request_started_state_enter,
-		scic_sds_request_started_state_exit
+	[SCI_BASE_REQUEST_STATE_STARTED] = {
+		.enter_state = scic_sds_request_started_state_enter,
+		.exit_state  = scic_sds_request_started_state_exit
 	},
-	{
-		SCI_BASE_REQUEST_STATE_COMPLETED,
-		scic_sds_request_completed_state_enter,
-		NULL
+	[SCI_BASE_REQUEST_STATE_COMPLETED] = {
+		.enter_state = scic_sds_request_completed_state_enter,
 	},
-	{
-		SCI_BASE_REQUEST_STATE_ABORTING,
-		scic_sds_request_aborting_state_enter,
-		NULL
+	[SCI_BASE_REQUEST_STATE_ABORTING] = {
+		.enter_state = scic_sds_request_aborting_state_enter,
 	},
-	{
-		SCI_BASE_REQUEST_STATE_FINAL,
-		scic_sds_request_final_state_enter,
-		NULL
-	}
+	[SCI_BASE_REQUEST_STATE_FINAL] = {
+		.enter_state = scic_sds_request_final_state_enter,
+	},
 };
 

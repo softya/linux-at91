@@ -71,7 +71,7 @@
 void sci_base_phy_construct(
 	struct sci_base_phy *this_phy,
 	struct sci_base_logger *logger,
-	struct sci_base_state *state_table)
+	const struct sci_base_state *state_table)
 {
 	sci_base_object_construct(&this_phy->parent, logger);
 

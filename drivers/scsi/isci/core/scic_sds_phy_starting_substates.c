@@ -448,59 +448,41 @@ static void scic_sds_phy_starting_final_substate_enter(
 
 /* --------------------------------------------------------------------------- */
 
-struct sci_base_state
-scic_sds_phy_starting_substates[SCIC_SDS_PHY_STARTING_MAX_SUBSTATES] =
-{
-	{
-		SCIC_SDS_PHY_STARTING_SUBSTATE_INITIAL,
-		scic_sds_phy_starting_initial_substate_enter,
-		NULL,
+const struct sci_base_state scic_sds_phy_starting_substates[] = {
+	[SCIC_SDS_PHY_STARTING_SUBSTATE_INITIAL] = {
+		.enter_state = scic_sds_phy_starting_initial_substate_enter,
 	},
-	{
-		SCIC_SDS_PHY_STARTING_SUBSTATE_AWAIT_OSSP_EN,
-		scic_sds_phy_starting_await_ossp_en_substate_enter,
-		NULL,
+	[SCIC_SDS_PHY_STARTING_SUBSTATE_AWAIT_OSSP_EN] = {
+		.enter_state = scic_sds_phy_starting_await_ossp_en_substate_enter,
 	},
-	{
-		SCIC_SDS_PHY_STARTING_SUBSTATE_AWAIT_SAS_SPEED_EN,
-		scic_sds_phy_starting_await_sas_speed_en_substate_enter,
-		NULL,
+	[SCIC_SDS_PHY_STARTING_SUBSTATE_AWAIT_SAS_SPEED_EN] = {
+		.enter_state = scic_sds_phy_starting_await_sas_speed_en_substate_enter,
 	},
-	{
-		SCIC_SDS_PHY_STARTING_SUBSTATE_AWAIT_IAF_UF,
-		scic_sds_phy_starting_await_iaf_uf_substate_enter,
-		NULL,
+	[SCIC_SDS_PHY_STARTING_SUBSTATE_AWAIT_IAF_UF] = {
+		.enter_state = scic_sds_phy_starting_await_iaf_uf_substate_enter,
 	},
-	{
-		SCIC_SDS_PHY_STARTING_SUBSTATE_AWAIT_SAS_POWER,
-		scic_sds_phy_starting_await_sas_power_substate_enter,
-		scic_sds_phy_starting_await_sas_power_substate_exit,
+	[SCIC_SDS_PHY_STARTING_SUBSTATE_AWAIT_SAS_POWER] = {
+		.enter_state = scic_sds_phy_starting_await_sas_power_substate_enter,
+		.exit_state  = scic_sds_phy_starting_await_sas_power_substate_exit,
 	},
-	{
-		SCIC_SDS_PHY_STARTING_SUBSTATE_AWAIT_SATA_POWER,
-		scic_sds_phy_starting_await_sata_power_substate_enter,
-		scic_sds_phy_starting_await_sata_power_substate_exit
+	[SCIC_SDS_PHY_STARTING_SUBSTATE_AWAIT_SATA_POWER] = {
+		.enter_state = scic_sds_phy_starting_await_sata_power_substate_enter,
+		.exit_state  = scic_sds_phy_starting_await_sata_power_substate_exit
 	},
-	{
-		SCIC_SDS_PHY_STARTING_SUBSTATE_AWAIT_SATA_PHY_EN,
-		scic_sds_phy_starting_await_sata_phy_substate_enter,
-		scic_sds_phy_starting_await_sata_phy_substate_exit
+	[SCIC_SDS_PHY_STARTING_SUBSTATE_AWAIT_SATA_PHY_EN] = {
+		.enter_state = scic_sds_phy_starting_await_sata_phy_substate_enter,
+		.exit_state  = scic_sds_phy_starting_await_sata_phy_substate_exit
 	},
-	{
-		SCIC_SDS_PHY_STARTING_SUBSTATE_AWAIT_SATA_SPEED_EN,
-		scic_sds_phy_starting_await_sata_speed_substate_enter,
-		scic_sds_phy_starting_await_sata_speed_substate_exit
+	[SCIC_SDS_PHY_STARTING_SUBSTATE_AWAIT_SATA_SPEED_EN] = {
+		.enter_state = scic_sds_phy_starting_await_sata_speed_substate_enter,
+		.exit_state  = scic_sds_phy_starting_await_sata_speed_substate_exit
 	},
-	{
-		SCIC_SDS_PHY_STARTING_SUBSTATE_AWAIT_SIG_FIS_UF,
-		scic_sds_phy_starting_await_sig_fis_uf_substate_enter,
-		scic_sds_phy_starting_await_sig_fis_uf_substate_exit
+	[SCIC_SDS_PHY_STARTING_SUBSTATE_AWAIT_SIG_FIS_UF] = {
+		.enter_state = scic_sds_phy_starting_await_sig_fis_uf_substate_enter,
+		.exit_state  = scic_sds_phy_starting_await_sig_fis_uf_substate_exit
 	},
-	{
-		SCIC_SDS_PHY_STARTING_SUBSTATE_FINAL,
-		scic_sds_phy_starting_final_substate_enter,
-		NULL,
+	[SCIC_SDS_PHY_STARTING_SUBSTATE_FINAL] = {
+		.enter_state = scic_sds_phy_starting_final_substate_enter,
 	}
 };
-
 

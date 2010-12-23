@@ -190,6 +190,6 @@ struct sci_base_request_state_handler {
 void sci_base_request_construct(
 	struct sci_base_request *this_request,
 	struct sci_base_logger *logger,
-	struct sci_base_state *state_table);
+	const struct sci_base_state *state_table);
 
 #endif /* _SCI_BASE_REQUST_H_ */

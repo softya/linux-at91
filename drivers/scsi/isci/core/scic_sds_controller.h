@@ -436,7 +436,7 @@ struct scic_sds_controller_state_handler {
 
 extern struct scic_sds_controller_state_handler
 	scic_sds_controller_state_handler_table[];
-extern struct sci_base_state scic_sds_controller_state_table[];
+extern const struct sci_base_state scic_sds_controller_state_table[];
 
 /**
  * INCREMENT_QUEUE_GET() -

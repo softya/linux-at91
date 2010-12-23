@@ -272,41 +272,25 @@ void scic_sds_stp_remote_device_ready_atapi_error_substate_enter(
 
 /* --------------------------------------------------------------------------- */
 
-struct sci_base_state
-scic_sds_stp_remote_device_ready_substate_table[
-	SCIC_SDS_STP_REMOTE_DEVICE_READY_MAX_SUBSTATES] =
-{
-	{
-		SCIC_SDS_STP_REMOTE_DEVICE_READY_SUBSTATE_IDLE,
-		scic_sds_stp_remote_device_ready_idle_substate_enter,
-		NULL
+const struct sci_base_state scic_sds_stp_remote_device_ready_substate_table[] = {
+	[SCIC_SDS_STP_REMOTE_DEVICE_READY_SUBSTATE_IDLE] = {
+		.enter_state = scic_sds_stp_remote_device_ready_idle_substate_enter,
 	},
-	{
-		SCIC_SDS_STP_REMOTE_DEVICE_READY_SUBSTATE_CMD,
-		scic_sds_stp_remote_device_ready_cmd_substate_enter,
-		NULL
+	[SCIC_SDS_STP_REMOTE_DEVICE_READY_SUBSTATE_CMD] = {
+		.enter_state = scic_sds_stp_remote_device_ready_cmd_substate_enter,
 	},
-	{
-		SCIC_SDS_STP_REMOTE_DEVICE_READY_SUBSTATE_NCQ,
-		scic_sds_stp_remote_device_ready_ncq_substate_enter,
-		NULL
+	[SCIC_SDS_STP_REMOTE_DEVICE_READY_SUBSTATE_NCQ] = {
+		.enter_state = scic_sds_stp_remote_device_ready_ncq_substate_enter,
 	},
-	{
-		SCIC_SDS_STP_REMOTE_DEVICE_READY_SUBSTATE_NCQ_ERROR,
-		scic_sds_stp_remote_device_ready_ncq_error_substate_enter,
-		NULL
+	[SCIC_SDS_STP_REMOTE_DEVICE_READY_SUBSTATE_NCQ_ERROR] = {
+		.enter_state = scic_sds_stp_remote_device_ready_ncq_error_substate_enter,
 	},
 #if !defined(DISABLE_ATAPI)
-	{
-		SCIC_SDS_STP_REMOTE_DEVICE_READY_SUBSTATE_ATAPI_ERROR,
-		scic_sds_stp_remote_device_ready_atapi_error_substate_enter,
-		NULL
+	[SCIC_SDS_STP_REMOTE_DEVICE_READY_SUBSTATE_ATAPI_ERROR] = {
+		.enter_state = scic_sds_stp_remote_device_ready_atapi_error_substate_enter,
 	},
 #endif
-	{
-		SCIC_SDS_STP_REMOTE_DEVICE_READY_SUBSTATE_AWAIT_RESET,
-		scic_sds_stp_remote_device_ready_await_reset_substate_enter,
-		NULL
-	}
+	[SCIC_SDS_STP_REMOTE_DEVICE_READY_SUBSTATE_AWAIT_RESET] = {
+		.enter_state = scic_sds_stp_remote_device_ready_await_reset_substate_enter,
+	},
 };
-

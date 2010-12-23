@@ -136,18 +136,12 @@ static void scic_sds_smp_remote_device_ready_cmd_substate_exit(
 
 /* --------------------------------------------------------------------------- */
 
-struct sci_base_state
-scic_sds_smp_remote_device_ready_substate_table[
-	SCIC_SDS_SMP_REMOTE_DEVICE_READY_MAX_SUBSTATES] =
-{
-	{
-		SCIC_SDS_SMP_REMOTE_DEVICE_READY_SUBSTATE_IDLE,
-		scic_sds_smp_remote_device_ready_idle_substate_enter,
-		NULL
+const struct sci_base_state scic_sds_smp_remote_device_ready_substate_table[] = {
+	[SCIC_SDS_SMP_REMOTE_DEVICE_READY_SUBSTATE_IDLE] = {
+		.enter_state = scic_sds_smp_remote_device_ready_idle_substate_enter,
 	},
-	{
-		SCIC_SDS_SMP_REMOTE_DEVICE_READY_SUBSTATE_CMD,
-		scic_sds_smp_remote_device_ready_cmd_substate_enter,
-		scic_sds_smp_remote_device_ready_cmd_substate_exit
-	}
+	[SCIC_SDS_SMP_REMOTE_DEVICE_READY_SUBSTATE_CMD] = {
+		.enter_state = scic_sds_smp_remote_device_ready_cmd_substate_enter,
+		.exit_state  = scic_sds_smp_remote_device_ready_cmd_substate_exit,
+	},
 };

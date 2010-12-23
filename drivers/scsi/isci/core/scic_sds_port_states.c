@@ -343,32 +343,25 @@ static void scic_sds_port_failed_state_enter(
 
 /* --------------------------------------------------------------------------- */
 
-struct sci_base_state scic_sds_port_state_table[SCI_BASE_PORT_MAX_STATES] =
-{
-	{
-		SCI_BASE_PORT_STATE_STOPPED,
-		scic_sds_port_stopped_state_enter,
-		scic_sds_port_stopped_state_exit
+const struct sci_base_state scic_sds_port_state_table[] = {
+	[SCI_BASE_PORT_STATE_STOPPED] = {
+		.enter_state = scic_sds_port_stopped_state_enter,
+		.exit_state  = scic_sds_port_stopped_state_exit
 	},
-	{
-		SCI_BASE_PORT_STATE_STOPPING,
-		scic_sds_port_stopping_state_enter,
-		scic_sds_port_stopping_state_exit
+	[SCI_BASE_PORT_STATE_STOPPING] = {
+		.enter_state = scic_sds_port_stopping_state_enter,
+		.exit_state  = scic_sds_port_stopping_state_exit
 	},
-	{
-		SCI_BASE_PORT_STATE_READY,
-		scic_sds_port_ready_state_enter,
-		scic_sds_port_ready_state_exit
+	[SCI_BASE_PORT_STATE_READY] = {
+		.enter_state = scic_sds_port_ready_state_enter,
+		.exit_state  = scic_sds_port_ready_state_exit
 	},
-	{
-		SCI_BASE_PORT_STATE_RESETTING,
-		scic_sds_port_resetting_state_enter,
-		scic_sds_port_resetting_state_exit
+	[SCI_BASE_PORT_STATE_RESETTING] = {
+		.enter_state = scic_sds_port_resetting_state_enter,
+		.exit_state  = scic_sds_port_resetting_state_exit
 	},
-	{
-		SCI_BASE_PORT_STATE_FAILED,
-		scic_sds_port_failed_state_enter,
-		NULL
+	[SCI_BASE_PORT_STATE_FAILED] = {
+		.enter_state = scic_sds_port_failed_state_enter,
 	}
 };
 

@@ -95,7 +95,7 @@ struct sci_base_state_machine {
 	/**
 	 * This field points to the start of the state machine's state table.
 	 */
-	struct sci_base_state *state_table;
+	const struct sci_base_state *state_table;
 
 	/**
 	 * This field points to the object to which this state machine is
@@ -130,7 +130,7 @@ struct sci_base_state_machine {
 void sci_base_state_machine_construct(
 	struct sci_base_state_machine *this_state_machine,
 	struct sci_base_object *state_machine_owner,
-	struct sci_base_state *state_table,
+	const struct sci_base_state *state_table,
 	u32 initial_state);
 
 void sci_base_state_machine_start(

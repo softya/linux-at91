@@ -239,8 +239,8 @@ struct scic_sds_port_state_handler {
 
 };
 
-extern struct sci_base_state scic_sds_port_state_table[];
-extern struct sci_base_state scic_sds_port_ready_substate_table[];
+extern const struct sci_base_state scic_sds_port_state_table[];
+extern const struct sci_base_state scic_sds_port_ready_substate_table[];
 
 extern struct scic_sds_port_state_handler scic_sds_port_state_handler_table[];
 extern struct scic_sds_port_state_handler scic_sds_port_ready_substate_handler_table[];

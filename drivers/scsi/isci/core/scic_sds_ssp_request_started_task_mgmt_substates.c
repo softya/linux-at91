@@ -107,18 +107,12 @@ static void scic_sds_io_request_started_task_mgmt_await_task_response_substate_e
 		);
 }
 
-struct sci_base_state scic_sds_io_request_started_task_mgmt_substate_table
-[SCIC_SDS_IO_REQUEST_STARTED_TASK_MGMT_MAX_SUBSTATES] =
-{
-	{
-		SCIC_SDS_IO_REQUEST_STARTED_TASK_MGMT_SUBSTATE_AWAIT_TC_COMPLETION,
-		scic_sds_io_request_started_task_mgmt_await_tc_completion_substate_enter,
-		NULL
+const struct sci_base_state scic_sds_io_request_started_task_mgmt_substate_table[] = {
+	[SCIC_SDS_IO_REQUEST_STARTED_TASK_MGMT_SUBSTATE_AWAIT_TC_COMPLETION] = {
+		.enter_state = scic_sds_io_request_started_task_mgmt_await_tc_completion_substate_enter,
 	},
-	{
-		SCIC_SDS_IO_REQUEST_STARTED_TASK_MGMT_SUBSTATE_AWAIT_TC_RESPONSE,
-		scic_sds_io_request_started_task_mgmt_await_task_response_substate_enter,
-		NULL
-	}
+	[SCIC_SDS_IO_REQUEST_STARTED_TASK_MGMT_SUBSTATE_AWAIT_TC_RESPONSE] = {
+		.enter_state = scic_sds_io_request_started_task_mgmt_await_task_response_substate_enter,
+	},
 };
 

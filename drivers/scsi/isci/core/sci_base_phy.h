@@ -196,6 +196,6 @@ struct sci_base_phy_state_handler {
 void sci_base_phy_construct(
 	struct sci_base_phy *this_phy,
 	struct sci_base_logger *logger,
-	struct sci_base_state *state_table);
+	const struct sci_base_state *state_table);
 
 #endif /* _SCI_BASE_PHY_H_ */

@@ -346,48 +346,33 @@ static void scic_sds_remote_device_final_state_enter(
 
 /* --------------------------------------------------------------------------- */
 
-struct sci_base_state
-scic_sds_remote_device_state_table[SCI_BASE_REMOTE_DEVICE_MAX_STATES] =
-{
-	{
-		SCI_BASE_REMOTE_DEVICE_STATE_INITIAL,
-		scic_sds_remote_device_initial_state_enter,
-		NULL
+const struct sci_base_state scic_sds_remote_device_state_table[] = {
+	[SCI_BASE_REMOTE_DEVICE_STATE_INITIAL] = {
+		.enter_state = scic_sds_remote_device_initial_state_enter,
 	},
-	{
-		SCI_BASE_REMOTE_DEVICE_STATE_STOPPED,
-		scic_sds_remote_device_stopped_state_enter,
-		NULL
+	[SCI_BASE_REMOTE_DEVICE_STATE_STOPPED] = {
+		.enter_state = scic_sds_remote_device_stopped_state_enter,
 	},
-	{
-		SCI_BASE_REMOTE_DEVICE_STATE_STARTING,
-		scic_sds_remote_device_starting_state_enter,
-		scic_sds_remote_device_starting_state_exit
+	[SCI_BASE_REMOTE_DEVICE_STATE_STARTING] = {
+		.enter_state = scic_sds_remote_device_starting_state_enter,
+		.exit_state  = scic_sds_remote_device_starting_state_exit
 	},
-	{
-		SCI_BASE_REMOTE_DEVICE_STATE_READY,
-		scic_sds_remote_device_ready_state_enter,
-		scic_sds_remote_device_ready_state_exit
+	[SCI_BASE_REMOTE_DEVICE_STATE_READY] = {
+		.enter_state = scic_sds_remote_device_ready_state_enter,
+		.exit_state  = scic_sds_remote_device_ready_state_exit
 	},
-	{
-		SCI_BASE_REMOTE_DEVICE_STATE_STOPPING,
-		scic_sds_remote_device_stopping_state_enter,
-		NULL
+	[SCI_BASE_REMOTE_DEVICE_STATE_STOPPING] = {
+		.enter_state = scic_sds_remote_device_stopping_state_enter,
 	},
-	{
-		SCI_BASE_REMOTE_DEVICE_STATE_FAILED,
-		scic_sds_remote_device_failed_state_enter,
-		NULL
+	[SCI_BASE_REMOTE_DEVICE_STATE_FAILED] = {
+		.enter_state = scic_sds_remote_device_failed_state_enter,
 	},
-	{
-		SCI_BASE_REMOTE_DEVICE_STATE_RESETTING,
-		scic_sds_remote_device_resetting_state_enter,
-		scic_sds_remote_device_resetting_state_exit
+	[SCI_BASE_REMOTE_DEVICE_STATE_RESETTING] = {
+		.enter_state = scic_sds_remote_device_resetting_state_enter,
+		.exit_state  = scic_sds_remote_device_resetting_state_exit
 	},
-	{
-		SCI_BASE_REMOTE_DEVICE_STATE_FINAL,
-		scic_sds_remote_device_final_state_enter,
-		NULL
-	}
+	[SCI_BASE_REMOTE_DEVICE_STATE_FINAL] = {
+		.enter_state = scic_sds_remote_device_final_state_enter,
+	},
 };
 

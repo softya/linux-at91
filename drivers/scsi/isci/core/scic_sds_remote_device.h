@@ -338,10 +338,10 @@ struct scic_sds_remote_device_state_handler {
 };
 
 
-extern struct sci_base_state scic_sds_remote_device_state_table[];
-extern struct sci_base_state scic_sds_ssp_remote_device_ready_substate_table[];
-extern struct sci_base_state scic_sds_stp_remote_device_ready_substate_table[];
-extern struct sci_base_state scic_sds_smp_remote_device_ready_substate_table[];
+extern const struct sci_base_state scic_sds_remote_device_state_table[];
+extern const struct sci_base_state scic_sds_ssp_remote_device_ready_substate_table[];
+extern const struct sci_base_state scic_sds_stp_remote_device_ready_substate_table[];
+extern const struct sci_base_state scic_sds_smp_remote_device_ready_substate_table[];
 
 extern struct scic_sds_remote_device_state_handler
 	scic_sds_remote_device_state_handler_table[];

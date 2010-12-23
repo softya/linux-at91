@@ -100,7 +100,7 @@
 void sci_base_state_machine_construct(
 	struct sci_base_state_machine *this_state_machine,
 	struct sci_base_object *my_state_machine_owner,
-	struct sci_base_state *state_table,
+	const struct sci_base_state *state_table,
 	u32 initial_state)
 {
 #if defined(SCI_LOGGING)

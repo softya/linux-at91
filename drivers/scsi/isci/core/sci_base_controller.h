@@ -319,7 +319,7 @@ struct sci_base_controller_state_handler {
 void sci_base_controller_construct(
 	struct sci_base_controller *this_controller,
 	struct sci_base_logger *logger,
-	struct sci_base_state *state_table,
+	const struct sci_base_state *state_table,
 	struct sci_physical_memory_descriptor *mdes,
 	u32 mde_count,
 	SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T next_mdl);
