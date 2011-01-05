@@ -813,80 +813,60 @@ static enum sci_status scic_sds_request_aborting_state_frame_handler(
 
 /* --------------------------------------------------------------------------- */
 
-struct scic_sds_io_request_state_handler
-	scic_sds_request_state_handler_table[SCI_BASE_REQUEST_MAX_STATES] =
-{
-	/* SCI_BASE_REQUEST_STATE_INITIAL */
-	{
-		{
-			scic_sds_request_default_start_handler,
-			scic_sds_request_default_abort_handler,
-			scic_sds_request_default_complete_handler,
-			scic_sds_request_default_destruct_handler
-		},
-		scic_sds_request_default_tc_completion_handler,
-		scic_sds_request_default_event_handler,
-		scic_sds_request_default_frame_handler
+const struct scic_sds_io_request_state_handler scic_sds_request_state_handler_table[] = {
+	[SCI_BASE_REQUEST_STATE_INITIAL] = {
+		.parent.start_handler    = scic_sds_request_default_start_handler,
+		.parent.abort_handler    = scic_sds_request_default_abort_handler,
+		.parent.complete_handler = scic_sds_request_default_complete_handler,
+		.parent.destruct_handler = scic_sds_request_default_destruct_handler,
+		.tc_completion_handler   = scic_sds_request_default_tc_completion_handler,
+		.event_handler           = scic_sds_request_default_event_handler,
+		.frame_handler           = scic_sds_request_default_frame_handler,
 	},
-	/* SCI_BASE_REQUEST_STATE_CONSTRUCTED */
-	{
-		{
-			scic_sds_request_constructed_state_start_handler,
-			scic_sds_request_constructed_state_abort_handler,
-			scic_sds_request_default_complete_handler,
-			scic_sds_request_default_destruct_handler
-		},
-		scic_sds_request_default_tc_completion_handler,
-		scic_sds_request_default_event_handler,
-		scic_sds_request_default_frame_handler
+	[SCI_BASE_REQUEST_STATE_CONSTRUCTED] = {
+		.parent.start_handler    = scic_sds_request_constructed_state_start_handler,
+		.parent.abort_handler    = scic_sds_request_constructed_state_abort_handler,
+		.parent.complete_handler = scic_sds_request_default_complete_handler,
+		.parent.destruct_handler = scic_sds_request_default_destruct_handler,
+		.tc_completion_handler   = scic_sds_request_default_tc_completion_handler,
+		.event_handler           = scic_sds_request_default_event_handler,
+		.frame_handler           = scic_sds_request_default_frame_handler,
 	},
-	/* SCI_BASE_REQUEST_STATE_STARTED */
-	{
-		{
-			scic_sds_request_default_start_handler,
-			scic_sds_request_started_state_abort_handler,
-			scic_sds_request_default_complete_handler,
-			scic_sds_request_default_destruct_handler
-		},
-		scic_sds_request_started_state_tc_completion_handler,
-		scic_sds_request_default_event_handler,
-		scic_sds_request_started_state_frame_handler
+	[SCI_BASE_REQUEST_STATE_STARTED] = {
+		.parent.start_handler    = scic_sds_request_default_start_handler,
+		.parent.abort_handler    = scic_sds_request_started_state_abort_handler,
+		.parent.complete_handler = scic_sds_request_default_complete_handler,
+		.parent.destruct_handler = scic_sds_request_default_destruct_handler,
+		.tc_completion_handler   = scic_sds_request_started_state_tc_completion_handler,
+		.event_handler           = scic_sds_request_default_event_handler,
+		.frame_handler           = scic_sds_request_started_state_frame_handler,
 	},
-	/* SCI_BASE_REQUEST_STATE_COMPLETED */
-	{
-		{
-			scic_sds_request_default_start_handler,
-			scic_sds_request_default_abort_handler,
-			scic_sds_request_completed_state_complete_handler,
-			scic_sds_request_default_destruct_handler
-		},
-		scic_sds_request_default_tc_completion_handler,
-		scic_sds_request_default_event_handler,
-		scic_sds_request_default_frame_handler
+	[SCI_BASE_REQUEST_STATE_COMPLETED] = {
+		.parent.start_handler    = scic_sds_request_default_start_handler,
+		.parent.abort_handler    = scic_sds_request_default_abort_handler,
+		.parent.complete_handler = scic_sds_request_completed_state_complete_handler,
+		.parent.destruct_handler = scic_sds_request_default_destruct_handler,
+		.tc_completion_handler   = scic_sds_request_default_tc_completion_handler,
+		.event_handler           = scic_sds_request_default_event_handler,
+		.frame_handler           = scic_sds_request_default_frame_handler,
 	},
-	/* SCI_BASE_REQUEST_STATE_ABORTING */
-	{
-		{
-			scic_sds_request_default_start_handler,
-			scic_sds_request_aborting_state_abort_handler,
-			scic_sds_request_default_complete_handler,
-			scic_sds_request_default_destruct_handler
-		},
-		scic_sds_request_aborting_state_tc_completion_handler,
-		scic_sds_request_default_event_handler,
-		scic_sds_request_aborting_state_frame_handler,
+	[SCI_BASE_REQUEST_STATE_ABORTING] = {
+		.parent.start_handler    = scic_sds_request_default_start_handler,
+		.parent.abort_handler    = scic_sds_request_aborting_state_abort_handler,
+		.parent.complete_handler = scic_sds_request_default_complete_handler,
+		.parent.destruct_handler = scic_sds_request_default_destruct_handler,
+		.tc_completion_handler   = scic_sds_request_aborting_state_tc_completion_handler,
+		.event_handler           = scic_sds_request_default_event_handler,
+		.frame_handler           = scic_sds_request_aborting_state_frame_handler,
 	},
-	/* SCI_BASE_REQUEST_STATE_FINAL */
-	{
-		{
-			scic_sds_request_default_start_handler,
-			scic_sds_request_default_abort_handler,
-			scic_sds_request_default_complete_handler,
-			scic_sds_request_default_destruct_handler
-		},
-		scic_sds_request_default_tc_completion_handler,
-		scic_sds_request_default_event_handler,
-		scic_sds_request_default_frame_handler
-	}
+	[SCI_BASE_REQUEST_STATE_FINAL] = {
+		.parent.start_handler    = scic_sds_request_default_start_handler,
+		.parent.abort_handler    = scic_sds_request_default_abort_handler,
+		.parent.complete_handler = scic_sds_request_default_complete_handler,
+		.parent.destruct_handler = scic_sds_request_default_destruct_handler,
+		.tc_completion_handler   = scic_sds_request_default_tc_completion_handler,
+		.event_handler           = scic_sds_request_default_event_handler,
+		.frame_handler           = scic_sds_request_default_frame_handler,
+	},
 };
 

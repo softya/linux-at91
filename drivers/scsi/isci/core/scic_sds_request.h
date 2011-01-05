@@ -95,9 +95,6 @@ enum scic_sds_raw_request_started_task_mgmt_substates {
 	 * (i.e. response IU).
 	 */
 	SCIC_SDS_IO_REQUEST_STARTED_TASK_MGMT_SUBSTATE_AWAIT_TC_RESPONSE,
-
-	SCIC_SDS_IO_REQUEST_STARTED_TASK_MGMT_MAX_SUBSTATES
-
 };
 
 
@@ -121,9 +118,6 @@ enum scic_sds_smp_request_started_substates {
 	 * waiting for the transmission of the initial frame (i.e. command, task, etc.).
 	 */
 	SCIC_SDS_SMP_REQUEST_STARTED_SUBSTATE_AWAIT_TC_COMPLETION,
-
-	SCIC_SDS_SMP_REQUEST_STARTED_MAX_SUBSTATES
-
 };
 
 /**
@@ -226,7 +220,7 @@ struct scic_sds_request {
 	 * IO Request object.  This field is updated each time the request
 	 * changes state.
 	 */
-	struct scic_sds_io_request_state_handler *state_handlers;
+	const struct scic_sds_io_request_state_handler *state_handlers;
 
    #ifdef SCI_LOGGING
 	/**
@@ -246,17 +240,14 @@ struct scic_sds_request {
 };
 
 
-typedef enum sci_status (*SCIC_SDS_IO_REQUEST_FRAME_HANDLER_T)(
-	struct scic_sds_request *this_request,
-	u32 frame_index);
+typedef enum sci_status
+(*scic_sds_io_request_frame_handler_t)(struct scic_sds_request *req, u32 frame);
 
-typedef enum sci_status (*SCIC_SDS_IO_REQUEST_EVENT_HANDLER_T)(
-	struct scic_sds_request *this_request,
-	u32 event_code);
+typedef enum sci_status
+(*scic_sds_io_request_event_handler_t)(struct scic_sds_request *req, u32 event);
 
-typedef enum sci_status (*SCIC_SDS_IO_REQUEST_TASK_COMPLETION_HANDLER_T)(
-	struct scic_sds_request *this_request,
-	u32 completion_code);
+typedef enum sci_status
+(*scic_sds_io_request_task_completion_handler_t)(struct scic_sds_request *req, u32 completion_code);
 
 /**
  * struct scic_sds_io_request_state_handler - This is the SDS core definition
@@ -267,23 +258,20 @@ typedef enum sci_status (*SCIC_SDS_IO_REQUEST_TASK_COMPLETION_HANDLER_T)(
 struct scic_sds_io_request_state_handler {
 	struct sci_base_request_state_handler parent;
 
-	SCIC_SDS_IO_REQUEST_TASK_COMPLETION_HANDLER_T tc_completion_handler;
-	SCIC_SDS_IO_REQUEST_EVENT_HANDLER_T event_handler;
-	SCIC_SDS_IO_REQUEST_FRAME_HANDLER_T frame_handler;
+	scic_sds_io_request_task_completion_handler_t tc_completion_handler;
+	scic_sds_io_request_event_handler_t event_handler;
+	scic_sds_io_request_frame_handler_t frame_handler;
 
 };
 
 extern const struct sci_base_state scic_sds_request_state_table[];
-extern struct scic_sds_io_request_state_handler
-	scic_sds_request_state_handler_table[];
+extern const struct scic_sds_io_request_state_handler scic_sds_request_state_handler_table[];
 
 extern const struct sci_base_state scic_sds_io_request_started_task_mgmt_substate_table[];
-extern struct scic_sds_io_request_state_handler
-	scic_sds_ssp_task_request_started_substate_handler_table[];
+extern const struct scic_sds_io_request_state_handler scic_sds_ssp_task_request_started_substate_handler_table[];
 
 extern const struct sci_base_state scic_sds_smp_request_started_substate_table[];
-extern struct scic_sds_io_request_state_handler
-	scic_sds_smp_request_started_substate_handler_table[];
+extern const struct scic_sds_io_request_state_handler scic_sds_smp_request_started_substate_handler_table[];
 
 /**
  *

@@ -109,8 +109,7 @@ enum _SCIC_SDS_STP_PACKET_REQUEST_STARTED_SUBSTATES {
 
 #if !defined(DISABLE_ATAPI)
 extern const struct sci_base_state scic_sds_stp_packet_request_started_substate_table[];
-extern struct scic_sds_io_request_state_handler
-	scic_sds_stp_packet_request_started_substate_handler_table[];
+extern const struct scic_sds_io_request_state_handler scic_sds_stp_packet_request_started_substate_handler_table[];
 #endif /* !defined(DISABLE_ATAPI) */
 
 #if !defined(DISABLE_ATAPI)

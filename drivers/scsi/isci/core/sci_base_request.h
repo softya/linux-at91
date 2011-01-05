@@ -110,9 +110,6 @@ enum sci_base_request_states {
 	 * Simply the final state for the base request state machine.
 	 */
 	SCI_BASE_REQUEST_STATE_FINAL,
-
-	SCI_BASE_REQUEST_MAX_STATES
-
 };
 
 /**

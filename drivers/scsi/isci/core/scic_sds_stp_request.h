@@ -142,8 +142,6 @@ struct scic_sds_stp_request {
 enum SCIC_SDS_STP_REQUEST_STARTED_UDMA_SUBSTATES {
 	SCIC_SDS_STP_REQUEST_STARTED_UDMA_AWAIT_TC_COMPLETION_SUBSTATE,
 	SCIC_SDS_STP_REQUEST_STARTED_UDMA_AWAIT_D2H_REG_FIS_SUBSTATE,
-
-	SCIC_SDS_STP_REQUEST_STARTED_UDMA_MAX_SUBSTATES
 };
 
 /**
@@ -156,7 +154,6 @@ enum SCIC_SDS_STP_REQUEST_STARTED_UDMA_SUBSTATES {
 enum SCIC_SDS_STP_REQUEST_STARTED_NON_DATA_SUBSTATES {
 	SCIC_SDS_STP_REQUEST_STARTED_NON_DATA_AWAIT_H2D_COMPLETION_SUBSTATE,
 	SCIC_SDS_STP_REQUEST_STARTED_NON_DATA_AWAIT_D2H_SUBSTATE,
-	SCIC_SDS_STP_REQUEST_STARTED_NON_DATA_MAX_SUBSTATES
 };
 
 /**
@@ -170,25 +167,17 @@ enum SCIC_SDS_STP_REQUEST_STARTED_SOFT_RESET_SUBSTATES {
 	SCIC_SDS_STP_REQUEST_STARTED_SOFT_RESET_AWAIT_H2D_ASSERTED_COMPLETION_SUBSTATE,
 	SCIC_SDS_STP_REQUEST_STARTED_SOFT_RESET_AWAIT_H2D_DIAGNOSTIC_COMPLETION_SUBSTATE,
 	SCIC_SDS_STP_REQUEST_STARTED_SOFT_RESET_AWAIT_D2H_RESPONSE_FRAME_SUBSTATE,
-
-	SCIC_SDS_STP_REQUEST_STARTED_SOFT_RESET_MAX_SUBSTATES
 };
 
-extern struct scic_sds_io_request_state_handler
-	scic_sds_stp_request_started_udma_substate_handler_table
-[SCIC_SDS_STP_REQUEST_STARTED_UDMA_MAX_SUBSTATES];
+extern const struct scic_sds_io_request_state_handler scic_sds_stp_request_started_udma_substate_handler_table[];
 
 extern const struct sci_base_state scic_sds_stp_request_started_udma_substate_table[];
 
-extern struct scic_sds_io_request_state_handler
-	scic_sds_stp_request_started_non_data_substate_handler_table
-[SCIC_SDS_STP_REQUEST_STARTED_NON_DATA_MAX_SUBSTATES];
+extern const struct scic_sds_io_request_state_handler scic_sds_stp_request_started_non_data_substate_handler_table[];
 
 extern const struct sci_base_state scic_sds_stp_request_started_non_data_substate_table[];
 
-extern struct scic_sds_io_request_state_handler
-	scic_sds_stp_request_started_soft_reset_substate_handler_table
-[SCIC_SDS_STP_REQUEST_STARTED_SOFT_RESET_MAX_SUBSTATES];
+extern const struct scic_sds_io_request_state_handler scic_sds_stp_request_started_soft_reset_substate_handler_table[];
 
 extern const struct sci_base_state scic_sds_stp_request_started_soft_reset_substate_table[];
 

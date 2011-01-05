@@ -97,18 +97,12 @@ enum _SCIC_SDS_STP_REQUEST_STARTED_PIO_SUBSTATES {
 	 * frame to the device.
 	 */
 	SCIC_SDS_STP_REQUEST_STARTED_PIO_DATA_OUT_TRANSMIT_DATA_SUBSTATE,
-
-	SCIC_SDS_STP_REQUEST_STARTED_PIO_MAX_SUBSTATES
 };
-
-
 
 
 /* --------------------------------------------------------------------------- */
 
-extern struct scic_sds_io_request_state_handler
-	scic_sds_stp_request_started_pio_substate_handler_table[
-	SCIC_SDS_STP_REQUEST_STARTED_PIO_MAX_SUBSTATES];
+extern const struct scic_sds_io_request_state_handler scic_sds_stp_request_started_pio_substate_handler_table[];
 
 extern const struct sci_base_state scic_sds_stp_request_started_pio_substate_table[];
 

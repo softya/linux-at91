@@ -720,59 +720,41 @@ static enum sci_status scic_sds_stp_request_pio_data_in_await_data_event_handler
 
 /* --------------------------------------------------------------------------- */
 
-struct scic_sds_io_request_state_handler
-scic_sds_stp_request_started_pio_substate_handler_table
-[SCIC_SDS_STP_REQUEST_STARTED_PIO_MAX_SUBSTATES] =
-{
-	/* SCIC_SDS_STP_REQUEST_STARTED_PIO_AWAIT_H2D_COMPLETION_SUBSTATE */
-	{
-		{
-			scic_sds_request_default_start_handler,
-			scic_sds_request_started_state_abort_handler,
-			scic_sds_request_default_complete_handler,
-			scic_sds_request_default_destruct_handler
-		},
-		scic_sds_stp_request_pio_await_h2d_completion_tc_completion_handler,
-		scic_sds_request_default_event_handler,
-		scic_sds_request_default_frame_handler
+const struct scic_sds_io_request_state_handler scic_sds_stp_request_started_pio_substate_handler_table[] = {
+	[SCIC_SDS_STP_REQUEST_STARTED_PIO_AWAIT_H2D_COMPLETION_SUBSTATE] = {
+		.parent.start_handler    = scic_sds_request_default_start_handler,
+		.parent.abort_handler    = scic_sds_request_started_state_abort_handler,
+		.parent.complete_handler = scic_sds_request_default_complete_handler,
+		.parent.destruct_handler = scic_sds_request_default_destruct_handler,
+		.tc_completion_handler   = scic_sds_stp_request_pio_await_h2d_completion_tc_completion_handler,
+		.event_handler           = scic_sds_request_default_event_handler,
+		.frame_handler           = scic_sds_request_default_frame_handler
 	},
-	/* SCIC_SDS_STP_REQUEST_STARTED_PIO_AWAIT_FRAME_SUBSTATE */
-	{
-		{
-			scic_sds_request_default_start_handler,
-			/* scic_sds_stp_pio_request_data_in_await_frame_abort_handler, */
-			scic_sds_request_started_state_abort_handler,
-			scic_sds_request_default_complete_handler,
-			scic_sds_request_default_destruct_handler
-		},
-		scic_sds_request_default_tc_completion_handler,
-		scic_sds_request_default_event_handler,
-		scic_sds_stp_request_pio_await_frame_frame_handler
+	[SCIC_SDS_STP_REQUEST_STARTED_PIO_AWAIT_FRAME_SUBSTATE] = {
+		.parent.start_handler    = scic_sds_request_default_start_handler,
+		.parent.abort_handler    = scic_sds_request_started_state_abort_handler,
+		.parent.complete_handler = scic_sds_request_default_complete_handler,
+		.parent.destruct_handler = scic_sds_request_default_destruct_handler,
+		.tc_completion_handler   = scic_sds_request_default_tc_completion_handler,
+		.event_handler           = scic_sds_request_default_event_handler,
+		.frame_handler           = scic_sds_stp_request_pio_await_frame_frame_handler
 	},
-	/* SCIC_SDS_STP_REQUEST_STARTED_PIO_DATA_IN_AWAIT_DATA_SUBSTATE */
-	{
-		{
-			scic_sds_request_default_start_handler,
-			/* scic_sds_stp_pio_request_data_in_await_data_abort_handler, */
-			scic_sds_request_started_state_abort_handler,
-			scic_sds_request_default_complete_handler,
-			scic_sds_request_default_destruct_handler
-		},
-		scic_sds_request_default_tc_completion_handler,
-		scic_sds_stp_request_pio_data_in_await_data_event_handler,
-		scic_sds_stp_request_pio_data_in_await_data_frame_handler
+	[SCIC_SDS_STP_REQUEST_STARTED_PIO_DATA_IN_AWAIT_DATA_SUBSTATE] = {
+		.parent.start_handler    = scic_sds_request_default_start_handler,
+		.parent.abort_handler    = scic_sds_request_started_state_abort_handler,
+		.parent.complete_handler = scic_sds_request_default_complete_handler,
+		.parent.destruct_handler = scic_sds_request_default_destruct_handler,
+		.tc_completion_handler   = scic_sds_request_default_tc_completion_handler,
+		.event_handler           = scic_sds_stp_request_pio_data_in_await_data_event_handler,
+		.frame_handler           = scic_sds_stp_request_pio_data_in_await_data_frame_handler
 	},
-	/* SCIC_SDS_STP_REQUEST_STARTED_PIO_DATA_OUT_TRANSMIT_DATA_SUBSTATE */
-	{
-		{
-			scic_sds_request_default_start_handler,
-			scic_sds_request_started_state_abort_handler,
-			scic_sds_request_default_complete_handler,
-			scic_sds_request_default_destruct_handler
-		},
-		scic_sds_stp_request_pio_data_out_await_data_transmit_completion_tc_completion_handler,
-		scic_sds_request_default_event_handler,
-		scic_sds_request_default_frame_handler
+	[SCIC_SDS_STP_REQUEST_STARTED_PIO_DATA_OUT_TRANSMIT_DATA_SUBSTATE] = {
+		.parent.start_handler    = scic_sds_request_default_start_handler,
+		.parent.abort_handler    = scic_sds_request_started_state_abort_handler,
+		.parent.complete_handler = scic_sds_request_default_complete_handler,
+		.parent.destruct_handler = scic_sds_request_default_destruct_handler,
+		.tc_completion_handler   = scic_sds_stp_request_pio_data_out_await_data_transmit_completion_tc_completion_handler,
+		.event_handler           = scic_sds_request_default_event_handler,
+		.frame_handler           = scic_sds_request_default_frame_handler,
 	}
 };
-

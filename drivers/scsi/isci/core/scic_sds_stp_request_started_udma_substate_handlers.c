@@ -230,33 +230,23 @@ static enum sci_status scic_sds_stp_request_udma_await_d2h_reg_fis_frame_handler
 
 /* --------------------------------------------------------------------------- */
 
-struct scic_sds_io_request_state_handler
-scic_sds_stp_request_started_udma_substate_handler_table
-[SCIC_SDS_STP_REQUEST_STARTED_UDMA_MAX_SUBSTATES] =
-{
-	/* SCIC_SDS_STP_REQUEST_STARTED_UDMA_AWAIT_TC_COMPLETION_SUBSTATE */
-	{
-		{
-			scic_sds_request_default_start_handler,
-			scic_sds_request_started_state_abort_handler,
-			scic_sds_request_default_complete_handler,
-			scic_sds_request_default_destruct_handler
-		},
-		scic_sds_stp_request_udma_await_tc_completion_tc_completion_handler,
-		scic_sds_request_default_event_handler,
-		scic_sds_stp_request_udma_general_frame_handler
+const struct scic_sds_io_request_state_handler scic_sds_stp_request_started_udma_substate_handler_table[] = {
+	[SCIC_SDS_STP_REQUEST_STARTED_UDMA_AWAIT_TC_COMPLETION_SUBSTATE] = {
+		.parent.start_handler    = scic_sds_request_default_start_handler,
+		.parent.abort_handler    = scic_sds_request_started_state_abort_handler,
+		.parent.complete_handler = scic_sds_request_default_complete_handler,
+		.parent.destruct_handler = scic_sds_request_default_destruct_handler,
+		.tc_completion_handler   = scic_sds_stp_request_udma_await_tc_completion_tc_completion_handler,
+		.event_handler           = scic_sds_request_default_event_handler,
+		.frame_handler           = scic_sds_stp_request_udma_general_frame_handler,
 	},
-	/* SCIC_SDS_STP_REQUEST_STARTED_UDMA_AWAIT_D2H_REG_FIS_SUBSTATE */
-	{
-		{
-			scic_sds_request_default_start_handler,
-			scic_sds_request_started_state_abort_handler,
-			scic_sds_request_default_complete_handler,
-			scic_sds_request_default_destruct_handler
-		},
-		scic_sds_request_default_tc_completion_handler,
-		scic_sds_request_default_event_handler,
-		scic_sds_stp_request_udma_await_d2h_reg_fis_frame_handler
-	}
+	[SCIC_SDS_STP_REQUEST_STARTED_UDMA_AWAIT_D2H_REG_FIS_SUBSTATE] = {
+		.parent.start_handler    = scic_sds_request_default_start_handler,
+		.parent.abort_handler    = scic_sds_request_started_state_abort_handler,
+		.parent.complete_handler = scic_sds_request_default_complete_handler,
+		.parent.destruct_handler = scic_sds_request_default_destruct_handler,
+		.tc_completion_handler   = scic_sds_request_default_tc_completion_handler,
+		.event_handler           = scic_sds_request_default_event_handler,
+		.frame_handler           = scic_sds_stp_request_udma_await_d2h_reg_fis_frame_handler,
+	},
 };
-

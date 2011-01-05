@@ -220,33 +220,24 @@ static enum sci_status scic_sds_ssp_task_request_await_tc_response_frame_handler
 	return SCI_SUCCESS;
 }
 
-struct scic_sds_io_request_state_handler
-scic_sds_ssp_task_request_started_substate_handler_table
-[SCIC_SDS_IO_REQUEST_STARTED_TASK_MGMT_MAX_SUBSTATES] =
-{
-	/* SCIC_SDS_IO_REQUEST_STARTED_TASK_MGMT_SUBSTATE_AWAIT_TC_COMPLETION */
-	{
-		{
-			scic_sds_request_default_start_handler,
-			scic_sds_request_started_state_abort_handler,
-			scic_sds_request_default_complete_handler,
-			scic_sds_request_default_destruct_handler
-		},
-		scic_sds_ssp_task_request_await_tc_completion_tc_completion_handler,
-		scic_sds_request_default_event_handler,
-		scic_sds_request_default_frame_handler
+const struct scic_sds_io_request_state_handler scic_sds_ssp_task_request_started_substate_handler_table[] = {
+	[SCIC_SDS_IO_REQUEST_STARTED_TASK_MGMT_SUBSTATE_AWAIT_TC_COMPLETION] = {
+		.parent.start_handler    = scic_sds_request_default_start_handler,
+		.parent.abort_handler    = scic_sds_request_started_state_abort_handler,
+		.parent.complete_handler = scic_sds_request_default_complete_handler,
+		.parent.destruct_handler = scic_sds_request_default_destruct_handler,
+		.tc_completion_handler   = scic_sds_ssp_task_request_await_tc_completion_tc_completion_handler,
+		.event_handler           = scic_sds_request_default_event_handler,
+		.frame_handler           = scic_sds_request_default_frame_handler,
 	},
-	/* SCIC_SDS_IO_REQUEST_STARTED_TASK_MGMT_SUBSTATE_AWAIT_TC_RESPONSE */
-	{
-		{
-			scic_sds_request_default_start_handler,
-			scic_sds_ssp_task_request_await_tc_response_abort_handler,
-			scic_sds_request_default_complete_handler,
-			scic_sds_request_default_destruct_handler
-		},
-		scic_sds_request_default_tc_completion_handler,
-		scic_sds_request_default_event_handler,
-		scic_sds_ssp_task_request_await_tc_response_frame_handler
+	[SCIC_SDS_IO_REQUEST_STARTED_TASK_MGMT_SUBSTATE_AWAIT_TC_RESPONSE] = {
+		.parent.start_handler    = scic_sds_request_default_start_handler,
+		.parent.abort_handler    = scic_sds_ssp_task_request_await_tc_response_abort_handler,
+		.parent.complete_handler = scic_sds_request_default_complete_handler,
+		.parent.destruct_handler = scic_sds_request_default_destruct_handler,
+		.tc_completion_handler   = scic_sds_request_default_tc_completion_handler,
+		.event_handler           = scic_sds_request_default_event_handler,
+		.frame_handler           = scic_sds_ssp_task_request_await_tc_response_frame_handler,
 	}
 };
 
