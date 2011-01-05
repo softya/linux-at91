@@ -62,21 +62,23 @@
 
 #include "sci_base_state_machine.h"
 
-#define SCI_STATE_MACHINE_EXIT_STATE(state_machine) \
-	if (\
-		((state_machine)->state_table[(state_machine)->current_state_id]. \
-		 exit_state != NULL) \
-		) { \
-		((state_machine)->state_table[(state_machine)->current_state_id]. \
-		 exit_state((state_machine)->state_machine_owner)); \
-	}
+static void sci_state_machine_exit_state(struct sci_base_state_machine *sm)
+{
+	u32 state = sm->current_state_id;
+	SCI_STATE_TRANSITION_T exit = sm->state_table[state].exit_state;
 
-#define SCI_STATE_MACHINE_ENTER_STATE(state_machine) \
-	((state_machine)->state_table[(state_machine)->current_state_id]. \
-	 enter_state((state_machine)->state_machine_owner))
+	if (exit)
+		exit(sm->state_machine_owner);
+}
 
-#define SCI_STATE_MACHINE_SET_STATE(state_machine, id) \
-	((state_machine)->current_state_id = (id))
+static void sci_state_machine_enter_state(struct sci_base_state_machine *sm)
+{
+	u32 state = sm->current_state_id;
+	SCI_STATE_TRANSITION_T enter = sm->state_table[state].enter_state;
+
+	if (enter)
+		enter(sm->state_machine_owner);
+}
 
 /*
  * ******************************************************************************
@@ -87,7 +89,7 @@
  * This method will set the initial state and state table for the state
  *    machine. The caller should follow this request with the initialize
  *    request to cause the state machine to start.
- * @this_state_machine: This parameter provides the state machine object to be
+ * @sm: This parameter provides the state machine object to be
  *    constructed.
  * @state_machine_owner: This parameter indicates the object that is owns the
  *    state machine being constructed.
@@ -97,96 +99,88 @@
  *    this state machine.
  *
  */
-void sci_base_state_machine_construct(
-	struct sci_base_state_machine *this_state_machine,
-	struct sci_base_object *my_state_machine_owner,
-	const struct sci_base_state *state_table,
-	u32 initial_state)
+void sci_base_state_machine_construct(struct sci_base_state_machine *sm,
+				      struct sci_base_object *owner,
+				      const struct sci_base_state *state_table,
+				      u32 initial_state)
 {
 #if defined(SCI_LOGGING)
-	sci_base_subject_construct(&this_state_machine->parent);
+	sci_base_subject_construct(&sm->parent);
 #endif  /* defined(SCI_LOGGING) */
 
-	this_state_machine->state_machine_owner = my_state_machine_owner;
-	this_state_machine->initial_state_id  = initial_state;
-	this_state_machine->previous_state_id = initial_state;
-	this_state_machine->current_state_id  = initial_state;
-	this_state_machine->state_table       = state_table;
+	sm->state_machine_owner = owner;
+	sm->initial_state_id    = initial_state;
+	sm->previous_state_id   = initial_state;
+	sm->current_state_id    = initial_state;
+	sm->state_table         = state_table;
 }
 
 /**
  * This method will cause the state machine to enter the initial state.
- * @this_state_machine: This parameter specifies the state machine that is to
+ * @sm: This parameter specifies the state machine that is to
  *    be started.
  *
  * sci_base_state_machine_construct() for how to set the initial state none
  */
-void sci_base_state_machine_start(
-	struct sci_base_state_machine *this_state_machine)
+void sci_base_state_machine_start(struct sci_base_state_machine *sm)
 {
-	SCI_STATE_MACHINE_SET_STATE(
-		this_state_machine, this_state_machine->initial_state_id
-		);
-
+	sm->current_state_id = sm->initial_state_id;
 #if defined(SCI_BASE_ENABLE_SUBJECT_NOTIFICATION)
-	sci_base_subject_notify(&this_state_machine->parent);
+	sci_base_subject_notify(&sm->parent);
 #endif
-
-	SCI_STATE_MACHINE_ENTER_STATE(this_state_machine);
+	sci_state_machine_enter_state(sm);
 }
 
 /**
  * This method will cause the state machine to exit it's current state only.
- * @this_state_machine: This parameter specifies the state machine that is to
+ * @sm: This parameter specifies the state machine that is to
  *    be stopped.
  *
  */
 void sci_base_state_machine_stop(
-	struct sci_base_state_machine *this_state_machine)
+	struct sci_base_state_machine *sm)
 {
-	SCI_STATE_MACHINE_EXIT_STATE(this_state_machine);
-
+	sci_state_machine_exit_state(sm);
 #if defined(SCI_BASE_ENABLE_SUBJECT_NOTIFICATION)
-	sci_base_subject_notify(&this_state_machine->parent);
+	sci_base_subject_notify(&sm->parent);
 #endif
 }
 
 /**
  * This method performs an update to the current state of the state machine.
- * @this_state_machine: This parameter specifies the state machine for which
+ * @sm: This parameter specifies the state machine for which
  *    the caller wishes to perform a state change.
  * @next_state: This parameter specifies the new state for the state machine.
  *
  */
 void sci_base_state_machine_change_state(
-	struct sci_base_state_machine *this_state_machine,
+	struct sci_base_state_machine *sm,
 	u32 next_state)
 {
-	SCI_STATE_MACHINE_EXIT_STATE(this_state_machine);
+	sci_state_machine_exit_state(sm);
 
-	this_state_machine->previous_state_id = this_state_machine->current_state_id;
-	SCI_STATE_MACHINE_SET_STATE(this_state_machine, next_state);
+	sm->previous_state_id = sm->current_state_id;
+	sm->current_state_id = next_state;
 
 #if defined(SCI_BASE_ENABLE_SUBJECT_NOTIFICATION)
 	/* Notify of the state change prior to entering the state. */
-	sci_base_subject_notify(&this_state_machine->parent);
+	sci_base_subject_notify(&sm->parent);
 #endif
 
-	SCI_STATE_MACHINE_ENTER_STATE(this_state_machine);
+	sci_state_machine_enter_state(sm);
 }
 
 /**
  * This method simply returns the current state of the state machine to the
  *    caller.
- * @this_state_machine: This parameter specifies the state machine for which to
+ * @sm: This parameter specifies the state machine for which to
  *    retrieve the current state.
  *
  * This method returns a u32 value indicating the current state for the
  * supplied state machine.
  */
-u32 sci_base_state_machine_get_state(
-	struct sci_base_state_machine *this_state_machine)
+u32 sci_base_state_machine_get_state(struct sci_base_state_machine *sm)
 {
-	return this_state_machine->current_state_id;
+	return sm->current_state_id;
 }
 

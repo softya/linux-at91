@@ -93,62 +93,6 @@ static void scic_sds_controller_initial_state_enter(
  * @object: This is the struct sci_base_object which is cast to a struct scic_sds_controller
  *    object.
  *
- * This method implements the actions taken by the struct scic_sds_controller on entry
- * to the SCI_BASE_CONTROLLER_STATE_RESET. - Set the state handlers to the
- * controllers reset state. none
- */
-static void scic_sds_controller_reset_state_enter(
-	struct sci_base_object *object)
-{
-}
-
-/**
- *
- * @object: This is the struct sci_base_object which is cast to a struct scic_sds_controller
- *    object.
- *
- * This method implements the actions taken by the struct scic_sds_controller on entry
- * to the SCI_BASE_CONTROLLER_STATE_INITIALIZING. - Set the state handlers to
- * the controllers initializing state. none
- */
-static void scic_sds_controller_initializing_state_enter(
-	struct sci_base_object *object)
-{
-}
-
-/**
- *
- * @object: This is the struct sci_base_object which is cast to a struct scic_sds_controller
- *    object.
- *
- * This method implements the actions taken by the struct scic_sds_controller on entry
- * to the SCI_BASE_CONTROLLER_STATE_INITIALIZED. - Set the state handlers to
- * the controllers initialized state. none
- */
-static void scic_sds_controller_initialized_state_enter(
-	struct sci_base_object *object)
-{
-}
-
-/**
- *
- * @object: This is the struct sci_base_object which is cast to a struct scic_sds_controller
- *    object.
- *
- * This method implements the actions taken by the struct scic_sds_controller on entry
- * to the SCI_BASE_CONTROLLER_STATE_STARTING. - Set the state handlers to the
- * controllers starting state. none
- */
-static void scic_sds_controller_starting_state_enter(
-	struct sci_base_object *object)
-{
-}
-
-/**
- *
- * @object: This is the struct sci_base_object which is cast to a struct scic_sds_controller
- *    object.
- *
  * This method implements the actions taken by the struct scic_sds_controller on exit
  * from the SCI_BASE_CONTROLLER_STATE_STARTING. - This function stops the
  * controller starting timeout timer. none
@@ -251,20 +195,6 @@ static void scic_sds_controller_stopping_state_exit(
  *    object.
  *
  * This method implements the actions taken by the struct scic_sds_controller on entry
- * to the SCI_BASE_CONTROLLER_STATE_STOPPED. - Set the state handlers to the
- * controllers stopped state. none
- */
-static void scic_sds_controller_stopped_state_enter(
-	struct sci_base_object *object)
-{
-}
-
-/**
- *
- * @object: This is the struct sci_base_object which is cast to a struct scic_sds_controller
- *    object.
- *
- * This method implements the actions taken by the struct scic_sds_controller on entry
  * to the SCI_BASE_CONTROLLER_STATE_RESETTING. - Set the state handlers to the
  * controllers resetting state. - Write to the SCU hardware reset register to
  * force a reset - Transition to the SCI_BASE_CONTROLLER_STATE_RESET none
@@ -291,37 +221,16 @@ static void scic_sds_controller_resetting_state_enter(
 		);
 }
 
-/**
- *
- * @object: This is the struct sci_base_object which is cast to a struct scic_sds_controller
- *    object.
- *
- * This method implements the actions taken by the struct scic_sds_controller on entry
- * to the SCI_BASE_CONTROLLER_STATE_FAILED. - Set the state handlers to the
- * controllers failed state. none
- */
-static void scic_sds_controller_failed_state_enter(
-	struct sci_base_object *object)
-{
-}
-
 /* --------------------------------------------------------------------------- */
 
 const struct sci_base_state scic_sds_controller_state_table[] = {
 	[SCI_BASE_CONTROLLER_STATE_INITIAL] = {
 		.enter_state = scic_sds_controller_initial_state_enter,
 	},
-	[SCI_BASE_CONTROLLER_STATE_RESET] = {
-		.enter_state = scic_sds_controller_reset_state_enter,
-	},
-	[SCI_BASE_CONTROLLER_STATE_INITIALIZING] = {
-		.enter_state = scic_sds_controller_initializing_state_enter,
-	},
-	[SCI_BASE_CONTROLLER_STATE_INITIALIZED] = {
-		.enter_state = scic_sds_controller_initialized_state_enter,
-	},
+	[SCI_BASE_CONTROLLER_STATE_RESET] = {},
+	[SCI_BASE_CONTROLLER_STATE_INITIALIZING] = {},
+	[SCI_BASE_CONTROLLER_STATE_INITIALIZED] = {},
 	[SCI_BASE_CONTROLLER_STATE_STARTING] = {
-		.enter_state = scic_sds_controller_starting_state_enter,
 		.exit_state  = scic_sds_controller_starting_state_exit,
 	},
 	[SCI_BASE_CONTROLLER_STATE_READY] = {
@@ -335,11 +244,7 @@ const struct sci_base_state scic_sds_controller_state_table[] = {
 		.enter_state = scic_sds_controller_stopping_state_enter,
 		.exit_state = scic_sds_controller_stopping_state_exit,
 	},
-	[SCI_BASE_CONTROLLER_STATE_STOPPED] = {
-		.enter_state = scic_sds_controller_stopped_state_enter,
-	},
-	[SCI_BASE_CONTROLLER_STATE_FAILED] = {
-		.enter_state = scic_sds_controller_failed_state_enter,
-	}
+	[SCI_BASE_CONTROLLER_STATE_STOPPED] = {},
+	[SCI_BASE_CONTROLLER_STATE_FAILED] = {}
 };
 
