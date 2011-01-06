@@ -189,7 +189,7 @@ struct scic_sds_controller {
 	 * This field is the current set of state handlers assigned to this controller
 	 * object.
 	 */
-	struct scic_sds_controller_state_handler *state_handlers;
+	const struct scic_sds_controller_state_handler *state_handlers;
 
 	/**
 	 * This field contains the user parameters to be utilized for this
@@ -413,12 +413,9 @@ struct scic_sds_controller {
 
 };
 
-
-typedef void (*SCIC_SDS_CONTROLLER_PHY_HANDLER_T)(
-	struct scic_sds_controller *controller,
-	struct scic_sds_port *port,
-	struct scic_sds_phy *phy
-	);
+typedef void (*scic_sds_controller_phy_handler_t)(struct scic_sds_controller *,
+						  struct scic_sds_port *,
+						  struct scic_sds_phy *);
 /**
  * struct scic_sds_controller_state_handler -
  *
@@ -428,13 +425,13 @@ typedef void (*SCIC_SDS_CONTROLLER_PHY_HANDLER_T)(
 struct scic_sds_controller_state_handler {
 	struct sci_base_controller_state_handler parent;
 
-	SCI_BASE_CONTROLLER_REQUEST_HANDLER_T terminate_request_handler;
-	SCIC_SDS_CONTROLLER_PHY_HANDLER_T link_up_handler;
-	SCIC_SDS_CONTROLLER_PHY_HANDLER_T link_down_handler;
+	sci_base_controller_request_handler_t terminate_request_handler;
+	scic_sds_controller_phy_handler_t link_up_handler;
+	scic_sds_controller_phy_handler_t link_down_handler;
 
 };
 
-extern struct scic_sds_controller_state_handler
+extern const struct scic_sds_controller_state_handler
 	scic_sds_controller_state_handler_table[];
 extern const struct sci_base_state scic_sds_controller_state_table[];
 
@@ -468,7 +465,7 @@ extern const struct sci_base_state scic_sds_controller_state_table[];
  * This is a helper macro that gets the base state machine for the controller
  * object
  */
-#define scic_sds_controller_get_base_state_machine(this_contoroller) \
+#define scic_sds_controller_get_base_state_machine(this_controller) \
 	(&(this_controller)->parent.state_machine)
 
 /**

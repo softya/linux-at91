@@ -923,198 +923,77 @@ static enum sci_status scic_sds_controller_stopping_state_complete_io_handler(
  * * FAILED STATE HANDLERS
  * ***************************************************************************** */
 
-struct scic_sds_controller_state_handler
-scic_sds_controller_state_handler_table[SCI_BASE_CONTROLLER_MAX_STATES] =
-{
-	/* SCI_BASE_CONTROLLER_STATE_INITIAL */
-	{
-		{
-			NULL,
-			NULL,
-			NULL,
-			NULL,
-			scic_sds_controller_default_start_operation_handler,
-			scic_sds_controller_default_start_operation_handler,
-			scic_sds_controller_default_request_handler,
-			scic_sds_controller_default_request_handler,
-			scic_sds_controller_default_request_handler,
-			NULL,
-			NULL
-		},
-		scic_sds_controller_default_request_handler,
-		NULL,
-		NULL
+const struct scic_sds_controller_state_handler scic_sds_controller_state_handler_table[] = {
+	[SCI_BASE_CONTROLLER_STATE_INITIAL] = {
+		.parent.start_io_handler    = scic_sds_controller_default_start_operation_handler,
+		.parent.complete_io_handler = scic_sds_controller_default_request_handler,
+		.parent.continue_io_handler = scic_sds_controller_default_request_handler,
+		.terminate_request_handler  = scic_sds_controller_default_request_handler,
 	},
-	/* SCI_BASE_CONTROLLER_STATE_RESET */
-	{
-		{
-			NULL,
-			NULL,
-			NULL,
-			scic_sds_controller_reset_state_initialize_handler,
-			scic_sds_controller_default_start_operation_handler,
-			scic_sds_controller_default_start_operation_handler,
-			scic_sds_controller_default_request_handler,
-			scic_sds_controller_default_request_handler,
-			scic_sds_controller_default_request_handler,
-			NULL,
-			NULL
-		},
-		scic_sds_controller_default_request_handler,
-		NULL,
-		NULL
+	[SCI_BASE_CONTROLLER_STATE_RESET] = {
+		.parent.initialize_handler  = scic_sds_controller_reset_state_initialize_handler,
+		.parent.start_io_handler    = scic_sds_controller_default_start_operation_handler,
+		.parent.complete_io_handler = scic_sds_controller_default_request_handler,
+		.parent.continue_io_handler = scic_sds_controller_default_request_handler,
+		.terminate_request_handler  = scic_sds_controller_default_request_handler,
 	},
-	/* SCI_BASE_CONTROLLER_STATE_INITIALIZING */
-	{
-		{
-			NULL,
-			NULL,
-			NULL,
-			NULL,
-			scic_sds_controller_default_start_operation_handler,
-			scic_sds_controller_default_start_operation_handler,
-			scic_sds_controller_default_request_handler,
-			scic_sds_controller_default_request_handler,
-			scic_sds_controller_default_request_handler,
-			NULL,
-			NULL
-		},
-		scic_sds_controller_default_request_handler,
-		NULL,
-		NULL
+	[SCI_BASE_CONTROLLER_STATE_INITIALIZING] = {
+		.parent.start_io_handler    = scic_sds_controller_default_start_operation_handler,
+		.parent.complete_io_handler = scic_sds_controller_default_request_handler,
+		.parent.continue_io_handler = scic_sds_controller_default_request_handler,
+		.terminate_request_handler  = scic_sds_controller_default_request_handler,
 	},
-	/* SCI_BASE_CONTROLLER_STATE_INITIALIZED */
-	{
-		{
-			scic_sds_controller_initialized_state_start_handler,
-			NULL,
-			NULL,
-			NULL,
-			scic_sds_controller_default_start_operation_handler,
-			scic_sds_controller_default_start_operation_handler,
-			scic_sds_controller_default_request_handler,
-			scic_sds_controller_default_request_handler,
-			scic_sds_controller_default_request_handler,
-			NULL,
-			NULL
-		},
-		scic_sds_controller_default_request_handler,
-		NULL,
-		NULL
+	[SCI_BASE_CONTROLLER_STATE_INITIALIZED] = {
+		.parent.start_handler       = scic_sds_controller_initialized_state_start_handler,
+		.parent.start_io_handler    = scic_sds_controller_default_start_operation_handler,
+		.parent.complete_io_handler = scic_sds_controller_default_request_handler,
+		.parent.continue_io_handler = scic_sds_controller_default_request_handler,
+		.terminate_request_handler  = scic_sds_controller_default_request_handler,
 	},
-	/* SCI_BASE_CONTROLLER_STATE_STARTING */
-	{
-		{
-			NULL,
-			NULL,
-			NULL,
-			NULL,
-			scic_sds_controller_default_start_operation_handler,
-			scic_sds_controller_default_start_operation_handler,
-			scic_sds_controller_default_request_handler,
-			scic_sds_controller_default_request_handler,
-			scic_sds_controller_default_request_handler,
-			NULL,
-			NULL
-		},
-		scic_sds_controller_default_request_handler,
-		scic_sds_controller_starting_state_link_up_handler,
-		scic_sds_controller_starting_state_link_down_handler
+	[SCI_BASE_CONTROLLER_STATE_STARTING] = {
+		.parent.start_io_handler    = scic_sds_controller_default_start_operation_handler,
+		.parent.complete_io_handler = scic_sds_controller_default_request_handler,
+		.parent.continue_io_handler = scic_sds_controller_default_request_handler,
+		.terminate_request_handler  = scic_sds_controller_default_request_handler,
+		.link_up_handler            = scic_sds_controller_starting_state_link_up_handler,
+		.link_down_handler	    = scic_sds_controller_starting_state_link_down_handler
 	},
-	/* SCI_BASE_CONTROLLER_STATE_READY */
-	{
-		{
-			NULL,
-			scic_sds_controller_ready_state_stop_handler,
-			scic_sds_controller_general_reset_handler,
-			NULL,
-			scic_sds_controller_ready_state_start_io_handler,
-			scic_sds_controller_default_start_operation_handler,
-			scic_sds_controller_ready_state_complete_io_handler,
-			scic_sds_controller_default_request_handler,
-			scic_sds_controller_ready_state_continue_io_handler,
-			scic_sds_controller_ready_state_start_task_handler,
-			scic_sds_controller_ready_state_complete_io_handler
-		},
-		scic_sds_controller_ready_state_terminate_request_handler,
-		scic_sds_controller_ready_state_link_up_handler,
-		scic_sds_controller_ready_state_link_down_handler
+	[SCI_BASE_CONTROLLER_STATE_READY] = {
+		.parent.stop_handler        = scic_sds_controller_ready_state_stop_handler,
+		.parent.reset_handler       = scic_sds_controller_general_reset_handler,
+		.parent.start_io_handler    = scic_sds_controller_ready_state_start_io_handler,
+		.parent.complete_io_handler = scic_sds_controller_ready_state_complete_io_handler,
+		.parent.continue_io_handler = scic_sds_controller_ready_state_continue_io_handler,
+		.parent.start_task_handler  = scic_sds_controller_ready_state_start_task_handler,
+		.parent.complete_task_handler = scic_sds_controller_ready_state_complete_io_handler,
+		.terminate_request_handler  = scic_sds_controller_ready_state_terminate_request_handler,
+		.link_up_handler            = scic_sds_controller_ready_state_link_up_handler,
+		.link_down_handler	    = scic_sds_controller_ready_state_link_down_handler
 	},
-	/* SCI_BASE_CONTROLLER_STATE_RESETTING */
-	{
-		{
-			NULL,
-			NULL,
-			NULL,
-			NULL,
-			scic_sds_controller_default_start_operation_handler,
-			scic_sds_controller_default_start_operation_handler,
-			scic_sds_controller_default_request_handler,
-			scic_sds_controller_default_request_handler,
-			scic_sds_controller_default_request_handler,
-			NULL,
-			NULL
-		},
-		scic_sds_controller_default_request_handler,
-		NULL,
-		NULL
+	[SCI_BASE_CONTROLLER_STATE_RESETTING] = {
+		.parent.start_io_handler    = scic_sds_controller_default_start_operation_handler,
+		.parent.complete_io_handler = scic_sds_controller_default_request_handler,
+		.parent.continue_io_handler = scic_sds_controller_default_request_handler,
+		.terminate_request_handler  = scic_sds_controller_default_request_handler,
 	},
-	/* SCI_BASE_CONTROLLER_STATE_STOPPING */
-	{
-		{
-			NULL,
-			NULL,
-			NULL,
-			NULL,
-			scic_sds_controller_default_start_operation_handler,
-			scic_sds_controller_default_start_operation_handler,
-			scic_sds_controller_stopping_state_complete_io_handler,
-			scic_sds_controller_default_request_handler,
-			scic_sds_controller_default_request_handler,
-			NULL,
-			NULL
-		},
-		scic_sds_controller_default_request_handler,
-		NULL,
-		NULL
+	[SCI_BASE_CONTROLLER_STATE_STOPPING] = {
+		.parent.start_io_handler    = scic_sds_controller_default_start_operation_handler,
+		.parent.complete_io_handler = scic_sds_controller_stopping_state_complete_io_handler,
+		.parent.continue_io_handler = scic_sds_controller_default_request_handler,
+		.terminate_request_handler  = scic_sds_controller_default_request_handler,
 	},
-	/* SCI_BASE_CONTROLLER_STATE_STOPPED */
-	{
-		{
-			NULL,
-			NULL,
-			scic_sds_controller_general_reset_handler,
-			NULL,
-			scic_sds_controller_default_start_operation_handler,
-			scic_sds_controller_default_start_operation_handler,
-			scic_sds_controller_default_request_handler,
-			scic_sds_controller_default_request_handler,
-			scic_sds_controller_default_request_handler,
-			NULL,
-			NULL
-		},
-		scic_sds_controller_default_request_handler,
-		NULL,
-		NULL
+	[SCI_BASE_CONTROLLER_STATE_STOPPED] = {
+		.parent.reset_handler       = scic_sds_controller_general_reset_handler,
+		.parent.start_io_handler    = scic_sds_controller_default_start_operation_handler,
+		.parent.complete_io_handler = scic_sds_controller_default_request_handler,
+		.parent.continue_io_handler = scic_sds_controller_default_request_handler,
+		.terminate_request_handler  = scic_sds_controller_default_request_handler,
 	},
-	/* SCI_BASE_CONTROLLER_STATE_FAILED */
-	{
-		{
-			NULL,
-			NULL,
-			scic_sds_controller_general_reset_handler,
-			NULL,
-			scic_sds_controller_default_start_operation_handler,
-			scic_sds_controller_default_start_operation_handler,
-			scic_sds_controller_default_request_handler,
-			scic_sds_controller_default_request_handler,
-			scic_sds_controller_default_request_handler,
-			NULL,
-			NULL
-		},
-		scic_sds_controller_default_request_handler,
-		NULL,
-		NULL
-	}
+	[SCI_BASE_CONTROLLER_STATE_FAILED] = {
+		.parent.reset_handler       = scic_sds_controller_general_reset_handler,
+		.parent.start_io_handler    = scic_sds_controller_default_start_operation_handler,
+		.parent.complete_io_handler = scic_sds_controller_default_request_handler,
+		.parent.continue_io_handler = scic_sds_controller_default_request_handler,
+		.terminate_request_handler  = scic_sds_controller_default_request_handler,
+	},
 };
-

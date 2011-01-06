@@ -199,28 +199,21 @@ struct sci_base_controller {
 struct sci_base_remote_device;
 struct sci_base_request;
 
-typedef enum sci_status (*SCI_BASE_CONTROLLER_HANDLER_T)(
-	struct sci_base_controller *
-	);
+typedef enum sci_status
+(*sci_base_controller_handler_t)(struct sci_base_controller *);
 
-typedef enum sci_status (*SCI_BASE_CONTROLLER_TIMED_HANDLER_T)(
-	struct sci_base_controller *,
-	u32
-	);
+typedef enum sci_status
+(*sci_base_controller_timed_handler_t)(struct sci_base_controller *, u32);
 
-typedef enum sci_status (*SCI_BASE_CONTROLLER_REQUEST_HANDLER_T)(
-	struct sci_base_controller *,
-	struct sci_base_remote_device *,
-	struct sci_base_request *
-	);
+typedef enum sci_status
+(*sci_base_controller_request_handler_t)(struct sci_base_controller *,
+					 struct sci_base_remote_device *,
+					 struct sci_base_request *);
 
-typedef enum sci_status (*SCI_BASE_CONTROLLER_START_REQUEST_HANDLER_T)(
-	struct sci_base_controller *,
-	struct sci_base_remote_device *,
-	struct sci_base_request *,
-	u16
-	);
-
+typedef enum sci_status
+(*sci_base_controller_start_request_handler_t)(struct sci_base_controller *,
+					       struct sci_base_remote_device *,
+					       struct sci_base_request *, u16);
 
 /**
  * struct sci_base_controller_state_handler - This structure contains all of
@@ -235,67 +228,55 @@ struct sci_base_controller_state_handler {
 	 * The start_handler specifies the method invoked when a user attempts to
 	 * start a controller.
 	 */
-	SCI_BASE_CONTROLLER_TIMED_HANDLER_T start_handler;
+	sci_base_controller_timed_handler_t start_handler;
 
 	/**
 	 * The stop_handler specifies the method invoked when a user attempts to
 	 * stop a controller.
 	 */
-	SCI_BASE_CONTROLLER_TIMED_HANDLER_T stop_handler;
+	sci_base_controller_timed_handler_t stop_handler;
 
 	/**
 	 * The reset_handler specifies the method invoked when a user attempts to
 	 * reset a controller.
 	 */
-	SCI_BASE_CONTROLLER_HANDLER_T reset_handler;
+	sci_base_controller_handler_t reset_handler;
 
 	/**
 	 * The initialize_handler specifies the method invoked when a user
 	 * attempts to initialize a controller.
 	 */
-	SCI_BASE_CONTROLLER_HANDLER_T initialize_handler;
+	sci_base_controller_handler_t initialize_handler;
 
 	/**
 	 * The start_io_handler specifies the method invoked when a user
 	 * attempts to start an IO request for a controller.
 	 */
-	SCI_BASE_CONTROLLER_START_REQUEST_HANDLER_T start_io_handler;
-
-	/**
-	 * The start_internal_request_handler specifies the method invoked when a user
-	 * attempts to start an internal request for a controller.
-	 */
-	SCI_BASE_CONTROLLER_START_REQUEST_HANDLER_T start_high_priority_io_handler;
+	sci_base_controller_start_request_handler_t start_io_handler;
 
 	/**
 	 * The complete_io_handler specifies the method invoked when a user
 	 * attempts to complete an IO request for a controller.
 	 */
-	SCI_BASE_CONTROLLER_REQUEST_HANDLER_T complete_io_handler;
-
-	/**
-	 * The complete_high_priority_io_handler specifies the method invoked when a user
-	 * attempts to complete a high priority IO request for a controller.
-	 */
-	SCI_BASE_CONTROLLER_REQUEST_HANDLER_T complete_high_priority_io_handler;
+	sci_base_controller_request_handler_t complete_io_handler;
 
 	/**
 	 * The continue_io_handler specifies the method invoked when a user
 	 * attempts to continue an IO request for a controller.
 	 */
-	SCI_BASE_CONTROLLER_REQUEST_HANDLER_T continue_io_handler;
+	sci_base_controller_request_handler_t continue_io_handler;
 
 	/**
 	 * The start_task_handler specifies the method invoked when a user
 	 * attempts to start a task management request for a controller.
 	 */
-	SCI_BASE_CONTROLLER_START_REQUEST_HANDLER_T start_task_handler;
+	sci_base_controller_start_request_handler_t start_task_handler;
 
 	/**
 	 * The complete_task_handler specifies the method invoked when a user
 	 * attempts to complete a task management request for a controller.
 	 */
-	SCI_BASE_CONTROLLER_REQUEST_HANDLER_T complete_task_handler;
+	sci_base_controller_request_handler_t complete_task_handler;
 
 };
 
