@@ -201,7 +201,7 @@ static enum sci_status isci_remote_device_construct(
 			);
 
 
-	if (unlikely(SCI_SUCCESS != status)) {
+	if (status != SCI_SUCCESS) {
 
 		isci_logger(warning,
 			    "scic_remote_device_da_construct failed - "
@@ -225,7 +225,7 @@ static enum sci_status isci_remote_device_construct(
 		ISCI_REMOTE_DEVICE_START_TIMEOUT
 		);
 
-	if (unlikely(SCI_SUCCESS != status)) {
+	if (status != SCI_SUCCESS) {
 
 		isci_logger(warning, "scic_remote_device_start failed\n", 0);
 		goto out;
@@ -280,7 +280,7 @@ struct isci_remote_device *isci_remote_device_alloc(
 	isci_device = kmem_cache_zalloc(isci_host->rem_device_cache,
 					GFP_KERNEL);
 
-	if (unlikely(NULL == isci_device)) {
+	if (!isci_device) {
 
 		isci_logger(warning, "kmem_cache_alloc returned NULL\n", 0);
 		goto out;
@@ -563,7 +563,7 @@ int isci_remote_device_found(
 
 	isci_logger(warning, "isci_device = %p\n", isci_device);
 
-	if (unlikely(SCI_SUCCESS != status)) {
+	if (status != SCI_SUCCESS) {
 
 		spin_lock_irqsave(&isci_port->remote_device_lock, flags);
 		isci_remote_device_deconstruct(

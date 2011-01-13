@@ -102,7 +102,7 @@ int isci_task_execute_task(
 
 	isci_logger(trace, "num=%d\n", num);
 
-	if (unlikely(sas_task->task_state_flags & SAS_TASK_STATE_ABORTED)) {
+	if (sas_task->task_state_flags & SAS_TASK_STATE_ABORTED) {
 
 		isci_logger(warning, "task aborted!!\n", 0);
 
@@ -136,7 +136,7 @@ int isci_task_execute_task(
 	/* Check if we have room for more tasks */
 	ret = isci_host_can_queue(isci_host, num);
 
-	if (unlikely(ret)) {
+	if (ret) {
 
 		isci_logger(warning, "queue full\n", 0);
 		return ret;
@@ -170,8 +170,7 @@ int isci_task_execute_task(
 		isci_logger(trace, "task = %p, num = %d; dev = %p; cmd = %p\n",
 			    task, num, task->dev, task->uldd_task);
 
-		if (unlikely((task->dev == NULL)
-			     ||   (task->dev->port == NULL))) {
+		if ((task->dev == NULL) || (task->dev->port == NULL)) {
 
 			isci_logger(warning, "task %p's port or dev == NULL!\n",
 				    task);
@@ -207,15 +206,9 @@ int isci_task_execute_task(
 		 * for the quiesce spinlock.
 		 */
 
-		if (unlikely(
-			    isci_host_get_state(isci_host) == isci_starting
-			    || (device
-				&& ((isci_remote_device_get_state(device)
-				     == isci_ready)
-				    || (isci_remote_device_get_state(device)
-					== isci_host_quiesce)
-				    )
-				))) {
+		if (isci_host_get_state(isci_host) == isci_starting ||
+		    (device && ((isci_remote_device_get_state(device) == isci_ready) ||
+		    (isci_remote_device_get_state(device) == isci_host_quiesce)))) {
 
 			/* Forces a retry from scsi mid layer. */
 			isci_logger(warning,
@@ -242,10 +235,7 @@ int isci_task_execute_task(
 			isci_host_can_dequeue(isci_host, 1);
 		}
 		/* the device is going down... */
-		else if (unlikely(!device
-				  /* Quicker way to device removal: */
-				  || (isci_ready_for_io != isci_remote_device_get_state(device))
-				  )) {
+		else if (!device || (isci_ready_for_io != isci_remote_device_get_state(device))) {
 
 			isci_logger(warning,
 				    "task %p: isci_host->status = %d, device = %p\n",
@@ -341,7 +331,7 @@ static enum sci_status isci_task_request_build(
 		GFP_ATOMIC
 		);
 
-	if (unlikely(status != SCI_SUCCESS))
+	if (status != SCI_SUCCESS)
 		goto out;
 
 	/* let the core do it's construct. */
@@ -354,7 +344,7 @@ static enum sci_status isci_task_request_build(
 		&request->sci_request_handle
 		);
 
-	if (unlikely(SCI_SUCCESS != status)) {
+	if (status != SCI_SUCCESS) {
 
 		isci_logger(warning,
 			    "scic_task_request_construct failed - "
@@ -383,7 +373,7 @@ static enum sci_status isci_task_request_build(
 		status = scic_task_request_construct_ssp(
 			request->sci_request_handle
 			);
-		if (unlikely(SCI_SUCCESS != status))
+		if (status != SCI_SUCCESS)
 			goto errout;
 	}
 
@@ -392,7 +382,7 @@ static enum sci_status isci_task_request_build(
 		isci_tmf->proto = SAS_PROTOCOL_SATA;
 		status = isci_sata_management_task_request_build(request);
 
-		if (unlikely(SCI_SUCCESS != status))
+		if (status != SCI_SUCCESS)
 			goto errout;
 	}
 
@@ -490,10 +480,9 @@ int isci_task_execute_tmf(
 	/* sanity check, return TMF_RESP_FUNC_FAILED
 	 * if the device is not there and ready.
 	 */
-	if (unlikely(!isci_device
-		     || ((isci_ready_for_io != isci_remote_device_get_state(isci_device))
-			 && (isci_host_quiesce != isci_remote_device_get_state(isci_device)))
-		     )) {
+	if (!isci_device ||
+	    ((isci_ready_for_io != isci_remote_device_get_state(isci_device)) &&
+	    (isci_host_quiesce != isci_remote_device_get_state(isci_device)))) {
 		isci_logger(trace, "isci_device = %p not ready (%d)\n",
 			    isci_device,
 			    isci_remote_device_get_state(isci_device)
@@ -514,7 +503,7 @@ int isci_task_execute_tmf(
 		tmf
 		);
 
-	if (unlikely(NULL == request)) {
+	if (!request) {
 
 		isci_logger(warning, "isci_task_request_build failed\n", 0);
 		goto out;
@@ -544,7 +533,7 @@ int isci_task_execute_tmf(
 		SCI_CONTROLLER_INVALID_IO_TAG
 		);
 
-	if (unlikely(SCI_SUCCESS != status)) {
+	if (status != SCI_SUCCESS) {
 
 		isci_logger(warning,
 			    "start_io failed - status = 0x%x, request = %p\n",
@@ -571,7 +560,7 @@ int isci_task_execute_tmf(
 
 	isci_print_tmf(tmf);
 
-	if (likely(SCI_SUCCESS == tmf->status)) {
+	if (tmf->status == SCI_SUCCESS) {
 
 		ret =  TMF_RESP_FUNC_COMPLETE;
 
@@ -786,7 +775,7 @@ static void isci_terminate_request_core(
 	}
 	spin_unlock_irqrestore(&isci_host->scic_lock, flags);
 
-	if (unlikely(status != SCI_SUCCESS)) {
+	if (status != SCI_SUCCESS) {
 
 		isci_logger(error,
 			    "scic_controller_terminate_request"
@@ -1303,8 +1292,7 @@ int isci_task_abort_task(
 			 * left around on the device list but the
 			 * request already completed.
 			 */
-			if ((old_request != NULL)
-			    && (old_request->sci_request_handle == NULL)) {
+			if (old_request && !old_request->sci_request_handle) {
 
 				isci_request_cleanup_completed_loiterer(
 					isci_host, isci_device, old_request
@@ -1335,7 +1323,7 @@ int isci_task_abort_task(
 		old_request = NULL;
 	}
 
-	if (unlikely(old_request == NULL)) {
+	if (!old_request) {
 
 		/* There is no isci_request attached to the sas_task.
 		 * It must have been completed and detached.
@@ -1682,7 +1670,7 @@ int isci_queuecommand(
 		= isci_dev_from_domain_dev(
 		sdev_to_domain_dev(scsi_cmd->device));
 
-	if (unlikely(isci_remdev == NULL)) {
+	if (!isci_remdev) {
 
 		isci_logger(warning, "isci_remdev is GONE!\n", 0);
 
@@ -1730,7 +1718,7 @@ int isci_bus_reset_handler(struct scsi_cmnd *cmd)
 
 	isci_logger(warning, "cmd %p, isci_dev %p\n", cmd, isci_dev);
 
-	if (unlikely(isci_dev == NULL)) {
+	if (!isci_dev) {
 
 		isci_logger(warning, "isci_dev is GONE!\n", 0);
 

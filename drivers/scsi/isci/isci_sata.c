@@ -390,7 +390,7 @@ int isci_task_send_lu_reset_sata(
 
 	ret = isci_task_execute_tmf(isci_host, &tmf, ISCI_SRST_TIMEOUT_MS);
 
-	if (unlikely(ret != TMF_RESP_FUNC_COMPLETE)) {
+	if (ret != TMF_RESP_FUNC_COMPLETE) {
 
 		isci_logger(warning, "Assert SRST failed (%p) = %x",
 			    isci_device, ret
@@ -412,7 +412,7 @@ int isci_task_send_lu_reset_sata(
 			    );
 	ret = isci_task_execute_tmf(isci_host, &tmf, ISCI_SRST_TIMEOUT_MS);
 
-	if (likely(ret == TMF_RESP_FUNC_COMPLETE)) {
+	if (ret == TMF_RESP_FUNC_COMPLETE) {
 
 		isci_logger(trace, "SATA LUN reset passed (%p)\n",
 			    isci_device);

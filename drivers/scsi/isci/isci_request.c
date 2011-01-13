@@ -214,7 +214,7 @@ static enum sci_status isci_io_request_build(
 		&request->sci_request_handle
 		);
 
-	if (unlikely(SCI_SUCCESS != status)) {
+	if (status != SCI_SUCCESS) {
 
 		isci_logger(warning, "failed request construct\n", 0);
 		goto out;
@@ -277,7 +277,7 @@ static int isci_request_alloc_core(
 				 );
 
 
-	if (unlikely(NULL == request)) {
+	if (!request) {
 
 		isci_logger(error, "dma_pool_alloc returned NULL\n", 0);
 		ret = -ENOMEM;
@@ -317,7 +317,7 @@ static int isci_request_alloc_io(
 	int retval = isci_request_alloc_core(isci_host, isci_request,
 					     isci_device, gfp_flags);
 
-	if (likely(!retval)) {
+	if (!retval) {
 		(*isci_request)->ttype_ptr.io_task_ptr = task;
 		(*isci_request)->ttype                 = io_task;
 
@@ -349,7 +349,7 @@ int isci_request_alloc_tmf(
 	int retval = isci_request_alloc_core(isci_host, isci_request,
 					     isci_device, gfp_flags);
 
-	if (likely(!retval)) {
+	if (!retval) {
 
 		(*isci_request)->ttype_ptr.tmf_task_ptr = isci_tmf;
 		(*isci_request)->ttype = tmf_task;
@@ -421,7 +421,7 @@ int isci_request_execute(
 		gfp_flags
 		);
 
-	if (unlikely(ret))
+	if (ret)
 		goto out;
 
 	/* build the protocol specific request. */
@@ -439,7 +439,7 @@ int isci_request_execute(
 		status = SCI_FAILURE_UNSUPPORTED_PROTOCOL;
 	}
 
-	if (likely(SCI_SUCCESS == status)) {
+	if (status == SCI_SUCCESS) {
 
 		spin_lock_irqsave(&isci_host->scic_lock, flags);
 
@@ -451,10 +451,8 @@ int isci_request_execute(
 			SCI_CONTROLLER_INVALID_IO_TAG
 			);
 
-		if (likely(SCI_SUCCESS == status)
-		    || unlikely(SCI_FAILURE_REMOTE_DEVICE_RESET_REQUIRED
-				== status)
-		    ) {
+		if (status == SCI_SUCCESS ||
+		    status == SCI_FAILURE_REMOTE_DEVICE_RESET_REQUIRED) {
 
 			/* Either I/O started OK, or the core has signaled that
 			 * the device needs a target reset.
@@ -496,7 +494,7 @@ int isci_request_execute(
 
  out:
 
-	if (unlikely(SCI_SUCCESS != status)) {
+	if (status != SCI_SUCCESS) {
 
 		/* release dma memory on failure. */
 		isci_request_free(isci_host, request);
@@ -1195,7 +1193,7 @@ void isci_request_io_request_complete(
 	/* Save possible completion ptr. */
 	io_request_completion = request->io_request_completion;
 
-	if (unlikely(io_request_completion != NULL)) {
+	if (io_request_completion) {
 
 		/* This is inherantly a regular I/O request,
 		 * since we are currently in the regular
