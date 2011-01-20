@@ -296,11 +296,8 @@ static inline void isci_request_free(
 	}
 
 	/* release the dma memory if we fail. */
-	dma_pool_free(
-		isci_host->request_object_dma_pool,
-		isci_request,
-		isci_request->request_daddr
-		);
+	dma_pool_free(isci_host->dma_pool, isci_request,
+		      isci_request->request_daddr);
 }
 
 

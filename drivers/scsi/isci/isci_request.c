@@ -264,24 +264,16 @@ static int isci_request_alloc_core(
 	struct isci_request *request;
 
 
-	isci_logger(info, "\n", 0);
-
 	/* get pointer to dma memory. This actually points
 	 * to both the isci_remote_device object and the
 	 * sci object. The isci object is at the beginning
 	 * of the memory allocated here.
 	 */
-	request = dma_pool_alloc(isci_host->request_object_dma_pool,
-				 gfp_flags,
-				 &handle
-				 );
-
-
+	request = dma_pool_alloc(isci_host->dma_pool, gfp_flags, &handle);
 	if (!request) {
-
-		isci_logger(error, "dma_pool_alloc returned NULL\n", 0);
-		ret = -ENOMEM;
-		goto out;
+		dev_warn(&isci_host->pdev->dev,
+			 "%s: dma_pool_alloc returned NULL\n", __func__);
+		return -ENOMEM;
 	}
 
 	/* initialize the request object.	*/
@@ -303,7 +295,7 @@ static int isci_request_alloc_core(
 	INIT_LIST_HEAD(&request->dev_node);
 
 	*isci_request = request;
- out:
+
 	return ret;
 }
 

@@ -532,15 +532,12 @@ void isci_host_init_controller_names(
 	/* Create the controller's unique name. */
 	sprintf(isci_host->ha_name, ISCI_HA_NAME_FMT, controller_idx);
 	sprintf(isci_host->cache_name, ISCI_CACHE_NAME_FMT, controller_idx);
-	sprintf(isci_host->dma_pool_name, ISCI_DMAPOOL_NAME_FMT,
-		controller_idx);
 
 	isci_logger(trace, "isci_host %p\n"
 		    "   ha_name = %s\n"
-		    "   cache_name = %s\n"
-		    "   dma_pool_name = %s\n",
+		    "   cache_name = %s\n",
 		    isci_host, isci_host->ha_name,
-		    isci_host->cache_name, isci_host->dma_pool_name, 0);
+		    isci_host->cache_name, 0);
 }
 
 static int isci_verify_firmware(const struct firmware *fw,
@@ -860,16 +857,11 @@ int isci_host_init(
 	 */
 	isci_host->dma_pool_alloc_size = sizeof(struct isci_request) +
 					 scic_io_request_get_object_size();
-	isci_host->request_object_dma_pool
-		= dmam_pool_create(
-		isci_host->dma_pool_name,
-		&isci_host->pdev->dev,
-		isci_host->dma_pool_alloc_size,
-		SLAB_HWCACHE_ALIGN,
-		0
-		);
+	isci_host->dma_pool = dmam_pool_create(DRV_NAME, &isci_host->pdev->dev,
+					       isci_host->dma_pool_alloc_size,
+					       SLAB_HWCACHE_ALIGN, 0);
 
-	if (!isci_host->request_object_dma_pool) {
+	if (!isci_host->dma_pool) {
 		err = -ENOMEM;
 		goto req_obj_err_out;
 	}
