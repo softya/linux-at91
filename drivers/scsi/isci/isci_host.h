@@ -70,13 +70,13 @@
 #include "isci_remote_device.h"
 #include "scic_user_callback.h"
 
+#define DRV_NAME "isci"
 #define SCI_PCI_BAR_COUNT 2
 #define SCI_NUM_MSI_X_INT 2
 #define SCI_MSIX_NORMAL_VECTOR 0
 #define SCI_MSIX_ERROR_VECTOR 1
 #define SCI_MSIX_SINGLE_VECTOR 1
 #define SCI_MSIX_DOUBLE_VECTOR 2
-#define SCI_DRIVER_NAME "isci_mod"
 #define ISCI_CAN_QUEUE_VAL 250
 #define SCIC_CONTROLLER_STOP_TIMEOUT 5000
 
@@ -102,11 +102,11 @@ struct isci_host {
 
 	int controller_id;
 
-	/* The host adapter name format: SCI_DRIVER_NAME "_" "XX" <null char>
+	/* The host adapter name format: DRV_NAME "_" "XX" <null char>
 	 * where "XX" is the string representation of the controller id in hex.
 	 */
-    #define ISCI_HA_NAME_SIZE   (sizeof(SCI_DRIVER_NAME) + 1 + 2 + 1)
-    #define ISCI_HA_NAME_FMT        SCI_DRIVER_NAME "_%02x"
+	#define ISCI_HA_NAME_SIZE       (sizeof(DRV_NAME) + 1 + 2 + 1)
+	#define ISCI_HA_NAME_FMT        DRV_NAME "_%02x"
 
     #define ISCI_CACHE_NAME_SUFFIX  "_remote_dev"
     #define ISCI_CACHE_NAME_FMT     ISCI_HA_NAME_FMT \
@@ -166,8 +166,8 @@ struct isci_host {
  *
  *
  */
-#define ISCI_PCI_FUNC_NAME_SIZE   (sizeof(SCI_DRIVER_NAME) + 1 + 2 + 1)
-#define ISCI_PCI_FUNC_NAME_FMT        SCI_DRIVER_NAME "_%02x"
+#define ISCI_PCI_FUNC_NAME_SIZE   (sizeof(DRV_NAME) + 1 + 2 + 1)
+#define ISCI_PCI_FUNC_NAME_FMT        DRV_NAME "_%02x"
 
 struct isci_pci_func {
 	u8 controller_count;

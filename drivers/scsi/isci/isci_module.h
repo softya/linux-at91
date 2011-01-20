@@ -160,7 +160,7 @@ struct isci_firmware {
 			va_end(vargs);			\
 			printk(\
 				kern_prefix		\
-				SCI_DRIVER_NAME		\
+				DRV_NAME		\
 				": "			\
 				"%s\n", buffer);	\
 		}					\

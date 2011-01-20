@@ -149,7 +149,7 @@ static void __devexit isci_module_pci_remove(struct pci_dev *dev_p);
 MODULE_DEVICE_TABLE(pci, isci_id_table);
 
 static struct pci_driver isci_pci_driver = {
-	.name		= SCI_DRIVER_NAME,
+	.name		= DRV_NAME,
 	.id_table	= isci_id_table,
 	.probe		= isci_module_pci_probe,
 	.remove		= __devexit_p(isci_module_pci_remove),
