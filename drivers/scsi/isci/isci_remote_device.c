@@ -53,13 +53,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * This file contains the isci remote device implementation.
- *
- * isci_remote_device.c
- */
-
-
 #include "isci_module.h"
 #include "scic_io_request.h"
 #include "scic_remote_device.h"
@@ -123,11 +116,8 @@ static enum sci_status isci_remote_device_construct(
 	enum sci_status status = SCI_SUCCESS;
 
 	/* let the core do it's common constuction. */
-	scic_remote_device_construct(
-		port->sci_port_handle,
-		isci_device->sci_remote_device_ptr,
-		&isci_device->sci_device_handle
-		);
+	scic_remote_device_construct(port->sci_port_handle,
+				     isci_device->sci_device_handle);
 
 	/* let the core do it's device specific constuction. */
 	if (isci_device->domain_dev->parent &&

@@ -90,35 +90,25 @@ u32 scic_remote_device_get_object_size(void)
 
 /* --------------------------------------------------------------------------- */
 
-void scic_remote_device_construct(
-	SCI_PORT_HANDLE_T port,
-	void *remote_device_memory,
-	SCI_REMOTE_DEVICE_HANDLE_T *new_remote_device_handle)
+void scic_remote_device_construct(struct scic_sds_port *sci_port,
+				  struct scic_sds_remote_device *sci_dev)
 {
-	struct scic_sds_remote_device *this_device = (struct scic_sds_remote_device *)
-						remote_device_memory;
-	struct scic_sds_port *the_port    = (struct scic_sds_port *)port;
-
-	memset(remote_device_memory, 0, sizeof(struct scic_sds_remote_device));
-
-	*new_remote_device_handle          = this_device;
-	this_device->owning_port           = the_port;
-	this_device->started_request_count = 0;
-	this_device->rnc = (struct scic_sds_remote_node_context *)
-			   ((char *)this_device + sizeof(struct scic_sds_remote_device));
+	sci_dev->owning_port = sci_port;
+	sci_dev->started_request_count = 0;
+	sci_dev->rnc = (struct scic_sds_remote_node_context *) &sci_dev[1];
 
 	sci_base_remote_device_construct(
-		&this_device->parent,
+		&sci_dev->parent,
 		scic_sds_remote_device_state_table
 		);
 
 	scic_sds_remote_node_context_construct(
-		this_device,
-		this_device->rnc,
+		sci_dev,
+		sci_dev->rnc,
 		SCIC_SDS_REMOTE_NODE_CONTEXT_INVALID_INDEX
 		);
 
-	sci_object_set_association(this_device->rnc, this_device);
+	sci_object_set_association(sci_dev->rnc, sci_dev);
 }
 
 /* --------------------------------------------------------------------------- */

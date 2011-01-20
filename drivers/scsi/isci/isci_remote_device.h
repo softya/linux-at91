@@ -64,10 +64,10 @@
 #include "scic_user_callback.h"
 
 struct isci_host;
+struct scic_sds_remote_device;
 
 struct isci_remote_device {
-
-	SCI_REMOTE_DEVICE_HANDLE_T sci_device_handle;
+	struct scic_sds_remote_device *sci_device_handle;
 	enum isci_status status;
 	struct isci_port *isci_port;
 	struct domain_device *domain_dev;
@@ -77,7 +77,6 @@ struct isci_remote_device {
 	struct work_struct stop_work;
 	spinlock_t state_lock;
 	spinlock_t host_quiesce_lock;
-	void *sci_remote_device_ptr;
 	bool host_quiesce;
 };
 

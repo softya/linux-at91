@@ -95,25 +95,21 @@ enum scic_remote_device_not_ready_reason_code {
 u32 scic_remote_device_get_object_size(
 	void);
 
+struct scic_sds_port;
+struct scic_sds_remote_device;
 /**
  * scic_remote_device_construct() - This method will perform the construction
  *    common to all remote device objects.
- * @port: This parameter specifies the SAS/SATA Port handle corresponding to
- *    the port through which this device is to be accessed.
- * @remote_device_memory: This parameter specifies the memory location to be
- *    used by the SCIC implementation to store the SCIC REMOTE DEVICE.
- * @new_remote_device_handle: An opaque remote device handle to be used by the
- *    SCIC user for all subsequent remote device operations.
+ * @sci_port: SAS/SATA port through which this device is accessed.
+ * @sci_dev: remote device to construct
  *
  * It isn't necessary to call scic_remote_device_destruct() for device objects
  * that have only called this method for construction. Once subsequent
  * construction methods have been invoked (e.g.
  * scic_remote_device_da_construct()), then destruction should occur. none
  */
-void scic_remote_device_construct(
-	SCI_PORT_HANDLE_T port,
-	void *remote_device_memory,
-	SCI_REMOTE_DEVICE_HANDLE_T *new_remote_device_handle);
+void scic_remote_device_construct(struct scic_sds_port *sci_port,
+				  struct scic_sds_remote_device *sci_dev);
 
 /**
  * scic_remote_device_da_construct() - This method will construct a
