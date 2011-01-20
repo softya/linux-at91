@@ -513,27 +513,6 @@ void isci_host_deinit(
 	scic_controller_reset(isci_host->core_controller);
 }
 
-/**
- * isci_host_init_controller_names() - This method will initialize the names
- *    used during initialization for the cache and dma pools.
- * @sci_host: This parameter specifies the host adapter structure.
- *
- *
- */
-void isci_host_init_controller_names(
-	struct isci_host *isci_host,
-	unsigned int controller_idx)
-{
-	isci_host->controller_id = controller_idx;
-
-	/* Create the controller's unique name. */
-	sprintf(isci_host->ha_name, ISCI_HA_NAME_FMT, controller_idx);
-
-	isci_logger(trace, "isci_host %p\n"
-		    "   ha_name = %s\n",
-		    isci_host, isci_host->ha_name);
-}
-
 static int isci_verify_firmware(const struct firmware *fw,
 				struct isci_firmware *isci_fw)
 {

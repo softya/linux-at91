@@ -294,7 +294,7 @@ static int isci_module_register_sas_ha(struct isci_host *isci_host)
 	 * Set various fields in the sas_ha struct:
 	 */
 
-	sas_ha->sas_ha_name = (char *)&(isci_host->ha_name);
+	sas_ha->sas_ha_name = DRV_NAME;
 	sas_ha->lldd_module = THIS_MODULE;
 	sas_ha->sas_addr    = &(isci_host->sas_addr[0]);
 
@@ -358,7 +358,10 @@ static int __devinit isci_module_pci_init(
 		return err;
 	}
 
-	err = pcim_iomap_regions(dev_p, bar_mask, isci_pci->pci_func_name);
+	for (bar_num = 0; bar_num < SCI_PCI_BAR_COUNT; bar_num++)
+		bar_mask |= 1 << (bar_num * 2);
+
+	err = pcim_iomap_regions(dev_p, bar_mask, DRV_NAME);
 	if (err)
 		return err;
 
@@ -366,20 +369,8 @@ static int __devinit isci_module_pci_init(
 	if (!iomap)
 		return -ENOMEM;
 
-	for (bar_num = 0; bar_num < SCI_PCI_BAR_COUNT; bar_num++) {
+	for (bar_num = 0; bar_num < SCI_PCI_BAR_COUNT; bar_num++)
 		isci_pci->pci_bar[bar_num].virt_addr = iomap[bar_num * 2];
-
-		isci_logger(trace,
-			    "PCI Name: %s, isci_pci_func->controller_count = %d\n"
-			    "pci_bar[%d].phys_addr = %lx\n"
-			    "pci_bar[%d].len = 0x%x\n"
-			    "pci_bar[%d].virt_addr = %p\n",
-			    isci_pci->pci_func_name, isci_pci->controller_count,
-			    bar_num, isci_pci->pci_bar[bar_num].phys_addr,
-			    bar_num, isci_pci->pci_bar[bar_num].len,
-			    bar_num, isci_pci->pci_bar[bar_num].virt_addr
-			    );
-	}
 
 	pci_set_master(dev_p);
 
@@ -543,32 +534,6 @@ enum sci_status isci_module_parse_user_parameters(
 	return SCI_SUCCESS;
 }
 
-/******************************************************************************
-* P U B L I C    M E T H O D S
-******************************************************************************/
-
-/**
- * isci_module_init_pci_function_name() - This method will initialize the name
- *    used in PCI Function initialization.
- * @This: parameter specifies the host adapter structure.
- *
- *
- */
-static void isci_module_init_pci_function_name(
-	struct isci_pci_func *isci_pci,
-	unsigned int controller_count)
-{
-	/* Create the PCI function's unique name. */
-	sprintf(isci_pci->pci_func_name, ISCI_PCI_FUNC_NAME_FMT, controller_count);
-
-	isci_logger(
-		trace,
-		"isci_pci_func %p\n" "   pci_func_name = %s\n",
-		isci_pci,
-		isci_pci->pci_func_name,
-		0);
-}
-
 /**
  * isci_module_pci_probe() - This method is the PCI probe function called by
  *    the Linux kernel when a device match is found.
@@ -586,10 +551,6 @@ static int __devinit isci_module_pci_probe(
 	struct Scsi_Host *shost[2] = { NULL, NULL };
 	struct isci_pci_func *isci_pci;
 	int err = 0, ctlr_count = 0, count, core_lib_idx;
-
-#if defined(CONFIG_PBG_HBA_A0) || defined(CONFIG_PBG_HBA_A2)
-	unsigned int scu_idx = (unsigned int)device_id_p->driver_data;
-#endif
 	bool found = false;
 	struct sci_pci_common_header pci_header;
 	void *scil_memory;
@@ -689,30 +650,20 @@ static int __devinit isci_module_pci_probe(
 	 *  Set key fields in the isci_pci_func structure.
 	 */
 	isci_pci->controller_count = ctlr_count;
-	isci_module_init_pci_function_name(isci_pci, ctlr_count);
 	isci_pci->k_pci_driver = &(isci_pci_driver);
 	isci_pci->k_pci_dev = dev_p;
 	isci_pci->core_lib_handle = isci_module_struct.core_lib[core_lib_idx].core_lib_handle;
 	isci_pci->core_lib_array_index = core_lib_idx;
 	INIT_LIST_HEAD(&(isci_pci->node));
 
-	/*------------- Linux Kernel Module Init stuff ----------------------*/
-#if defined(CONFIG_PBG_HBA_A0) || defined(CONFIG_PBG_HBA_A2)
-	/* Setup names based on the controller index */
-	isci_host_init_controller_names(&(isci_pci->ctrl[0]), scu_idx);
-#elif defined(CONFIG_PBG_HBA_BETA)
-	/*
-	 *  Setup controller names for each controller on this PCI function.
-	 *  Also link the isci_module to each controller's parent field and
+#if defined(CONFIG_PBG_HBA_BETA)
+	/*  Link the isci_module to each controller's parent field and
 	 *  link each controller back to it's PCI function.
 	 */
 	for (count = 0; count < ctlr_count; count++) {
-		isci_host_init_controller_names(&(isci_pci->ctrl[count]), count);
 		isci_pci->ctrl[count].parent = &isci_module_struct;
 		isci_pci->ctrl[count].parent_pci_function = isci_pci;
 	}
-#else
-#error COMPILER_ERR_NO_STEP_TYPE
 #endif
 
 	/* pci_set_dma_mask, dma_pool_create, map pci mem and io regions,

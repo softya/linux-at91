@@ -101,16 +101,7 @@ struct isci_host {
 	union scic_oem_parameters oem_parameters;
 
 	int controller_id;
-
-	/* The host adapter name format: DRV_NAME "_" "XX" <null char>
-	 * where "XX" is the string representation of the controller id in hex.
-	 */
-	#define ISCI_HA_NAME_SIZE       (sizeof(DRV_NAME) + 1 + 2 + 1)
-	#define ISCI_HA_NAME_FMT        DRV_NAME "_%02x"
-	char ha_name[ISCI_HA_NAME_SIZE];
-
 	struct isci_timer_list timer_list_struct;
-
 	void *core_ctrl_memory;
 	struct dma_pool *dma_pool;
 	unsigned int dma_pool_alloc_size;
@@ -151,13 +142,10 @@ struct isci_host {
  *
  *
  */
-#define ISCI_PCI_FUNC_NAME_SIZE   (sizeof(DRV_NAME) + 1 + 2 + 1)
-#define ISCI_PCI_FUNC_NAME_FMT        DRV_NAME "_%02x"
 
 struct isci_pci_func {
 	u8 controller_count;
 	u8 reserved[3];
-	char pci_func_name[ISCI_PCI_FUNC_NAME_SIZE];
 	struct list_head node;
 
 	struct pci_driver *k_pci_driver;
