@@ -107,20 +107,11 @@ struct isci_host {
 	 */
 	#define ISCI_HA_NAME_SIZE       (sizeof(DRV_NAME) + 1 + 2 + 1)
 	#define ISCI_HA_NAME_FMT        DRV_NAME "_%02x"
-
-    #define ISCI_CACHE_NAME_SUFFIX  "_remote_dev"
-    #define ISCI_CACHE_NAME_FMT     ISCI_HA_NAME_FMT \
-	ISCI_CACHE_NAME_SUFFIX
-	#define ISCI_CACHE_NAME_SIZE     (ISCI_HA_NAME_SIZE \
-					  + sizeof(ISCI_CACHE_NAME_SUFFIX))
 	char ha_name[ISCI_HA_NAME_SIZE];
-	char cache_name[ISCI_CACHE_NAME_SIZE];
 
 	struct isci_timer_list timer_list_struct;
 
 	void *core_ctrl_memory;
-
-	struct kmem_cache *rem_device_cache;
 	struct dma_pool *dma_pool;
 	unsigned int dma_pool_alloc_size;
 	struct isci_phy phys[SCI_MAX_PHYS];

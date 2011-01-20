@@ -101,7 +101,7 @@ static void isci_remote_device_deconstruct(
 	scic_remote_device_destruct(isci_device->sci_device_handle);
 	isci_device->domain_dev->lldd_dev = NULL;
 	list_del(&isci_device->node);
-	kmem_cache_free(isci_host->rem_device_cache, isci_device);
+	kmem_cache_free(isci_kmem_cache, isci_device);
 }
 
 
@@ -267,28 +267,21 @@ void isci_remote_device_nuke_requests(
  *
  * pointer to new isci_remote_device.
  */
-static
-struct isci_remote_device *isci_remote_device_alloc(
-	struct isci_host *isci_host,
-	struct isci_port *port)
+static struct isci_remote_device *
+isci_remote_device_alloc(struct isci_host *isci_host, struct isci_port *port)
 {
 	struct isci_remote_device *isci_device;
+	struct scic_sds_remote_device *sci_dev;
 
-
-/*@todo need to check for direct attached device*/
-
-	isci_device = kmem_cache_zalloc(isci_host->rem_device_cache,
-					GFP_KERNEL);
+	isci_device = kmem_cache_zalloc(isci_kmem_cache, GFP_KERNEL);
 
 	if (!isci_device) {
-
-		isci_logger(warning, "kmem_cache_alloc returned NULL\n", 0);
-		goto out;
-
+		dev_warn(&isci_host->pdev->dev, "%s: failed\n", __func__);
+		return NULL;
 	}
 
-	isci_device->sci_remote_device_ptr = ((u8 *)isci_device)
-					     + sizeof(*isci_device);
+	sci_dev = (struct scic_sds_remote_device *) &isci_device[1];
+	isci_device->sci_device_handle = sci_dev;
 	INIT_LIST_HEAD(&isci_device->reqs_in_process);
 	INIT_LIST_HEAD(&isci_device->node);
 	isci_device->host_quiesce          = false;
@@ -296,7 +289,7 @@ struct isci_remote_device *isci_remote_device_alloc(
 	spin_lock_init(&isci_device->state_lock);
 	spin_lock_init(&isci_device->host_quiesce_lock);
 	isci_remote_device_change_state(isci_device, isci_freed);
- out:
+
 	return isci_device;
 
 }

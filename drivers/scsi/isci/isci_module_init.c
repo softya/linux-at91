@@ -67,12 +67,14 @@
 #include "isci_task.h"
 #include "sci_controller_constants.h"
 #include "intel_pci.h"
+#include "scic_remote_device.h"
 
 MODULE_LICENSE("Dual BSD/GPL");
 
 
 static int lldd_max_execute_num = 64;
 
+struct kmem_cache *isci_kmem_cache;
 static struct isci_module isci_module_struct = {
 
 	.controller_count	= 0,
@@ -723,21 +725,12 @@ static int __devinit isci_module_pci_probe(
 		goto lib_out;
 	}
 
-	/*----------- SCSI Midlayer Initialization Stuff -------------------*/
-	/*
-	 *  Allocate the SCSI Host structures and link them to their
-	 *  respective SCU controllers (isci_hosts).
-	 */
 	for (count = 0; count < ctlr_count; count++) {
 		shost[count] = scsi_host_alloc(&isci_sht, sizeof(void *));
 		if (!shost[count]) {
 			err = -ENODEV;
 			goto lib_out;
 		}
-		/*
-		 *  SCSI host adapter instance was allocated. Link to corresponding
-		 *  SCI Controller.
-		 */
 		isci_pci->ctrl[count].shost = shost[count];
 		isci_pci->ctrl[count].pdev = dev_p;
 	}
@@ -863,18 +856,10 @@ static void __devexit isci_module_pci_remove(struct pci_dev *dev_p)
 
 #define SCI_MAX_TIMER_COUNT 25
 
-/**
- * isci_module_init() - This method is the module init function called by when
- *    this module is loaded. It performs global initialization with libsas and
- *    the SCI Core Library, then registers as a PCI driver.
- *
- * This method returns an error code indicating sucess or failure, a zero
- * indicates success.
- */
-static __init int isci_module_init(
-	void)
+static __init int isci_module_init(void)
 {
 	int count;
+	int err = -ENOMEM;
 
 	/*
 	 *  Initialize core_lib fields of isci_module_struct.
@@ -888,6 +873,14 @@ static __init int isci_module_init(
 	 */
 	isci_module_struct.loglevel = loglevel;
 
+	isci_kmem_cache = kmem_cache_create(DRV_NAME,
+					    sizeof(struct isci_remote_device) +
+					    scic_remote_device_get_object_size(),
+					    0, 0, NULL);
+	if (!isci_kmem_cache)
+		goto err;
+
+
 	/*------- Libsas Initialization Stuff -------------------------------
 	 * static struct &isci_domain_functions contains lldd function
 	 * pointers to handle sas transport class actions, is passed into
@@ -897,9 +890,9 @@ static __init int isci_module_init(
 	isci_module_struct.stt =
 		sas_domain_attach_transport(&isci_domain_functions);
 
-	if (isci_module_struct.stt == NULL) {
-		isci_logger(error, "sas_domain_attach_transport failed\n", 0);
-		goto err;
+	if (!isci_module_struct.stt) {
+		pr_err("%s: sas_domain_attach_transport failed\n", __func__);
+		goto err_kmem;
 	}
 
 	/* alloc and intialize timers, add to timer_list.  */
@@ -908,16 +901,19 @@ static __init int isci_module_init(
 		SCI_MAX_TIMER_COUNT
 		);
 
-	if ((pci_register_driver(&isci_pci_driver)) < 0) {
-		isci_logger(error, "Register PCI failed\n", 0);
-		goto err;
+	err = pci_register_driver(&isci_pci_driver);
+	if (err) {
+		pr_err("%s: Register PCI failed\n", __func__);
+		goto err_sas;
 	}
 
 	return 0;
-
+ err_sas:
+	sas_release_transport(isci_module_struct.stt);
+ err_kmem:
+	kmem_cache_destroy(isci_kmem_cache);
  err:
-
-	return 1;
+	return err;
 }
 
 
@@ -932,6 +928,7 @@ static __exit void isci_module_exit(
 {
 	pci_unregister_driver(&isci_pci_driver);
 	sas_release_transport(isci_module_struct.stt);
+	kmem_cache_destroy(isci_kmem_cache);
 }
 
 MODULE_FIRMWARE(ISCI_FW_NAME);

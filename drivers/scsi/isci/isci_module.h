@@ -86,6 +86,7 @@
 #include "sci_status.h"
 
 extern int loglevel;
+extern struct kmem_cache *isci_kmem_cache;
 
 #define COMPILER_ERR_NO_STEP_TYPE "NO Stepping type compile switch specified:\n" \
 	"   CONFIG_PBG_HBA_A0\n"	\

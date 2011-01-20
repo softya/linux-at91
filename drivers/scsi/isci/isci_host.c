@@ -511,9 +511,6 @@ void isci_host_deinit(
 	wait_for_completion(&isci_host->stop_complete);
 	/* next, reset the controller.           */
 	scic_controller_reset(isci_host->core_controller);
-
-	/* destroy remote device and request memory queues. */
-	kmem_cache_destroy(isci_host->rem_device_cache);
 }
 
 /**
@@ -531,13 +528,10 @@ void isci_host_init_controller_names(
 
 	/* Create the controller's unique name. */
 	sprintf(isci_host->ha_name, ISCI_HA_NAME_FMT, controller_idx);
-	sprintf(isci_host->cache_name, ISCI_CACHE_NAME_FMT, controller_idx);
 
 	isci_logger(trace, "isci_host %p\n"
-		    "   ha_name = %s\n"
-		    "   cache_name = %s\n",
-		    isci_host, isci_host->ha_name,
-		    isci_host->cache_name, 0);
+		    "   ha_name = %s\n",
+		    isci_host, isci_host->ha_name);
 }
 
 static int isci_verify_firmware(const struct firmware *fw,
@@ -835,21 +829,6 @@ int isci_host_init(
 
 	if (err)
 		goto err_out;
-
-	isci_host->rem_device_cache
-		= kmem_cache_create(
-		isci_host->cache_name,
-		sizeof(struct isci_remote_device) +
-		scic_remote_device_get_object_size(),
-		0,
-		SLAB_HWCACHE_ALIGN,
-		NULL
-		);
-
-	if (!isci_host->rem_device_cache) {
-		err = -ENOMEM;
-		goto err_out;
-	}
 
 	/*
 	 * keep the pool alloc size around, will use it for a bounds checking
