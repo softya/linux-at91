@@ -544,18 +544,12 @@ static void __iomem *smu_base(struct isci_host *isci_host)
 
 #define SCI_MAX_TIMER_COUNT 25
 
-/**
- * isci_host_init() - This function intializes a newly created host adapter
- *    object.
- * @isci_host: This parameter specifies the ISCI host object
- *
- */
 int isci_host_init(struct isci_host *isci_host)
 {
 	int err = 0;
 	int index = 0;
 	enum sci_status status;
-	SCI_CONTROLLER_HANDLE_T controller;
+	struct scic_sds_controller *controller;
 	SCI_PORT_HANDLE_T scic_port;
 	struct scic_controller_handler_methods *handlers
 		= &isci_host->scic_irq_handlers[0];
@@ -563,32 +557,18 @@ int isci_host_init(struct isci_host *isci_host)
 	union scic_user_parameters scic_user_params;
 	const struct firmware *fw = NULL;
 	struct isci_firmware *isci_fw = NULL;
-	struct isci_pci_info *pci_info = to_pci_info(isci_host->pdev);
 
-	/*------------- SCIC controller Initialization Stuff ----------------
-	 * alloc and intialize timers, add to timer_list
-	 */
 	INIT_LIST_HEAD(&isci_host->timer_list_struct.timers);
 	isci_timer_list_construct(
 		&isci_host->timer_list_struct,
 		SCI_MAX_TIMER_COUNT
 		);
 
-	/*
-	 * call scic_library_allocate_controller() to allocate one controller
-	 * from the core. Store core controller handle in isci_host struct.
-	 * call scic_controller_construct();
-	 */
-	status = scic_library_allocate_controller(pci_info->core_lib_handle,
-						  &controller);
+	controller = scic_controller_alloc(&isci_host->pdev->dev);
 
-	if (status != SCI_SUCCESS) {
-		dev_err(&isci_host->pdev->dev,
-			"%s: scic_library_allocate_controller failed -"
-			" status = %x\n",
-			__func__,
-			status);
-		err = -ENODEV;
+	if (!controller) {
+		err = -ENOMEM;
+		dev_err(&isci_host->pdev->dev, "%s: failed (%d)\n", __func__, err);
 		goto out;
 	}
 
@@ -600,8 +580,8 @@ int isci_host_init(struct isci_host *isci_host)
 	isci_host_change_state(isci_host, isci_starting);
 	isci_host->can_queue = ISCI_CAN_QUEUE_VAL;
 
-	status = scic_controller_construct(pci_info->core_lib_handle, controller,
-					   scu_base(isci_host), smu_base(isci_host));
+	status = scic_controller_construct(controller, scu_base(isci_host),
+					   smu_base(isci_host));
 
 	if (status != SCI_SUCCESS) {
 		dev_err(&isci_host->pdev->dev,

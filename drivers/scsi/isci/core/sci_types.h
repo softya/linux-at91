@@ -156,6 +156,7 @@ typedef void *SCI_LOCK_HANDLE_T;
  * SCI_CONTROLLER_HANDLE_T
  */
 typedef void *SCI_CONTROLLER_HANDLE_T;
+struct scic_sds_controller;
 
 /**
  * The SCI_LIBRARY_HANDLE_T will be utilized by SCI users as an opaque handle

@@ -69,25 +69,12 @@
 #include "intel_pci.h"
 #include "scic_remote_device.h"
 
-MODULE_LICENSE("Dual BSD/GPL");
 
 
 static int lldd_max_execute_num = 64;
 
+static struct scsi_transport_template *isci_transport_template;
 struct kmem_cache *isci_kmem_cache;
-static struct isci_module isci_module_struct = {
-
-	.controller_count	= 0,
-	.pci_devices		= LIST_HEAD_INIT(isci_module_struct
-						 .pci_devices),
-	.timer_list_struct	= {
-		.timers		= LIST_HEAD_INIT(
-			isci_module_struct.timer_list_struct
-			.timers),
-	},
-	.stt			= NULL,
-
-};
 
 static DEFINE_PCI_DEVICE_TABLE(isci_id_table) = {
 	{ PCI_VDEVICE(INTEL, 0x1D61),},
@@ -197,7 +184,7 @@ static struct scsi_host_template isci_sht = {
 	.ioctl				= sas_ioctl,
 };
 
-static struct sas_domain_function_template isci_domain_functions = {
+static struct sas_domain_function_template isci_transport_ops  = {
 
 	/* The class calls these to notify the LLDD of an event. */
 	.lldd_port_formed	= isci_port_formed,
@@ -514,7 +501,6 @@ static struct isci_host *isci_host_alloc(struct pci_dev *pdev, int id)
 
 	isci_host->pdev = pdev;
 	isci_host->id = id;
-	isci_host->parent = &isci_module_struct;
 
 	shost = scsi_host_alloc(&isci_sht, sizeof(void *));
 	if (!shost)
@@ -527,7 +513,7 @@ static struct isci_host *isci_host_alloc(struct pci_dev *pdev, int id)
 
 	SHOST_TO_SAS_HA(shost) = &isci_host->sas_ha;
 	isci_host->sas_ha.core.shost = shost;
-	shost->transportt = isci_module_struct.stt;
+	shost->transportt = isci_transport_template;
 
 	shost->max_id = ~0;
 	shost->max_lun = ~0;
@@ -555,80 +541,17 @@ static struct isci_host *isci_host_alloc(struct pci_dev *pdev, int id)
 static int __devinit isci_module_pci_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 {
 	struct isci_pci_info *pci_info;
-	int err = -ENOMEM, core_lib_idx, i;
-	bool found = false;
-	void *scil_memory;
+	int err, i;
 	struct isci_host *isci_host;
-
-	/*
-	 *  First make sure there is room in the module for an SCI Core Library.
-	 *  If so, get the core library size, allocate memory for core library,
-	 *  store pointer in scu_module struct.
-	 *  Concept:
-	 *      1 isci_module structure per driver load image
-	 *      1 Sci Libarary and isci_pci_info structure per pci function
-	 *      upto 2 isci_host (SCIC controllers) per pci function depending on
-	 *          SKU.
-	 */
-	for (core_lib_idx = 0;
-	     core_lib_idx < ARRAY_SIZE(isci_module_struct.core_lib);
-	     core_lib_idx++) {
-		if ((isci_module_struct.core_lib[core_lib_idx].core_lib_handle
-					== NULL) &&
-		    (isci_module_struct.core_lib[core_lib_idx].core_lib_memory
-					== NULL)) {
-			found = true;
-			break;
-		}
-	}
-
-	if (found == false) {
-		dev_err(&pdev->dev,
-			"%s: exceeded max core lib count of %zu\n",
-			__func__, ARRAY_SIZE(isci_module_struct.core_lib));
-		return -ENODEV;
-	}
-
-	scil_memory =
-		isci_module_struct.core_lib[core_lib_idx].core_lib_memory =
-			devm_kzalloc(&pdev->dev,
-				     scic_library_get_object_size(
-					     SCI_MAX_CONTROLLERS),
-				     GFP_KERNEL);
-	if (!scil_memory) {
-		dev_err(&pdev->dev,
-			"%s: kmalloc failed for library memory\n",
-			__func__);
-		return -ENOMEM;
-	}
-
-	/*
-	 *  Construct core library using memory allocated for core library
-	 *  above.
-	 */
-	isci_module_struct.core_lib[core_lib_idx].core_lib_handle
-		= scic_library_construct(scil_memory, SCI_MAX_CONTROLLERS);
-
-	/*
-	 *  Set association to the scu_module struct in the core library obj.
-	 */
-	sci_object_set_association(
-		isci_module_struct.core_lib[core_lib_idx].core_lib_handle,
-		(void *)&isci_module_struct);
 
 	pci_info = devm_kzalloc(&pdev->dev, sizeof(*pci_info), GFP_KERNEL);
 	if (!pci_info)
-		goto lib_out;
-	/*
-	 *  Set key fields in the isci_pci_info structure.
-	 */
-	pci_info->core_lib_handle = isci_module_struct.core_lib[core_lib_idx].core_lib_handle;
-	pci_info->core_lib_array_index = core_lib_idx;
+		return -ENOMEM;
 	pci_set_drvdata(pdev, pci_info);
 
 	err = isci_pci_init(pdev);
 	if (err)
-		goto lib_out;
+		return err;
 
 	for (i = 0; i < num_controllers(pdev); i++) {
 		struct isci_host *h = isci_host_alloc(pdev, i);
@@ -654,10 +577,6 @@ static int __devinit isci_module_pci_probe(struct pci_dev *pdev, const struct pc
  err_host_alloc:
 	for_each_isci_host(isci_host, pdev)
 		isci_module_unregister_sas_ha(isci_host);
- lib_out:
-	isci_module_struct.core_lib[core_lib_idx].core_lib_handle = NULL;
-	isci_module_struct.core_lib[core_lib_idx].core_lib_memory = NULL;
-
 	return err;
 }
 
@@ -670,90 +589,45 @@ static void __devexit isci_module_pci_remove(struct pci_dev *pdev)
 		isci_host_deinit(isci_host);
 		scic_controller_disable_interrupts(isci_host->core_controller);
 	}
-
-	if (list_empty(&(isci_module_struct.pci_devices)))
-		isci_timer_list_destroy(
-			&(isci_module_struct.timer_list_struct)
-			);
 }
-
-#define SCI_MAX_TIMER_COUNT 25
 
 static __init int isci_module_init(void)
 {
-	int count;
 	int err = -ENOMEM;
-
-	/*
-	 *  Initialize core_lib fields of isci_module_struct.
-	 */
-	for (count = 0; count < ARRAY_SIZE(isci_module_struct.core_lib); count++) {
-		isci_module_struct.core_lib[count].core_lib_handle = NULL;
-		isci_module_struct.core_lib[count].core_lib_memory = NULL;
-	}
-	/*
-	 *  Set the loglevel for the module.
-	 */
-	isci_module_struct.loglevel = loglevel;
 
 	isci_kmem_cache = kmem_cache_create(DRV_NAME,
 					    sizeof(struct isci_remote_device) +
 					    scic_remote_device_get_object_size(),
 					    0, 0, NULL);
 	if (!isci_kmem_cache)
-		goto err;
+		return err;
 
-
-	/*------- Libsas Initialization Stuff -------------------------------
-	 * static struct &isci_domain_functions contains lldd function
-	 * pointers to handle sas transport class actions, is passed into
-	 * sas_domain_attach_transport(), which adds libsas functions to and
-	 *  returns a scsi_transport_template.
-	 */
-	isci_module_struct.stt =
-		sas_domain_attach_transport(&isci_domain_functions);
-
-	if (!isci_module_struct.stt) {
-		pr_err("%s: sas_domain_attach_transport failed\n", __func__);
+	isci_transport_template = sas_domain_attach_transport(&isci_transport_ops);
+	if (!isci_transport_template)
 		goto err_kmem;
-	}
-
-	/* alloc and intialize timers, add to timer_list.  */
-	isci_timer_list_construct(
-		&isci_module_struct.timer_list_struct,
-		SCI_MAX_TIMER_COUNT
-		);
 
 	err = pci_register_driver(&isci_pci_driver);
-	if (err) {
-		pr_err("%s: Register PCI failed\n", __func__);
+	if (err)
 		goto err_sas;
-	}
 
 	return 0;
+
  err_sas:
-	sas_release_transport(isci_module_struct.stt);
+	sas_release_transport(isci_transport_template);
  err_kmem:
 	kmem_cache_destroy(isci_kmem_cache);
- err:
+
 	return err;
 }
 
-
-/**
- * isci_module_exit() - This method is the module exit function called by when
- *    this module is unloaded.
- *
- *
- */
-static __exit void isci_module_exit(
-	void)
+static __exit void isci_module_exit(void)
 {
 	pci_unregister_driver(&isci_pci_driver);
-	sas_release_transport(isci_module_struct.stt);
+	sas_release_transport(isci_transport_template);
 	kmem_cache_destroy(isci_kmem_cache);
 }
 
+MODULE_LICENSE("Dual BSD/GPL");
 MODULE_FIRMWARE(ISCI_FW_NAME);
 module_init(isci_module_init);
 module_exit(isci_module_exit);

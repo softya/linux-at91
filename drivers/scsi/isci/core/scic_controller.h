@@ -129,9 +129,7 @@ struct scic_controller_handler_methods {
 /**
  * scic_controller_construct() - This method will attempt to construct a
  *    controller object utilizing the supplied parameter information.
- * @library: This parameter specifies the handle to the library object
- *    associated with the controller being constructed.
- * @controller: This parameter specifies the controller to be constructed.
+ * @c: This parameter specifies the controller to be constructed.
  * @scu_base: mapped base address of the scu registers
  * @smu_base: mapped base address of the smu registers
  *
@@ -144,11 +142,9 @@ struct scic_controller_handler_methods {
  * SCI_FAILURE_UNSUPPORTED_INIT_DATA_VERSION This value is returned if the
  * controller does not support the supplied initialization data version.
  */
-enum sci_status scic_controller_construct(
-	SCI_LIBRARY_HANDLE_T library,
-	SCI_CONTROLLER_HANDLE_T controller,
-	void __iomem *scu_base,
-	void __iomem *smu_base);
+enum sci_status scic_controller_construct(struct scic_sds_controller *c,
+					  void __iomem *scu_base,
+					  void __iomem *smu_base);
 
 /**
  * scic_controller_enable_interrupts() - This method will enable all controller
@@ -578,7 +574,8 @@ enum sci_status scic_controller_set_interrupt_coalescence(
 	u32 coalesce_number,
 	u32 coalesce_timeout);
 
-
+struct device;
+struct scic_sds_controller *scic_controller_alloc(struct device *dev);
 
 
 #endif  /* _SCIC_CONTROLLER_H_ */

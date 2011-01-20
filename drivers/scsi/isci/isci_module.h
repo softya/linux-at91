@@ -88,30 +88,6 @@
 extern int loglevel;
 extern struct kmem_cache *isci_kmem_cache;
 
-/**
- * struct isci_module - This class represents single interface to the libsas
- *    and SCI Libraries.
- *
- *
- */
-struct isci_module {
-
-	int controller_count;
-
-	struct {
-		SCI_LIBRARY_HANDLE_T core_lib_handle;
-		void *core_lib_memory;
-	} core_lib[SCI_MAX_CONTROLLERS];
-
-	struct list_head pci_devices;
-
-	struct isci_timer_list timer_list_struct;
-
-	struct scsi_transport_template *stt;
-
-	int loglevel;
-};
-
 #define ISCI_FW_NAME		"isci/isci_firmware.bin"
 
 #define ISCI_FIRMWARE_MIN_SIZE	149

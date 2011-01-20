@@ -60,6 +60,7 @@
  *
  */
 
+#include <linux/device.h>
 #include "sci_util.h"
 #include "sci_environment.h"
 #include "scic_controller.h"
@@ -2447,71 +2448,55 @@ static void scic_sds_controller_set_default_config_parameters(
 }
 
 
-/*
- * ****************************************************************************-
- * * SCIC Controller Public Methods
- * ****************************************************************************- */
-
-enum sci_status scic_controller_construct(
-	SCI_LIBRARY_HANDLE_T library,
-	SCI_CONTROLLER_HANDLE_T controller,
-	void __iomem *scu_base, void __iomem *smu_base)
+enum sci_status scic_controller_construct(struct scic_sds_controller *controller,
+					  void __iomem *scu_base,
+					  void __iomem *smu_base)
 {
 	u8 index;
-	struct scic_sds_library *my_library;
-	struct scic_sds_controller *this_controller;
-
-	my_library = (struct scic_sds_library *)library;
-	this_controller = (struct scic_sds_controller *)controller;
-
-	/* Just clear out the memory of the structure to be safe. */
-	memset(this_controller, 0, sizeof(struct scic_sds_controller));
 
 	sci_base_controller_construct(
-		&this_controller->parent,
+		&controller->parent,
 		scic_sds_controller_state_table,
-		this_controller->memory_descriptors,
-		ARRAY_SIZE(this_controller->memory_descriptors),
+		controller->memory_descriptors,
+		ARRAY_SIZE(controller->memory_descriptors),
 		NULL
 		);
 
-	this_controller->scu_registers = scu_base;
-	this_controller->smu_registers = smu_base;
+	controller->scu_registers = scu_base;
+	controller->smu_registers = smu_base;
 
-	scic_sds_port_configuration_agent_construct(&this_controller->port_agent);
+	scic_sds_port_configuration_agent_construct(&controller->port_agent);
 
 	/* Construct the ports for this controller */
-	for (index = 0; index < (SCI_MAX_PORTS + 1); index++) {
-		scic_sds_port_construct(
-			&this_controller->port_table[index],
-			(index == SCI_MAX_PORTS) ? SCIC_SDS_DUMMY_PORT : index,
-			this_controller
-			);
-	}
+	for (index = 0; index < SCI_MAX_PORTS; index++)
+		scic_sds_port_construct(&controller->port_table[index],
+					index, controller);
+	scic_sds_port_construct(&controller->port_table[index],
+				SCIC_SDS_DUMMY_PORT, controller);
 
 	/* Construct the phys for this controller */
 	for (index = 0; index < SCI_MAX_PHYS; index++) {
 		/* Add all the PHYs to the dummy port */
 		scic_sds_phy_construct(
-			&this_controller->phy_table[index],
-			&this_controller->port_table[SCI_MAX_PORTS],
+			&controller->phy_table[index],
+			&controller->port_table[SCI_MAX_PORTS],
 			index
 			);
 	}
 
-	this_controller->invalid_phy_mask = 0;
+	controller->invalid_phy_mask = 0;
 
 	/* Set the default maximum values */
-	this_controller->completion_event_entries      = SCU_EVENT_COUNT;
-	this_controller->completion_queue_entries      = SCU_COMPLETION_QUEUE_COUNT;
-	this_controller->remote_node_entries           = SCI_MAX_REMOTE_DEVICES;
-	this_controller->logical_port_entries          = SCI_MAX_PORTS;
-	this_controller->task_context_entries          = SCU_IO_REQUEST_COUNT;
-	this_controller->uf_control.buffers.count      = SCU_UNSOLICITED_FRAME_COUNT;
-	this_controller->uf_control.address_table.count = SCU_UNSOLICITED_FRAME_COUNT;
+	controller->completion_event_entries      = SCU_EVENT_COUNT;
+	controller->completion_queue_entries      = SCU_COMPLETION_QUEUE_COUNT;
+	controller->remote_node_entries           = SCI_MAX_REMOTE_DEVICES;
+	controller->logical_port_entries          = SCI_MAX_PORTS;
+	controller->task_context_entries          = SCU_IO_REQUEST_COUNT;
+	controller->uf_control.buffers.count      = SCU_UNSOLICITED_FRAME_COUNT;
+	controller->uf_control.address_table.count = SCU_UNSOLICITED_FRAME_COUNT;
 
 	/* Initialize the User and OEM parameters to default values. */
-	scic_sds_controller_set_default_config_parameters(this_controller);
+	scic_sds_controller_set_default_config_parameters(controller);
 
 	return SCI_SUCCESS;
 }
@@ -3253,19 +3238,8 @@ enum sci_status scic_controller_set_interrupt_coalescence(
 	return SCI_SUCCESS;
 }
 
-/* --------------------------------------------------------------------------- */
 
-
-
-/* --------------------------------------------------------------------------- */
-
-
-/* --------------------------------------------------------------------------- */
-
-
-/* --------------------------------------------------------------------------- */
-
-
-/* --------------------------------------------------------------------------- */
-
-
+struct scic_sds_controller *scic_controller_alloc(struct device *dev)
+{
+	return devm_kzalloc(dev, sizeof(struct scic_sds_controller), GFP_KERNEL);
+}

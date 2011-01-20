@@ -95,7 +95,7 @@ struct coherent_memory_info {
 };
 
 struct isci_host {
-	SCI_CONTROLLER_HANDLE_T core_controller;
+	struct scic_sds_controller *core_controller;
 	struct scic_controller_handler_methods scic_irq_handlers[SCI_NUM_MSI_X_INT];
 	union scic_oem_parameters oem_parameters;
 
@@ -122,7 +122,6 @@ struct isci_host {
 
 	enum isci_status status;
 	struct Scsi_Host *shost;
-	struct isci_module *parent;
 	struct tasklet_struct completion_tasklet;
 	struct list_head mdl_struct_list;
 	struct list_head requests_to_complete;
