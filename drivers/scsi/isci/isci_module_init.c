@@ -66,7 +66,6 @@
 #include "isci_module.h"
 #include "isci_task.h"
 #include "sci_controller_constants.h"
-#include "intel_pci.h"
 #include "scic_remote_device.h"
 
 

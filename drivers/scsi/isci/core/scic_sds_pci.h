@@ -66,12 +66,6 @@
 #include <asm/io.h>
 #include "sci_types.h"
 
-enum SCU_CONTROLLER_PCI_REVISION_CODE {
-	SCU_PBG_HBA_REV_A0 = 1,
-	SCU_PBG_HBA_REV_A2 = 3,
-	SCU_PBG_HBA_REV_B0 = 4
-};
-
 struct scic_sds_controller;
 
 void scic_sds_pci_bar_initialization(struct scic_sds_controller *scic);

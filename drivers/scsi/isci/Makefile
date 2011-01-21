@@ -35,7 +35,6 @@ isci-objs := isci_module_init.o isci_phy.o isci_request.o isci_sata.o \
 	     core/scic_sds_port_configuration_agent.o \
 	     core/scic_sds_port_states.o \
 	     core/scic_sds_remote_device_states.o \
-	     core/scic_sds_library.o \
 	     core/scic_sds_port_ready_substate_handlers.o \
 	     core/scic_sds_phy.o \
 	     core/scic_sds_port_ready_substates.o \
@@ -60,7 +59,6 @@ isci-objs := isci_module_init.o isci_phy.o isci_request.o isci_sata.o \
 	     core/scic_sds_unsolicited_frame_control.o \
 	     core/sci_base_controller.o \
 	     core/sci_base_domain.o \
-	     core/sci_base_library.o \
 	     core/sci_base_memory_descriptor_list.o \
 	     core/sci_base_object.o \
 	     core/sci_base_phy.o \

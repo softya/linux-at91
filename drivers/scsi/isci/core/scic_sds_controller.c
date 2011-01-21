@@ -68,8 +68,6 @@
 #include "scic_phy.h"
 #include "scic_remote_device.h"
 #include "scic_user_callback.h"
-#include "scic_sds_pci.h"
-#include "scic_sds_library.h"
 #include "scic_sds_controller.h"
 #include "scic_sds_controller_registers.h"
 #include "scic_sds_port.h"

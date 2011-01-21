@@ -80,7 +80,6 @@
 #include "sci_types.h"
 #include "sci_base_controller.h"
 #include "scic_controller.h"
-#include "scic_library.h"
 #include "isci_host.h"
 #include "isci_timers.h"
 #include "sci_status.h"

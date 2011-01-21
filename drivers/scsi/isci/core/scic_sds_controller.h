@@ -373,11 +373,6 @@ struct scic_sds_controller {
 	 */
 	u8 invalid_phy_mask;
 
-	/**
-	 * This field is the PCI revision code for the controller object.
-	 */
-	enum SCU_CONTROLLER_PCI_REVISION_CODE pci_revision;
-
 	/*
 	 * This field saves the current interrupt coalescing number of the controller.
 	 */
