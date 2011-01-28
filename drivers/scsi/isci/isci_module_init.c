@@ -69,9 +69,6 @@
 #include "scic_remote_device.h"
 
 
-
-static int lldd_max_execute_num = 64;
-
 static struct scsi_transport_template *isci_transport_template;
 struct kmem_cache *isci_kmem_cache;
 
@@ -123,8 +120,8 @@ static struct scsi_host_template isci_sht = {
 	.change_queue_depth		= sas_change_queue_depth,
 	.change_queue_type		= sas_change_queue_type,
 	.bios_param			= sas_bios_param,
-	.can_queue			= 64,
-	.cmd_per_lun			= 64,
+	.can_queue			= ISCI_CAN_QUEUE_VAL,
+	.cmd_per_lun			= 1,
 	.this_id			= -1,
 	.sg_tablesize			= SG_ALL,
 	.max_sectors			= SCSI_DEFAULT_MAX_SECTORS,
@@ -219,10 +216,9 @@ static int isci_module_register_sas_ha(struct isci_host *isci_host)
 	sas_ha->sas_port = sas_ports;
 	sas_ha->num_phys = SCI_MAX_PHYS;
 
-	sas_ha->lldd_queue_size = 64; /* asd_ha->seq.can_queue; */
-	sas_ha->lldd_max_execute_num = lldd_max_execute_num;
+	sas_ha->lldd_queue_size = ISCI_CAN_QUEUE_VAL;
+	sas_ha->lldd_max_execute_num = 1;
 	sas_ha->strict_wide_ports = 1;
-
 
 	sas_register_ha(sas_ha);
 

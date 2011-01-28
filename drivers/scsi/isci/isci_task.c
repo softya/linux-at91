@@ -84,34 +84,23 @@
  *
  * status, zero indicates success.
  */
-int isci_task_execute_task(
-	struct sas_task *sas_task,
-	int num,
-	gfp_t gfp_flags)
+int isci_task_execute_task(struct sas_task *task, int num, gfp_t gfp_flags)
 {
 	struct isci_host *isci_host;
 	struct isci_request *request = NULL;
 	struct isci_remote_device *device;
-	struct list_head task_list = sas_task->list;
-	struct sas_task *task, *tmp_task;
 	unsigned long flags;
 	unsigned long quiesce_flags = 0;
 	int ret;
 	enum sci_status status;
 
 
-	dev_dbg(sas_task->dev->port->ha->dev,
-		"%s: num=%d\n",
-		__func__,
-		num);
+	dev_dbg(task->dev->port->ha->dev, "%s: num=%d\n", __func__, num);
 
-	if (sas_task->task_state_flags & SAS_TASK_STATE_ABORTED) {
-		dev_warn(sas_task->dev->port->ha->dev,
-			 "%s: task aborted!!\n",
-			 __func__);
+	if (task->task_state_flags & SAS_TASK_STATE_ABORTED) {
 
 		isci_task_complete_for_upper_layer(
-			sas_task,
+			task,
 			SAS_TASK_UNDELIVERED,
 			SAM_STAT_TASK_ABORTED,
 			isci_perform_normal_io_completion
@@ -119,75 +108,36 @@ int isci_task_execute_task(
 
 		return 0;  /* The I/O was accepted (and failed). */
 	}
-
-	if ((sas_task->dev == NULL) || (sas_task->dev->port == NULL)) {
-		dev_warn(sas_task->dev->port->ha->dev,
-			 "%s: sas_task (%p) ->dev (%p) or "
-			 "->dev->port (%p) == NULL\n",
-			 __func__,
-			 sas_task,
-			 sas_task->dev,
-			 sas_task->dev->port);
+	if ((task->dev == NULL) || (task->dev->port == NULL)) {
 
 		/* Indicate SAS_TASK_UNDELIVERED, so that the scsi midlayer
 		 * removes the target.
 		 */
 		isci_task_complete_for_upper_layer(
-			sas_task,
+			task,
 			SAS_TASK_UNDELIVERED,
 			SAS_DEVICE_UNKNOWN,
 			isci_perform_normal_io_completion
 			);
 		return 0;  /* The I/O was accepted (and failed). */
 	}
-	isci_host = isci_host_from_sas_ha(sas_task->dev->port->ha);
+	isci_host = isci_host_from_sas_ha(task->dev->port->ha);
 
 	/* Check if we have room for more tasks */
 	ret = isci_host_can_queue(isci_host, num);
 
 	if (ret) {
-		dev_warn(sas_task->dev->port->ha->dev,
-			 "%s: queue full\n",
-			 __func__);
+		dev_warn(task->dev->port->ha->dev, "%s: queue full\n", __func__);
 		return ret;
 	}
-#define ISCI_DUMP_TASK_LIST
-#ifdef ISCI_DUMP_TASK_LIST
-	{
-		int idx = num;
-		int pass_count = 0;
-		list_for_each_entry_safe(task, tmp_task, &task_list, list) {
-			dev_dbg(sas_task->dev->port->ha->dev,
-				"%s: listdump: idx = %d; pass = %d; "
-				"task = %p, dev = %p; cmd = %p\n",
-				__func__,
-				idx,
-				pass_count++,
-				task,
-				task->dev,
-				task->uldd_task);
-			--idx;
 
-			if (!idx)
-				break;
-		}
-	}
-#endif  /* ISCI_DUMP_TASK_LIST */
-
-	/* walk the list safely, libsas may delete tasks as we go. */
-	list_for_each_entry_safe(task, tmp_task, &task_list, list) {
-		/* we only do the number of tasks specified, break out even
-		 * if there are more on the list.
-		 */
-		if (0 == num--)
-			break;
-
-		dev_dbg(sas_task->dev->port->ha->dev,
-			"%s: task = %p, num = %d; dev = %p; cmd = %p\n",
-			__func__, task, num, task->dev, task->uldd_task);
+	do {
+		dev_dbg(task->dev->port->ha->dev,
+			"task = %p, num = %d; dev = %p; cmd = %p\n",
+			    task, num, task->dev, task->uldd_task);
 
 		if ((task->dev == NULL) || (task->dev->port == NULL)) {
-			dev_warn(sas_task->dev->port->ha->dev,
+			dev_warn(task->dev->port->ha->dev,
 				 "%s: task %p's port or dev == NULL!\n",
 				 __func__, task);
 
@@ -228,7 +178,7 @@ int isci_task_execute_task(
 		    (isci_remote_device_get_state(device) == isci_host_quiesce)))) {
 
 			/* Forces a retry from scsi mid layer. */
-			dev_warn(sas_task->dev->port->ha->dev,
+			dev_warn(task->dev->port->ha->dev,
 				 "%s: task %p: isci_host->status = %d, "
 				 "device = %p\n",
 				 __func__,
@@ -237,7 +187,7 @@ int isci_task_execute_task(
 				 device);
 
 			if (device)
-				dev_dbg(sas_task->dev->port->ha->dev,
+				dev_dbg(task->dev->port->ha->dev,
 					"%s: device->status = 0x%x\n",
 					__func__,
 					isci_remote_device_get_state(device));
@@ -256,7 +206,7 @@ int isci_task_execute_task(
 		/* the device is going down... */
 		else if (!device || (isci_ready_for_io != isci_remote_device_get_state(device))) {
 
-			dev_dbg(sas_task->dev->port->ha->dev,
+			dev_dbg(task->dev->port->ha->dev,
 				"%s: task %p: isci_host->status = %d, "
 				"device = %p\n",
 				__func__,
@@ -265,7 +215,7 @@ int isci_task_execute_task(
 				device);
 
 			if (device)
-				dev_dbg(sas_task->dev->port->ha->dev,
+				dev_dbg(task->dev->port->ha->dev,
 					"%s: device->status = 0x%x\n",
 					__func__,
 					isci_remote_device_get_state(device));
@@ -312,7 +262,8 @@ int isci_task_execute_task(
 					       quiesce_flags
 					       );
 		}
-	}
+		task = list_entry(task->list.next, struct sas_task, list);
+	} while (--num > 0);
 	return 0;
 }
 
