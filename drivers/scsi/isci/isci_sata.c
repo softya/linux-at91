@@ -174,16 +174,16 @@ void isci_request_process_stp_response(
 }
 
 /**
- * isci_sata_get_sat_protocol() - This function retuens the sat protocol for
- *    the request object
- * @isci_request: This parameter is the sat request object.
+ * isci_sata_get_sat_protocol() - retrieve the sat protocol for the request
+ * @isci_request: ata request
  *
- * the appropriate Protocol define for the sata task.
+ * Note: temporary implementation until expert mode removes the callback
+ *
  */
 u8 isci_sata_get_sat_protocol(struct isci_request *isci_request)
 {
-	u8 ret = SAT_PROTOCOL_NON_DATA;
 	struct sas_task *task;
+	struct domain_device *dev;
 
 	dev_dbg(&isci_request->isci_host->pdev->dev,
 		"%s: isci_request = %p, ttype = %d\n",
@@ -196,91 +196,33 @@ u8 isci_sata_get_sat_protocol(struct isci_request *isci_request)
 	}
 
 	task = isci_request_access_task(isci_request);
+	dev = task->dev;
 
-	if (ISCI_IS_PROTO_STP_OR_SATA(task->task_proto)) {
+	if (!sas_protocol_ata(task->task_proto)) {
+		WARN(1, "unhandled task protocol\n");
+		return SAT_PROTOCOL_NON_DATA;
+	}
 
-#define ATA_IDENTIFY_DEV             0xEC
-#define ATA_IDENTIFY_PACKET_DEV      0xA1
-#define ATA_SET_FEATURES             0xEF
-#define ATA_FEATURE_PUP_STBY_SPIN_UP 0x07
+	if (task->data_dir == DMA_NONE)
+		return SAT_PROTOCOL_NON_DATA;
 
-		if (DMA_NONE == task->data_dir) {
-			ret = SAT_PROTOCOL_NON_DATA;
+	/* the "_IN" protocol types are equivalent to their "_OUT"
+	 * analogs as far as the core is concerned
+	 */
+	if (dev->sata_dev.command_set == ATAPI_COMMAND_SET) {
+		if (task->ata_task.dma_xfer)
+			return SAT_PROTOCOL_PACKET_DMA_DATA_IN;
+		else
+			return SAT_PROTOCOL_PACKET_PIO_DATA_IN;
+	}
 
-			dev_dbg(&isci_request->isci_host->pdev->dev,
-				"%s: isci_request = %p, "
-				"DMA_NONE fis.command = 0x%x\n",
-				__func__,
-				isci_request,
-				task->ata_task.fis.command);
-		} else
-			switch (task->ata_task.fis.command) {
+	if (task->ata_task.use_ncq)
+		return SAT_PROTOCOL_FPDMA;
 
-			case ATA_CMD_READ_NATIVE_MAX_EXT:
-			case ATA_IDENTIFY_DEVICE:
-			case ATA_PACKET_IDENTIFY:
-				ret = SAT_PROTOCOL_PIO_DATA_IN;
-				break;
-
-			case ATA_CMD_FPDMA_READ:
-				ret = SAT_PROTOCOL_FPDMA;
-				break;
-
-			case ATA_CMD_FPDMA_WRITE:
-				ret = SAT_PROTOCOL_FPDMA;
-				break;
-			case ATA_CMD_SMART:
-
-				switch (task->ata_task.fis.features) {
-
-				case ATA_SMART_ENABLE:
-					ret = SAT_PROTOCOL_NON_DATA;
-					break;
-				case ATA_SMART_READ_VALUES:
-				case ATA_SMART_READ_THRESHOLDS:
-					ret = SAT_PROTOCOL_PIO_DATA_IN;
-					break;
-				default:
-					dev_warn(&isci_request->isci_host->
-							pdev->dev,
-						 "unhandled SMART feature = "
-						 "%x\n",
-						 task->ata_task.fis.features);
-					break;
-				}
-				break;
-			case ATA_CMD_READ:
-			case ATA_CMD_READ_EXT:
-				ret = SAT_PROTOCOL_UDMA_DATA_IN;
-				break;
-
-			case ATA_CMD_WRITE:
-			case ATA_CMD_WRITE_EXT:
-			case ATA_CMD_WRITE_FUA_EXT:
-				ret = SAT_PROTOCOL_UDMA_DATA_OUT;
-				break;
-
-			case ATA_PACKET:
-				ret = SAT_PROTOCOL_PACKET_DMA_DATA_IN;
-				break;
-
-			case ATA_CMD_DSM:
-				ret = SAT_PROTOCOL_FPDMA;
-				break;
-
-			default:
-				dev_warn(&isci_request->isci_host->pdev->dev,
-					 "unhandled STP command = %x\n",
-					 task->ata_task.fis.command);
-				break;
-			}
-
-	} else
-		dev_warn(&isci_request->isci_host->pdev->dev,
-			 "unhandled task protocol = %x\n",
-			 task->task_proto);
-
-	return ret;
+	if (task->ata_task.dma_xfer)
+		return SAT_PROTOCOL_UDMA_DATA_IN;
+	else
+		return SAT_PROTOCOL_PIO_DATA_IN;
 }
 
 static u8 isci_sata_get_management_task_protocol(
