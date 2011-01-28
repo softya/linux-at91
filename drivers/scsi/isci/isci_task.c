@@ -1653,52 +1653,6 @@ u32 isci_task_ssp_request_get_response_data_length(
 }
 
 /**
- * isci_queuecommand() - This function checks the state of the referenced
- *    device to see to make sure it is in a state in which commands can be sent
- *    to it.
- * @scsi_cmd: This parameter specifies the command to be queued.
- * @donefunc: This parameter is provided by the kernel to drive queueing if the
- *    device is in the correct state.
- *
- * SCSI_MLQUEUE_DEVICE_BUSY if the device is valid and not ready for I/O, else
- * return the value from sas_queuecommand.
- */
-int isci_queuecommand(
-	struct scsi_cmnd *scsi_cmd,
-	void (*donefunc)(struct scsi_cmnd *))
-{
-	enum isci_status current_status;
-	struct isci_remote_device *isci_remdev
-		= isci_dev_from_domain_dev(
-		sdev_to_domain_dev(scsi_cmd->device));
-
-	if (!isci_remdev) {
-		dev_warn(&scsi_cmd->device->sdev_gendev,
-			 "%s: isci_remdev is GONE!\n",
-			 __func__);
-
-		/* Queue the command so it can fail. */
-		return sas_queuecommand(scsi_cmd, donefunc);
-	}
-	current_status = isci_remote_device_get_state(isci_remdev);
-
-	/* If the device is stopping, queue the command so that the lldd
-	 * can fail it.  This will cause libsas to stop queuing I/O for
-	 * the device that is stopping.
-	 */
-	if ((current_status == isci_ready_for_io) ||
-	    (current_status == isci_stopping))
-		return sas_queuecommand(scsi_cmd, donefunc);
-	else {
-		dev_warn(&scsi_cmd->device->sdev_gendev,
-			 "%s: isci_remdev %p is NOT READY\n",
-			 __func__,
-			 isci_remdev);
-		return SCSI_MLQUEUE_DEVICE_BUSY;
-	}
-}
-
-/**
  * isci_bus_reset_handler() - This function performs a target reset of the
  *    device referenced by "cmd'.  This function is exported through the
  *    "struct scsi_host_template" structure such that it is called when an I/O

@@ -113,10 +113,8 @@ module_param(loglevel, int, S_IRUGO | S_IWUSR);
 static struct scsi_host_template isci_sht = {
 
 	.module				= THIS_MODULE,
-	.name				= "isci",
-
-	.queuecommand			= isci_queuecommand,
-
+	.name				= DRV_NAME,
+	.queuecommand			= sas_queuecommand,
 	.target_alloc			= sas_target_alloc,
 	.slave_configure		= sas_slave_configure,
 	.slave_destroy			= sas_slave_destroy,
