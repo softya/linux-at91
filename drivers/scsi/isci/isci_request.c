@@ -426,19 +426,7 @@ int isci_request_execute(
 	if (ret)
 		goto out;
 
-	/* build the protocol specific request. */
-	if (ISCI_IS_PROTO_STP_OR_SATA(task->task_proto) ||
-	    (task->task_proto == SAS_PROTOCOL_SSP) ||
-	    (task->task_proto == SAS_PROTOCOL_SMP))
-		status = isci_io_request_build(isci_host, request, isci_device);
-	else {
-		dev_warn(&isci_host->pdev->dev,
-			 "%s: unsuported protocol (%x)\n",
-			 __func__,
-			 task->task_proto);
-		status = SCI_FAILURE_UNSUPPORTED_PROTOCOL;
-	}
-
+	status = isci_io_request_build(isci_host, request, isci_device);
 	if (status == SCI_SUCCESS) {
 
 		spin_lock_irqsave(&isci_host->scic_lock, flags);
@@ -1011,8 +999,7 @@ void isci_request_io_request_complete(
 				request,
 				task);
 
-			if (ISCI_IS_PROTO_STP_OR_SATA(task->task_proto)) {
-
+			if (sas_protocol_ata(task->task_proto)) {
 				resp_buf
 					= scic_stp_io_request_get_d2h_reg_address(
 					request->sci_request_handle

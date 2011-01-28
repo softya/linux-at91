@@ -1060,11 +1060,11 @@ int isci_task_lu_reset(
 	isci_device_set_host_quiesce_lock_state(isci_device, true);
 
 	/* Send the task management part of the reset. */
-	if (ISCI_IS_PROTO_STP_OR_SATA(domain_device->tproto))
+	if (sas_protocol_ata(domain_device->tproto)) {
 		ret = isci_task_send_lu_reset_sata(
 			isci_host, isci_device, lun
 			);
-	else
+	} else
 		ret = isci_task_send_lu_reset_sas(isci_host, isci_device, lun);
 
 	/* If the LUN reset worked, all the I/O can now be terminated. */
@@ -1210,13 +1210,14 @@ int isci_task_abort_task(struct sas_task *task)
 	 * SATA/STP.  Failing the abort request this way will cause the
 	 * SCSI error handler thread to escalate to LUN reset
 	 */
-	if (ISCI_IS_PROTO_STP_OR_SATA(task->task_proto) && !device_stopping) {
+	if (sas_protocol_ata(task->task_proto) && !device_stopping) {
 		dev_warn(&isci_host->pdev->dev,
-			 "%s: task %p is for a STP/SATA device;"
-			 " returning TMF_RESP_FUNC_FAILED\n"
-			 " to cause a LUN reset...\n",
-			 __func__, task);
-		return TMF_RESP_FUNC_FAILED;
+			    " task %p is for a STP/SATA device;"
+			    " returning TMF_RESP_FUNC_FAILED\n"
+			    " to cause a LUN reset...\n", task);
+		ret = TMF_RESP_FUNC_FAILED;
+
+		goto out;
 	}
 
 	dev_dbg(&isci_host->pdev->dev,
@@ -1344,7 +1345,7 @@ int isci_task_abort_task(struct sas_task *task)
 
 		return TMF_RESP_FUNC_COMPLETE;
 	}
-	if (ISCI_IS_PROTO_SMP(task->task_proto) || device_stopping) {
+	if (task->task_proto == SAS_PROTOCOL_SMP || device_stopping) {
 
 		if (device_stopping)
 			dev_dbg(&isci_host->pdev->dev,

@@ -65,18 +65,6 @@
 struct isci_request;
 struct isci_host;
 
-/* Note that libsas uses both protocol types as an OR: */
-#define ISCI_IS_PROTO_STP_OR_SATA(task_proto_value) \
-	(((SAS_PROTOCOL_SATA == (task_proto_value)) \
-	  || SAS_PROTOCOL_STP == (task_proto_value) \
-	  || (SAS_PROTOCOL_STP | SAS_PROTOCOL_SATA) \
-	  == (task_proto_value))	      \
-	 ? 1					     \
-	 : 0)
-
-#define ISCI_IS_PROTO_SMP(task_proto_value) \
-	(SAS_PROTOCOL_SMP == (task_proto_value))
-
 /**
  * enum isci_tmf_cb_state - This enum defines the possible states in which the
  *    TMF callback function is invoked during the TMF execution process.
