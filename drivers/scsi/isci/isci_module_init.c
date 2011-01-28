@@ -110,51 +110,6 @@ static struct pci_driver isci_pci_driver = {
 int loglevel = 3;
 module_param(loglevel, int, S_IRUGO | S_IWUSR);
 
-static inline int dev_is_sata(struct domain_device *dev)
-{
-	return dev->rphy->identify.target_port_protocols & SAS_PROTOCOL_SATA;
-}
-
-static int isci_target_alloc(struct scsi_target *starget)
-{
-	int ret = sas_target_alloc(starget);
-
-	if (ret == 0) {
-		struct domain_device *dev = starget->hostdata;
-		dev_dbg(&starget->dev,
-			"%s: found device, domain_device = %p\n",
-			__func__, dev);
-
-		if (dev_is_sata(dev))
-			dev_dbg(&starget->dev,
-				"%s: device %p is sata\n",
-				__func__, dev);
-	}
-	return ret;
-}
-
-static int isci_slave_alloc(struct scsi_device *scsi_dev)
-{
-	sas_slave_alloc(scsi_dev);
-	dev_dbg(&scsi_dev->sdev_gendev,
-		"%s: id = %d, lun = %d, channel = %d, "
-		"domain_device = %p\n ",
-		__func__,
-		scsi_dev->id,
-		scsi_dev->lun,
-		scsi_dev->channel,
-		sdev_to_domain_dev(scsi_dev));
-	return 0;
-}
-
-#ifndef ISCI_SLAVE_ALLOC
-#define ISCI_SLAVE_ALLOC isci_slave_alloc
-#endif /* not ISCI_SLAVE_ALLOC */
-
-#ifndef ISCI_SLAVE_DESTROY
-#define ISCI_SLAVE_DESTROY sas_slave_destroy
-#endif /* not ISCI_SLAVE_DESTROY */
-
 static struct scsi_host_template isci_sht = {
 
 	.module				= THIS_MODULE,
@@ -162,9 +117,9 @@ static struct scsi_host_template isci_sht = {
 
 	.queuecommand			= isci_queuecommand,
 
-	.target_alloc			= isci_target_alloc,
+	.target_alloc			= sas_target_alloc,
 	.slave_configure		= sas_slave_configure,
-	.slave_destroy			= ISCI_SLAVE_DESTROY,
+	.slave_destroy			= sas_slave_destroy,
 	.scan_finished			= isci_host_scan_finished,
 	.scan_start			= isci_host_scan_start,
 	.change_queue_depth		= sas_change_queue_depth,
@@ -178,7 +133,7 @@ static struct scsi_host_template isci_sht = {
 	.use_clustering			= ENABLE_CLUSTERING,
 	.eh_device_reset_handler	= sas_eh_device_reset_handler,
 	.eh_bus_reset_handler		= isci_bus_reset_handler,
-	.slave_alloc			= ISCI_SLAVE_ALLOC,
+	.slave_alloc			= sas_slave_alloc,
 	.target_destroy			= sas_target_destroy,
 	.ioctl				= sas_ioctl,
 };
