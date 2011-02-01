@@ -149,7 +149,7 @@ struct isci_pci_func {
 	struct list_head node;
 
 	struct pci_driver *k_pci_driver;
-	struct pci_dev *k_pci_dev;
+	struct pci_dev *pdev;
 
 	struct pci_bar_info {
 		unsigned long phys_addr;

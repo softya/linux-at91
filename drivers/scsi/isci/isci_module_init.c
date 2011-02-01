@@ -143,10 +143,10 @@ static DEFINE_PCI_DEVICE_TABLE(isci_id_table) = {
 #endif /* end PCI_DEVICE_TABLE definition */
 
 static int __devinit isci_module_pci_probe(
-	struct pci_dev *dev_p,
+	struct pci_dev *pdev,
 	const struct pci_device_id *device_id_p);
 
-static void __devexit isci_module_pci_remove(struct pci_dev *dev_p);
+static void __devexit isci_module_pci_remove(struct pci_dev *pdev);
 
 MODULE_DEVICE_TABLE(pci, isci_id_table);
 
@@ -330,18 +330,8 @@ static void isci_module_unregister_sas_ha(struct isci_host *isci_host)
 	scsi_host_put(isci_host->shost);
 }
 
-/**
- * isci_module_pci_init() - This method performs various PCI initialization
- *    steps with the OS.
- * @dev_p: This parameter specifies the pci device being initialzed.
- * @isci_host: This parameter specifies the host adapter representing this pci
- *    device.
- *
- * This method returns an error code indicating sucess or failure, a zero
- * indicates success.
- */
 static int __devinit isci_module_pci_init(
-	struct pci_dev *dev_p,
+	struct pci_dev *pdev,
 	struct isci_pci_func *isci_pci)
 {
 	int err = 0;
@@ -349,11 +339,11 @@ static int __devinit isci_module_pci_init(
 	int bar_mask;
 	void __iomem * const *iomap;
 
-	err = pcim_enable_device(dev_p);
+	err = pcim_enable_device(pdev);
 	if (err) {
 		isci_logger(error,
 			    "failed enable PCI device %s!\n",
-			    pci_name(dev_p)
+			    pci_name(pdev)
 			    );
 		return err;
 	}
@@ -361,20 +351,20 @@ static int __devinit isci_module_pci_init(
 	for (bar_num = 0; bar_num < SCI_PCI_BAR_COUNT; bar_num++)
 		bar_mask |= 1 << (bar_num * 2);
 
-	err = pcim_iomap_regions(dev_p, bar_mask, DRV_NAME);
+	err = pcim_iomap_regions(pdev, bar_mask, DRV_NAME);
 	if (err)
 		return err;
 
-	iomap = pcim_iomap_table(dev_p);
+	iomap = pcim_iomap_table(pdev);
 	if (!iomap)
 		return -ENOMEM;
 
 	for (bar_num = 0; bar_num < SCI_PCI_BAR_COUNT; bar_num++)
 		isci_pci->pci_bar[bar_num].virt_addr = iomap[bar_num * 2];
 
-	pci_set_master(dev_p);
+	pci_set_master(pdev);
 
-	pci_set_drvdata(dev_p, isci_pci);
+	pci_set_drvdata(pdev, isci_pci);
 
 	return 0;
 }
@@ -383,7 +373,7 @@ static int isci_module_enable_interrupts(struct isci_pci_func *isci_pci)
 {
 	int i, j;
 	int err = -EINVAL;
-	struct pci_dev *dev_p = isci_pci->k_pci_dev;
+	struct pci_dev *pdev = isci_pci->pdev;
 	int sci_num_msix_entries;
 	struct msix_entry *msix;
 
@@ -399,7 +389,7 @@ static int isci_module_enable_interrupts(struct isci_pci_func *isci_pci)
 	for (i = 0; i < sci_num_msix_entries; i++)
 		isci_pci->msix_entries[i].entry = i;
 
-	err = pci_enable_msix(dev_p, isci_pci->msix_entries,
+	err = pci_enable_msix(pdev, isci_pci->msix_entries,
 			      sci_num_msix_entries);
 
 	if (!err) { /* Successfully enabled MSIX */
@@ -414,7 +404,7 @@ static int isci_module_enable_interrupts(struct isci_pci_func *isci_pci)
 				    );
 
 			/* @todo: need to handle error case. */
-			err = devm_request_irq(&dev_p->dev,
+			err = devm_request_irq(&pdev->dev,
 					       isci_pci->msix_entries[i].vector,
 					       isci_isr,
 					       0,
@@ -427,11 +417,11 @@ static int isci_module_enable_interrupts(struct isci_pci_func *isci_pci)
 					    );
 				for (j = 0; j < i; j++) {
 					msix = &isci_pci->msix_entries[j];
-					devm_free_irq(&dev_p->dev,
+					devm_free_irq(&pdev->dev,
 						      msix->vector,
 						      &(isci_pci->ctrl[ctl_idx]));
 				}
-				pci_disable_msix(dev_p);
+				pci_disable_msix(pdev);
 				goto intx;
 			}
 
@@ -439,12 +429,8 @@ static int isci_module_enable_interrupts(struct isci_pci_func *isci_pci)
 
 	} else {
 intx:
-		err = devm_request_irq(&dev_p->dev,
-				       isci_pci->k_pci_dev->irq,
-				       isci_legacy_isr,
-				       IRQF_SHARED,
-				       "isci",
-				       isci_pci);
+		err = devm_request_irq(&pdev->dev, pdev->irq, isci_legacy_isr,
+				       IRQF_SHARED, "isci-intx", isci_pci);
 		if (err)
 			isci_logger(error, "request_irq failed - err = 0x%x\n",
 				    err);
@@ -534,19 +520,7 @@ enum sci_status isci_module_parse_user_parameters(
 	return SCI_SUCCESS;
 }
 
-/**
- * isci_module_pci_probe() - This method is the PCI probe function called by
- *    the Linux kernel when a device match is found.
- * @dev_p: This parameter specifies the pci device being probed.
- * @device_id_p: This parameter points to the device_struct, we supplied when
- *    we registered as a pci driver, representing the matching pci device.
- *
- * This method returns an error code indicating sucess or failure, a zero
- * indicates success.
- */
-static int __devinit isci_module_pci_probe(
-	struct pci_dev *dev_p,
-	const struct pci_device_id *device_id_p)
+static int __devinit isci_module_pci_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 {
 	struct Scsi_Host *shost[2] = { NULL, NULL };
 	struct isci_pci_func *isci_pci;
@@ -590,7 +564,7 @@ static int __devinit isci_module_pci_probe(
 
 	scil_memory =
 		isci_module_struct.core_lib[core_lib_idx].core_lib_memory =
-			devm_kzalloc(&dev_p->dev,
+			devm_kzalloc(&pdev->dev,
 				     scic_library_get_object_size(
 					     SCI_MAX_CONTROLLERS),
 				     GFP_KERNEL);
@@ -620,26 +594,18 @@ static int __devinit isci_module_pci_probe(
 	/*
 	 * Set the PCI info for this PCI function in the SCIC library.
 	 */
-	pci_header.vendor_id    = dev_p->vendor;
-	pci_header.device_id    = dev_p->device;
-	pci_header.revision     = dev_p->revision;
+	pci_header.vendor_id    = pdev->vendor;
+	pci_header.device_id    = pdev->device;
+	pci_header.revision     = pdev->revision;
 
 	scic_library_set_pci_info(
 		isci_module_struct.core_lib[core_lib_idx].core_lib_handle,
 		&pci_header);
 
-	/*
-	 * Find out how many controllers are in this PCI function (device).
-	 * SCIC determines this based on SKU.
-	 */
 	ctlr_count = scic_library_get_pci_device_controller_count(
 		isci_module_struct.core_lib[core_lib_idx].core_lib_handle);
 
-	/*
-	 * Now allocate the isci_pci_func struct which in turn contains
-	 * the isci_host structures that correspond to the SCU controllers.
-	 */
-	isci_pci = devm_kzalloc(&dev_p->dev,
+	isci_pci = devm_kzalloc(&pdev->dev,
 				sizeof(struct isci_pci_func),
 				GFP_KERNEL);
 	if (!isci_pci) {
@@ -651,7 +617,7 @@ static int __devinit isci_module_pci_probe(
 	 */
 	isci_pci->controller_count = ctlr_count;
 	isci_pci->k_pci_driver = &(isci_pci_driver);
-	isci_pci->k_pci_dev = dev_p;
+	isci_pci->pdev = pdev;
 	isci_pci->core_lib_handle = isci_module_struct.core_lib[core_lib_idx].core_lib_handle;
 	isci_pci->core_lib_array_index = core_lib_idx;
 	INIT_LIST_HEAD(&(isci_pci->node));
@@ -666,11 +632,7 @@ static int __devinit isci_module_pci_probe(
 	}
 #endif
 
-	/* pci_set_dma_mask, dma_pool_create, map pci mem and io regions,
-	 * create procfs and sysfs entries.
-	 * get oem parameters and poulate sas addresses.
-	 */
-	err = isci_module_pci_init(dev_p, isci_pci);
+	err = isci_module_pci_init(pdev, isci_pci);
 	if (err) {
 		err = -ENOMEM;
 		goto lib_out;
@@ -683,7 +645,7 @@ static int __devinit isci_module_pci_probe(
 			goto lib_out;
 		}
 		isci_pci->ctrl[count].shost = shost[count];
-		isci_pci->ctrl[count].pdev = dev_p;
+		isci_pci->ctrl[count].pdev = pdev;
 	}
 
 	err = isci_module_enable_interrupts(isci_pci);
@@ -692,18 +654,18 @@ static int __devinit isci_module_pci_probe(
 		goto lib_out;
 	}
 
-	err = pci_set_dma_mask(dev_p, DMA_BIT_MASK(64));
+	err = pci_set_dma_mask(pdev, DMA_BIT_MASK(64));
 	if (err) {
-		err = pci_set_dma_mask(dev_p, DMA_BIT_MASK(32));
+		err = pci_set_dma_mask(pdev, DMA_BIT_MASK(32));
 		if (err) {
 			isci_logger(error, "set DMA mask failed!\n", 0);
 			goto lib_out;
 		}
 	}
 
-	err = pci_set_consistent_dma_mask(dev_p, DMA_BIT_MASK(64));
+	err = pci_set_consistent_dma_mask(pdev, DMA_BIT_MASK(64));
 	if (err) {
-		err = pci_set_consistent_dma_mask(dev_p, DMA_BIT_MASK(32));
+		err = pci_set_consistent_dma_mask(pdev, DMA_BIT_MASK(32));
 		if (err) {
 			isci_logger(error,
 				    "set consistent DMA mask failed!\n", 0);
@@ -712,15 +674,9 @@ static int __devinit isci_module_pci_probe(
 		}
 	}
 
-	/*------------- SCIC controller Initialization Stuff ---------------*/
-	/*
-	 *  Initialize each SCU controller on the PCI device.  Also register
-	 *  a scsi host adapter instance for each SCU controller to the
-	 *  kernel.
-	 */
 	for (count = 0; count < ctlr_count; count++) {
 		struct isci_host *isci_host = &(isci_pci->ctrl[count]);
-		err = isci_host_init(dev_p, isci_host);
+		err = isci_host_init(pdev, isci_host);
 		if (err) {
 			isci_logger(error, "isci_host_init failed - err = %d\n", err);
 			scsi_host_put(shost[count]);
@@ -731,17 +687,11 @@ static int __devinit isci_module_pci_probe(
 		isci_host->sas_ha.core.shost = shost[count];
 		(shost[count])->transportt = isci_module_struct.stt;
 
-		/* SPB Debug: where do these max vaules come from ? */
 		(shost[count])->max_id = ~0;
 		(shost[count])->max_lun = ~0;
 		(shost[count])->max_cmd_len = MAX_COMMAND_SIZE;
 
-		/*----------- SCSI Midlayer Initialization Stuff --------------
-		 * struct scsi_transport_template* is stored in the scsi_host
-		 * struct transport member. the scsi_host struct pointer is
-		 * passed in the call to scsi_add_host().
-		 */
-		err = scsi_add_host(shost[count], &dev_p->dev);
+		err = scsi_add_host(shost[count], &pdev->dev);
 		if (err) {
 			scsi_host_put(shost[count]);
 			goto lib_out;
@@ -776,17 +726,11 @@ static int __devinit isci_module_pci_probe(
 	return err;
 }
 
-/**
- * isci_module_pci_remove() - This method is the PCI probe function called by
- *    the Linux kernel when a device is removed.
- * @dev_p: This parameter specifies the pci device being removed.
- *
- */
-static void __devexit isci_module_pci_remove(struct pci_dev *dev_p)
+static void __devexit isci_module_pci_remove(struct pci_dev *pdev)
 {
 	int i;
 	struct isci_pci_func *isci_pci =
-		(struct isci_pci_func *)pci_get_drvdata(dev_p);
+		(struct isci_pci_func *)pci_get_drvdata(pdev);
 	struct isci_host *isci_host;
 
 	isci_logger(trace, "\n", 0);
