@@ -66,11 +66,6 @@
 #include <asm/io.h>
 #include "sci_types.h"
 
-#define PATSBURG_SMU_BAR       0
-#define PATSBURG_SCU_BAR       1
-#define PATSBURG_IO_SPACE_BAR0 2
-#define PATSBURG_IO_SPACE_BAR1 3
-
 enum SCU_CONTROLLER_PCI_REVISION_CODE {
 	SCU_PBG_HBA_REV_A0 = 1,
 	SCU_PBG_HBA_REV_A2 = 3,

@@ -254,14 +254,6 @@ static enum sci_status scic_sds_controller_reset_state_initialize_handler(
 
 	scic_sds_controller_initialize_power_control(this_controller);
 
-	scic_sds_pci_bar_initialization(this_controller);
-
-	/*
-	 * / todo: This should really be done in the reset state enter but
-	 * /       the controller has not yet been initialized before getting
-	 * /       to the reset enter state so the PCI BAR is not yet assigned */
-	scic_sds_controller_reset_hardware(this_controller);
-
 	/*
 	 * There is nothing to do here for B0 since we do not have to
 	 * program the AFE registers.

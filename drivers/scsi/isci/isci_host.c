@@ -121,7 +121,7 @@ irqreturn_t isci_legacy_isr(
 	int vec,
 	void *data)
 {
-	struct isci_pci_func *isci_pci = (struct isci_pci_func *)data;
+	struct isci_pci_info *pci_info = (struct isci_pci_info *)data;
 	struct isci_host *isci_host;
 	struct scic_controller_handler_methods *handlers;
 	int count;
@@ -133,8 +133,8 @@ irqreturn_t isci_legacy_isr(
 	 *  the legacy interrupt handler for all controllers on the
 	 *  PCI function.
 	 */
-	for (count = 0; count < isci_pci->controller_count; count++) {
-		isci_host = &(isci_pci->ctrl[count]);
+	for (count = 0; count < pci_info->controller_count; count++) {
+		isci_host = &(pci_info->ctrl[count]);
 
 		handlers = &isci_host->scic_irq_handlers[SCI_MSIX_NORMAL_VECTOR];
 
@@ -374,36 +374,6 @@ static int isci_host_mdl_allocate_coherent(
 
 
 /**
- * isci_host_pci_get_bar() - This function is called by the core library,
- *    through the ISCI Module, to get contents of the specified BAR.
- * @isci_host: This parameter specifies the ISCI host object
- * @bar_num: This parameter specifies the BAR requested.
- *
- * virtual address contained in the BAR
- */
-void *isci_host_pci_get_bar(
-	struct isci_host *isci_host,
-	unsigned int bar_num)
-{
-	void *address = NULL;
-
-	dev_dbg(&isci_host->pdev->dev,
-		"%s: isci_host = %p, bar_num = %d\n",
-		__func__,
-		isci_host,
-		bar_num);
-
-	BUG_ON(bar_num >= SCI_PCI_BAR_COUNT);
-
-	if (SCI_PCI_BAR_COUNT > bar_num)
-		address = (void *)isci_host->parent_pci_function->pci_bar[bar_num].virt_addr;
-
-	dev_dbg(&isci_host->pdev->dev, "%s: address = %p\n", __func__, address);
-
-	return address;
-}
-
-/**
  * isci_host_completion_routine() - This function is the delayed service
  *    routine that calls the sci core library's completion handler. It's
  *    scheduled as a tasklet from the interrupt service routine when interrupts
@@ -570,6 +540,22 @@ static int isci_verify_firmware(const struct firmware *fw,
 	return SCI_SUCCESS;
 }
 
+static void __iomem *scu_base(struct isci_host *isci_host)
+{
+	struct pci_dev *pdev = isci_host->pdev;
+	int id = isci_host->id;
+
+	return pcim_iomap_table(pdev)[SCI_SCU_BAR * 2] + SCI_SCU_BAR_SIZE * id;
+}
+
+static void __iomem *smu_base(struct isci_host *isci_host)
+{
+	struct pci_dev *pdev = isci_host->pdev;
+	int id = isci_host->id;
+
+	return pcim_iomap_table(pdev)[SCI_SMU_BAR * 2] + SCI_SMU_BAR_SIZE * id;
+}
+
 #define SCI_MAX_TIMER_COUNT 25
 
 /**
@@ -578,9 +564,7 @@ static int isci_verify_firmware(const struct firmware *fw,
  * @isci_host: This parameter specifies the ISCI host object
  *
  */
-int isci_host_init(
-	struct pci_dev *pci_device,
-	struct isci_host *isci_host)
+int isci_host_init(struct isci_host *isci_host)
 {
 	int err = 0;
 	int index = 0;
@@ -593,6 +577,7 @@ int isci_host_init(
 	union scic_user_parameters scic_user_params;
 	const struct firmware *fw = NULL;
 	struct isci_firmware *isci_fw = NULL;
+	struct isci_pci_info *pci_info = to_pci_info(isci_host->pdev);
 
 	/*------------- SCIC controller Initialization Stuff ----------------
 	 * alloc and intialize timers, add to timer_list
@@ -608,10 +593,8 @@ int isci_host_init(
 	 * from the core. Store core controller handle in isci_host struct.
 	 * call scic_controller_construct();
 	 */
-	status = scic_library_allocate_controller(
-		isci_host->parent_pci_function->core_lib_handle,
-		&controller
-		);
+	status = scic_library_allocate_controller(pci_info->core_lib_handle,
+						  &controller);
 
 	if (status != SCI_SUCCESS) {
 		dev_err(&isci_host->pdev->dev,
@@ -631,10 +614,8 @@ int isci_host_init(
 	isci_host_change_state(isci_host, isci_starting);
 	isci_host->can_queue = ISCI_CAN_QUEUE_VAL;
 
-	status = scic_controller_construct(
-		isci_host->parent_pci_function->core_lib_handle,
-		controller
-		);
+	status = scic_controller_construct(pci_info->core_lib_handle, controller,
+					   scu_base(isci_host), smu_base(isci_host));
 
 	if (status != SCI_SUCCESS) {
 		dev_err(&isci_host->pdev->dev,
@@ -695,8 +676,8 @@ int isci_host_init(
 
 		/* grab any OEM and USER parameters specified at module load */
 		status = isci_module_parse_oem_parameters(&scic_oem_params,
-						  isci_host->controller_id,
-						  isci_fw);
+							  isci_host->id,
+							  isci_fw);
 		if (status != SCI_SUCCESS) {
 			dev_warn(&isci_host->pdev->dev,
 				 "parsing firmware oem parameters failed\n");
@@ -704,10 +685,9 @@ int isci_host_init(
 			goto out;
 		}
 
-		status = isci_module_parse_user_parameters(
-					&scic_user_params,
-					isci_host->controller_id,
-					isci_fw);
+		status = isci_module_parse_user_parameters(&scic_user_params,
+							   isci_host->id,
+							   isci_fw);
 		if (status != SCI_SUCCESS) {
 			dev_warn(&isci_host->pdev->dev,
 				 "%s: isci_module_parse_user_parameters"
@@ -724,7 +704,7 @@ int isci_host_init(
 					 );
 
 	if (status != SCI_SUCCESS) {
-		dev_warn(&pci_device->dev,
+		dev_warn(&isci_host->pdev->dev,
 			 "%s: scic_oem_parameters_set failed\n",
 			 __func__);
 		err = -ENODEV;
@@ -737,7 +717,7 @@ int isci_host_init(
 					  );
 
 	if (status != SCI_SUCCESS) {
-		dev_warn(&pci_device->dev,
+		dev_warn(&isci_host->pdev->dev,
 			 "%s: scic_user_parameters_set failed\n",
 			 __func__);
 		err = -ENODEV;
@@ -746,7 +726,7 @@ int isci_host_init(
 
 	status = scic_controller_initialize(isci_host->core_controller);
 	if (status != SCI_SUCCESS) {
-		dev_warn(&pci_device->dev,
+		dev_warn(&isci_host->pdev->dev,
 			 "%s: scic_controller_initialize failed -"
 			 " status = 0x%x\n",
 			 __func__, status);
@@ -793,9 +773,8 @@ int isci_host_init(
 	 *  The check here insures that we don't try to link in the pci
 	 *  device object redundantly for the second controller.
 	 */
-	if ((isci_host) == &(isci_host->parent_pci_function->ctrl[0]))
-		list_add_tail(&(isci_host->parent_pci_function->node),
-			      &(isci_host->parent->pci_devices));
+	if (isci_host == &pci_info->ctrl[0])
+		list_add_tail(&pci_info->node, &isci_host->parent->pci_devices);
 	INIT_LIST_HEAD(&isci_host->requests_to_complete);
 	INIT_LIST_HEAD(&isci_host->requests_to_abort);
 

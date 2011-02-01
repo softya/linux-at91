@@ -374,11 +374,6 @@ struct scic_sds_controller {
 	u8 invalid_phy_mask;
 
 	/**
-	 * This is the controller index for this controller object.
-	 */
-	u8 controller_index;
-
-	/**
 	 * This field is the PCI revision code for the controller object.
 	 */
 	enum SCU_CONTROLLER_PCI_REVISION_CODE pci_revision;

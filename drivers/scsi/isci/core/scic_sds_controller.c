@@ -2454,7 +2454,8 @@ static void scic_sds_controller_set_default_config_parameters(
 
 enum sci_status scic_controller_construct(
 	SCI_LIBRARY_HANDLE_T library,
-	SCI_CONTROLLER_HANDLE_T controller)
+	SCI_CONTROLLER_HANDLE_T controller,
+	void __iomem *scu_base, void __iomem *smu_base)
 {
 	u8 index;
 	struct scic_sds_library *my_library;
@@ -2474,11 +2475,8 @@ enum sci_status scic_controller_construct(
 		NULL
 		);
 
-	this_controller->controller_index =
-		scic_sds_library_get_controller_index(my_library, this_controller);
-
-	this_controller->pci_revision =
-		scic_sds_library_get_pci_revision(my_library);
+	this_controller->scu_registers = scu_base;
+	this_controller->smu_registers = smu_base;
 
 	scic_sds_port_configuration_agent_construct(&this_controller->port_agent);
 

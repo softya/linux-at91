@@ -339,13 +339,9 @@ static void isci_module_unregister_sas_ha(struct isci_host *isci_host)
 	scsi_host_put(isci_host->shost);
 }
 
-static int __devinit isci_module_pci_init(
-	struct pci_dev *pdev,
-	struct isci_pci_func *isci_pci)
+static int __devinit isci_pci_init(struct pci_dev *pdev)
 {
-	int err = 0;
-	int bar_num = 0;
-	int bar_mask;
+	int err, bar_num, bar_mask;
 	void __iomem * const *iomap;
 
 	err = pcim_enable_device(pdev);
@@ -367,21 +363,16 @@ static int __devinit isci_module_pci_init(
 	if (!iomap)
 		return -ENOMEM;
 
-	for (bar_num = 0; bar_num < SCI_PCI_BAR_COUNT; bar_num++)
-		isci_pci->pci_bar[bar_num].virt_addr = iomap[bar_num * 2];
-
 	pci_set_master(pdev);
-
-	pci_set_drvdata(pdev, isci_pci);
 
 	return 0;
 }
 
-static int isci_module_enable_interrupts(struct isci_pci_func *isci_pci)
+static int isci_module_enable_interrupts(struct isci_pci_info *pci_info)
 {
 	int i, j;
 	int err = -EINVAL;
-	struct pci_dev *pdev = isci_pci->pdev;
+	struct pci_dev *pdev = pci_info->pdev;
 	int sci_num_msix_entries;
 	struct msix_entry *msix;
 
@@ -389,44 +380,44 @@ static int isci_module_enable_interrupts(struct isci_pci_func *isci_pci)
 	 *  Determine the number of vectors associated with this
 	 *  PCI function.
 	 */
-	sci_num_msix_entries = (isci_pci->controller_count == 2) ?
+	sci_num_msix_entries = (pci_info->controller_count == 2) ?
 			       (SCI_NUM_MSI_X_INT + 2) : SCI_NUM_MSI_X_INT;
 
-	memset(isci_pci->msix_entries, 0, sizeof(isci_pci->msix_entries));
+	memset(pci_info->msix_entries, 0, sizeof(pci_info->msix_entries));
 
 	for (i = 0; i < sci_num_msix_entries; i++)
-		isci_pci->msix_entries[i].entry = i;
+		pci_info->msix_entries[i].entry = i;
 
-	err = pci_enable_msix(pdev, isci_pci->msix_entries,
+	err = pci_enable_msix(pdev, pci_info->msix_entries,
 			      sci_num_msix_entries);
 
 	if (!err) { /* Successfully enabled MSIX */
 		for (i = 0; i < sci_num_msix_entries; i++) {
 			u32 ctl_idx =
-				(isci_pci->msix_entries[i].entry < 2) ? 0 : 1;
+				(pci_info->msix_entries[i].entry < 2) ? 0 : 1;
 
 			dev_dbg(&pdev->dev,
 				"%s: msix entry = %d, vector = %d\n",
 				__func__,
-				isci_pci->msix_entries[i].entry,
-				isci_pci->msix_entries[i].vector);
+				pci_info->msix_entries[i].entry,
+				pci_info->msix_entries[i].vector);
 
 			/* @todo: need to handle error case. */
 			err = devm_request_irq(&pdev->dev,
-					       isci_pci->msix_entries[i].vector,
+					       pci_info->msix_entries[i].vector,
 					       isci_isr,
 					       0,
 					       "isci-msix",
-					       &(isci_pci->ctrl[ctl_idx]));
+					       &(pci_info->ctrl[ctl_idx]));
 			if (err) {
 				dev_err(&pdev->dev,
 					"request_irq failed - err = 0x%x\n",
 					err);
 				for (j = 0; j < i; j++) {
-					msix = &isci_pci->msix_entries[j];
+					msix = &pci_info->msix_entries[j];
 					devm_free_irq(&pdev->dev,
 						      msix->vector,
-						      &(isci_pci->ctrl[ctl_idx]));
+						      &(pci_info->ctrl[ctl_idx]));
 				}
 				pci_disable_msix(pdev);
 				goto intx;
@@ -437,7 +428,7 @@ static int isci_module_enable_interrupts(struct isci_pci_func *isci_pci)
 	} else {
 intx:
 		err = devm_request_irq(&pdev->dev, pdev->irq, isci_legacy_isr,
-				       IRQF_SHARED, "isci-intx", isci_pci);
+				       IRQF_SHARED, "isci-intx", pci_info);
 		if (err)
 			dev_err(&pdev->dev,
 				"request_irq failed - err = 0x%x\n",
@@ -531,10 +522,9 @@ enum sci_status isci_module_parse_user_parameters(
 static int __devinit isci_module_pci_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 {
 	struct Scsi_Host *shost[2] = { NULL, NULL };
-	struct isci_pci_func *isci_pci;
+	struct isci_pci_info *pci_info;
 	int err = 0, ctlr_count = 0, count, core_lib_idx;
 	bool found = false;
-	struct sci_pci_common_header pci_header;
 	void *scil_memory;
 
 	/*
@@ -543,7 +533,7 @@ static int __devinit isci_module_pci_probe(struct pci_dev *pdev, const struct pc
 	 *  store pointer in scu_module struct.
 	 *  Concept:
 	 *      1 isci_module structure per driver load image
-	 *      1 Sci Libarary and isci_pci_func structure per pci function
+	 *      1 Sci Libarary and isci_pci_info structure per pci function
 	 *      upto 2 isci_host (SCIC controllers) per pci function depending on
 	 *          SKU.
 	 */
@@ -594,52 +584,41 @@ static int __devinit isci_module_pci_probe(struct pci_dev *pdev, const struct pc
 	sci_object_set_association(
 		isci_module_struct.core_lib[core_lib_idx].core_lib_handle,
 		(void *)&isci_module_struct);
-	/*
-	 * Set the PCI info for this PCI function in the SCIC library.
-	 */
-	pci_header.vendor_id    = pdev->vendor;
-	pci_header.device_id    = pdev->device;
-	pci_header.revision     = pdev->revision;
-
-	scic_library_set_pci_info(
-		isci_module_struct.core_lib[core_lib_idx].core_lib_handle,
-		&pci_header);
 
 	ctlr_count = scic_library_get_pci_device_controller_count(
 		isci_module_struct.core_lib[core_lib_idx].core_lib_handle);
 
-	isci_pci = devm_kzalloc(&pdev->dev,
-				sizeof(struct isci_pci_func),
+	pci_info = devm_kzalloc(&pdev->dev,
+				sizeof(struct isci_pci_info),
 				GFP_KERNEL);
-	if (!isci_pci) {
+	if (!pci_info) {
 		err = -ENOMEM;
 		goto lib_out;
 	}
 	/*
-	 *  Set key fields in the isci_pci_func structure.
+	 *  Set key fields in the isci_pci_info structure.
 	 */
-	isci_pci->controller_count = ctlr_count;
-	isci_pci->k_pci_driver = &(isci_pci_driver);
-	isci_pci->pdev = pdev;
-	isci_pci->core_lib_handle = isci_module_struct.core_lib[core_lib_idx].core_lib_handle;
-	isci_pci->core_lib_array_index = core_lib_idx;
-	INIT_LIST_HEAD(&(isci_pci->node));
+	pci_info->controller_count = ctlr_count;
+	pci_info->k_pci_driver = &(isci_pci_driver);
+	pci_info->pdev = pdev;
+	pci_info->core_lib_handle = isci_module_struct.core_lib[core_lib_idx].core_lib_handle;
+	pci_info->core_lib_array_index = core_lib_idx;
+	INIT_LIST_HEAD(&(pci_info->node));
 
 #if defined(CONFIG_PBG_HBA_BETA)
 	/*  Link the isci_module to each controller's parent field and
 	 *  link each controller back to it's PCI function.
 	 */
-	for (count = 0; count < ctlr_count; count++) {
-		isci_pci->ctrl[count].parent = &isci_module_struct;
-		isci_pci->ctrl[count].parent_pci_function = isci_pci;
-	}
+	for (count = 0; count < ctlr_count; count++)
+		pci_info->ctrl[count].parent = &isci_module_struct;
 #endif
 
-	err = isci_module_pci_init(pdev, isci_pci);
+	err = isci_pci_init(pdev);
 	if (err) {
 		err = -ENOMEM;
 		goto lib_out;
 	}
+	pci_set_drvdata(pdev, pci_info);
 
 	for (count = 0; count < ctlr_count; count++) {
 		shost[count] = scsi_host_alloc(&isci_sht, sizeof(void *));
@@ -647,11 +626,11 @@ static int __devinit isci_module_pci_probe(struct pci_dev *pdev, const struct pc
 			err = -ENODEV;
 			goto lib_out;
 		}
-		isci_pci->ctrl[count].shost = shost[count];
-		isci_pci->ctrl[count].pdev = pdev;
+		pci_info->ctrl[count].shost = shost[count];
+		pci_info->ctrl[count].pdev = pdev;
 	}
 
-	err = isci_module_enable_interrupts(isci_pci);
+	err = isci_module_enable_interrupts(pci_info);
 	if (err) {
 		err = -ENODEV;
 		goto lib_out;
@@ -681,8 +660,11 @@ static int __devinit isci_module_pci_probe(struct pci_dev *pdev, const struct pc
 	}
 
 	for (count = 0; count < ctlr_count; count++) {
-		struct isci_host *isci_host = &(isci_pci->ctrl[count]);
-		err = isci_host_init(pdev, isci_host);
+		struct isci_host *isci_host = &(pci_info->ctrl[count]);
+
+		isci_host->pdev = pdev;
+		isci_host->id = count;
+		err = isci_host_init(isci_host);
 		if (err) {
 			dev_err(&pdev->dev,
 				"%s: isci_host_init failed - err = %d\n",
@@ -708,7 +690,7 @@ static int __devinit isci_module_pci_probe(struct pci_dev *pdev, const struct pc
 	}
 
 	for (count = 0; count < SCI_MAX_CONTROLLERS; count++) {
-		struct isci_host *isci_host = &(isci_pci->ctrl[count]);
+		struct isci_host *isci_host = &(pci_info->ctrl[count]);
 		err = isci_module_register_sas_ha(isci_host);
 	}
 	if (err)
@@ -738,18 +720,17 @@ static int __devinit isci_module_pci_probe(struct pci_dev *pdev, const struct pc
 static void __devexit isci_module_pci_remove(struct pci_dev *pdev)
 {
 	int i;
-	struct isci_pci_func *isci_pci =
-		(struct isci_pci_func *)pci_get_drvdata(pdev);
+	struct isci_pci_info *pci_info = to_pci_info(pdev);
 	struct isci_host *isci_host;
 
-	for (i = 0; i < isci_pci->controller_count; i++) {
-		isci_host = &(isci_pci->ctrl[i]);
+	for (i = 0; i < pci_info->controller_count; i++) {
+		isci_host = &pci_info->ctrl[i];
 		isci_module_unregister_sas_ha(isci_host);
 		isci_host_deinit(isci_host);
 		scic_controller_disable_interrupts(isci_host->core_controller);
 	}
 
-	list_del(&(isci_pci->node));
+	list_del(&pci_info->node);
 	if (list_empty(&(isci_module_struct.pci_devices)))
 		isci_timer_list_destroy(
 			&(isci_module_struct.timer_list_struct)

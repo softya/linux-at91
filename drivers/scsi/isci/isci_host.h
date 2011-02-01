@@ -73,6 +73,12 @@
 #define DRV_NAME "isci"
 #define SCI_PCI_BAR_COUNT 2
 #define SCI_NUM_MSI_X_INT 2
+#define SCI_SMU_BAR       0
+#define SCI_SMU_BAR_SIZE  (16*1024)
+#define SCI_SCU_BAR       1
+#define SCI_SCU_BAR_SIZE  (4*1024*1024)
+#define SCI_IO_SPACE_BAR0 2
+#define SCI_IO_SPACE_BAR1 3
 #define SCI_MSIX_NORMAL_VECTOR 0
 #define SCI_MSIX_ERROR_VECTOR 1
 #define SCI_MSIX_SINGLE_VECTOR 1
@@ -88,19 +94,12 @@ struct coherent_memory_info {
 	struct sci_physical_memory_descriptor *mde;
 };
 
-/**
- * struct isci_host - This class contains the SCI Library controller specific
- *    info.
- *
- *
- */
 struct isci_host {
-
 	SCI_CONTROLLER_HANDLE_T core_controller;
 	struct scic_controller_handler_methods scic_irq_handlers[SCI_NUM_MSI_X_INT];
 	union scic_oem_parameters oem_parameters;
 
-	int controller_id;
+	int id; /* unique within a given pci device */
 	struct isci_timer_list timer_list_struct;
 	void *core_ctrl_memory;
 	struct dma_pool *dma_pool;
@@ -124,7 +123,6 @@ struct isci_host {
 	enum isci_status status;
 	struct Scsi_Host *shost;
 	struct isci_module *parent;
-	struct isci_pci_func *parent_pci_function;
 	struct tasklet_struct completion_tasklet;
 	struct list_head mdl_struct_list;
 	struct list_head requests_to_complete;
@@ -136,26 +134,20 @@ struct isci_host {
 
 
 /**
- * struct isci_pci_func - This class represents the pci function containing the
+ * struct isci_pci_info - This class represents the pci function containing the
  *    controllers. Depending on PCI SKU, there could be up to 2 controllers in
  *    the PCI function.  SCI_MAX_CONTROLLERS is defined at compile time.
  *
  *
  */
 
-struct isci_pci_func {
+struct isci_pci_info {
 	u8 controller_count;
 	u8 reserved[3];
 	struct list_head node;
 
 	struct pci_driver *k_pci_driver;
 	struct pci_dev *pdev;
-
-	struct pci_bar_info {
-		unsigned long phys_addr;
-		void *virt_addr;
-		int len;
-	} pci_bar[SCI_PCI_BAR_COUNT];
 
 #if defined(CONFIG_PBG_HBA_BETA)
 	struct msix_entry msix_entries[4 + 1];
@@ -168,6 +160,10 @@ struct isci_pci_func {
 	struct isci_host ctrl[SCI_MAX_CONTROLLERS];
 };
 
+static inline struct isci_pci_info *to_pci_info(struct pci_dev *pdev)
+{
+	return pci_get_drvdata(pdev);
+}
 
 static inline
 enum isci_status isci_host_get_state(
@@ -273,25 +269,7 @@ void isci_host_stop_complete(
 	struct isci_host *isci_host,
 	enum sci_status completion_status);
 
-/**
- * isci_host_pci_get_bar() -
- *
- * This function is called by the core library, through the ISCI Module, to get
- * contents of the specified BAR.
- */
-void *isci_host_pci_get_bar(
-	struct isci_host *,
-	unsigned int);
-
-
-/**
- * isci_host_init() -
- *
- * This function intializes a newly created host adapter object.
- */
-int isci_host_init(
-	struct pci_dev *,
-	struct isci_host *);
+int isci_host_init(struct isci_host *);
 
 void isci_host_init_controller_names(
 	struct isci_host *isci_host,

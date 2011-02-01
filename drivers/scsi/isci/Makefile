@@ -37,7 +37,6 @@ isci-objs := isci_module_init.o isci_phy.o isci_request.o isci_sata.o \
 	     core/scic_sds_remote_device_states.o \
 	     core/scic_sds_library.o \
 	     core/scic_sds_port_ready_substate_handlers.o \
-	     core/scic_sds_pci.o \
 	     core/scic_sds_phy.o \
 	     core/scic_sds_port_ready_substates.o \
 	     core/scic_sds_port_state_handlers.o \

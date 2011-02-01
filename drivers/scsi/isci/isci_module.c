@@ -690,29 +690,6 @@ u32 scic_cb_stp_packet_io_request_get_cdb_length(
 #endif /* #if !defined(DISABLE_ATAPI) */
 
 /**
- * scic_cb_pci_get_bar() - In this method the user must return the base address
- *    register (BAR) value for the supplied base address register number.
- * @controller: The controller for which to retrieve the bar number.
- * @bar_number: This parameter depicts the BAR index/number to be read.
- *
- * Return a pointer value indicating the contents of the BAR. NULL indicates an
- * invalid BAR index/number was specified. All other values indicate a valid
- * VIRTUAL address from the BAR.
- */
-void *scic_cb_pci_get_bar(
-	SCI_CONTROLLER_HANDLE_T controller,
-	u16 bar_num)
-{
-	struct isci_host *isci_host;
-
-	isci_host =
-		(struct isci_host *)sci_object_get_association(controller);
-
-	return isci_host_pci_get_bar(isci_host, bar_num);
-
-}
-
-/**
  * scic_cb_port_stop_complete() - This method informs the user when a stop
  *    operation on the port has completed.
  * @controller: This parameter represents the controller which contains the

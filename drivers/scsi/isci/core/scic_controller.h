@@ -132,6 +132,8 @@ struct scic_controller_handler_methods {
  * @library: This parameter specifies the handle to the library object
  *    associated with the controller being constructed.
  * @controller: This parameter specifies the controller to be constructed.
+ * @scu_base: mapped base address of the scu registers
+ * @smu_base: mapped base address of the smu registers
  *
  * Indicate if the controller was successfully constructed or if it failed in
  * some way. SCI_SUCCESS This value is returned if the controller was
@@ -144,7 +146,9 @@ struct scic_controller_handler_methods {
  */
 enum sci_status scic_controller_construct(
 	SCI_LIBRARY_HANDLE_T library,
-	SCI_CONTROLLER_HANDLE_T controller);
+	SCI_CONTROLLER_HANDLE_T controller,
+	void __iomem *scu_base,
+	void __iomem *smu_base);
 
 /**
  * scic_controller_enable_interrupts() - This method will enable all controller
