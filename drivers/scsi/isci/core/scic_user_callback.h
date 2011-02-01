@@ -495,34 +495,6 @@ void *scic_cb_pci_get_bar(
 	u16 bar_number);
 
 /**
- * scic_cb_pci_read_dword() - In this method the user must read from PCI memory
- *    via access. This method is used for access to memory space and IO space.
- * @controller: The controller for which to read a DWORD.
- * @address: This parameter depicts the address from which to read.
- *
- * The value being returned from the PCI memory location. This PCI memory
- * access calls likely need to be optimized into macro?
- */
-u32 scic_cb_pci_read_dword(
-	SCI_CONTROLLER_HANDLE_T controller,
-	void *address);
-
-/**
- * scic_cb_pci_write_dword() - In this method the user must write to PCI memory
- *    via access. This method is used for access to memory space and IO space.
- * @controller: The controller for which to read a DWORD.
- * @address: This parameter depicts the address into which to write.
- * @write_value: This parameter depicts the value being written into the PCI
- *    memory location.
- *
- * This PCI memory access calls likely need to be optimized into macro?
- */
-void scic_cb_pci_write_dword(
-	SCI_CONTROLLER_HANDLE_T controller,
-	void *address,
-	u32 write_value);
-
-/**
  * scic_cb_get_virtual_address() - This callback method asks the user to
  *    provide the virtual address for the supplied physical address.
  * @controller: This parameter is the core controller object handle.

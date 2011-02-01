@@ -397,13 +397,13 @@ struct scic_sds_controller {
 	 * This field is a pointer to the memory mapped register space for the
 	 * struct smu_registers.
 	 */
-	struct smu_registers *smu_registers;
+	struct smu_registers __iomem *smu_registers;
 
 	/**
 	 * This field is a pointer to the memory mapped register space for the
 	 * struct scu_registers.
 	 */
-	struct scu_registers *scu_registers;
+	struct scu_registers __iomem *scu_registers;
 
 };
 

@@ -63,6 +63,7 @@
  *
  */
 
+#include <asm/io.h>
 #include "sci_types.h"
 
 #define PATSBURG_SMU_BAR       0
@@ -78,12 +79,28 @@ enum SCU_CONTROLLER_PCI_REVISION_CODE {
 
 struct scic_sds_controller;
 
-void scic_sds_pci_bar_initialization(
-	struct scic_sds_controller *this_controller);
+void scic_sds_pci_bar_initialization(struct scic_sds_controller *scic);
 
-#define scic_sds_pci_read_smu_dword  scic_cb_pci_read_dword
-#define scic_sds_pci_write_smu_dword scic_cb_pci_write_dword
-#define scic_sds_pci_read_scu_dword  scic_cb_pci_read_dword
-#define scic_sds_pci_write_scu_dword scic_cb_pci_write_dword
+/* for debug we separate scu and smu accesses and require a controller */
+static inline u32 scic_sds_pci_read_smu_dword(struct scic_sds_controller *scic, void __iomem *addr)
+{
+	return readl(addr);
+}
+
+static inline void scic_sds_pci_write_smu_dword(struct scic_sds_controller *scic, void __iomem *addr, u32 value)
+{
+	writel(value, addr);
+}
+
+static inline u32 scic_sds_pci_read_scu_dword(struct scic_sds_controller *scic, void __iomem *addr)
+{
+	return readl(addr);
+}
+
+static inline void scic_sds_pci_write_scu_dword(struct scic_sds_controller *scic, void __iomem *addr, u32 value)
+{
+	writel(value, addr);
+}
+
 
 #endif /* _SCIC_SDS_PCI_H_ */

@@ -114,29 +114,6 @@
 		value \
 		)
 
-/**
- *
- *
- * SCRATCH_RAM_REGISTER_ACCESS_MACROS
- */
-/*
- * Scratch RAM access may be needed before the scu_registers pointer
- *  has been initialized.  So instead, explicitly cast BAR1 to a
- *  struct scu_registers data structure. */
-#define scu_controller_scratch_ram_register_write(controller, index, value) \
-	scu_register_write(\
-		(controller), \
-		((struct scu_registers *)scic_cb_pci_get_bar(controller, PATSBURG_SCU_BAR))->scratch_ram.ram[index],	\
-		value \
-		)
-
-#define scu_controller_scratch_ram_register_read(controller, index) \
-	scu_register_read(\
-		(controller), \
-		((struct scu_registers *)scic_cb_pci_get_bar(controller, PATSBURG_SCU_BAR))->scratch_ram.ram[index] \
-		)
-
-
 /*
  * *****************************************************************************
  * * SMU REGISTERS
