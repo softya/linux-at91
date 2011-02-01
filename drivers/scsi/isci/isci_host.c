@@ -298,24 +298,21 @@ static struct coherent_memory_info *isci_host_alloc_mdl_struct(
 	struct coherent_memory_info *mdl_struct;
 	void *uncached_address = NULL;
 
-	mdl_struct = kzalloc(sizeof(*mdl_struct), GFP_KERNEL);
 
-	if (NULL == mdl_struct) {
+	mdl_struct = devm_kzalloc(&isci_host->pdev->dev,
+				  sizeof(*mdl_struct),
+				  GFP_KERNEL);
+	if (!mdl_struct)
 		return NULL;
-	}
 
 	INIT_LIST_HEAD(&mdl_struct->node);
 
-	uncached_address =
-		pci_alloc_consistent(
-			isci_host->pdev,
-			size, &mdl_struct->dma_handle
-			);
-
-	if (NULL == uncached_address) {
-		kfree(mdl_struct);
+	uncached_address = dmam_alloc_coherent(&isci_host->pdev->dev,
+					       size,
+					       &mdl_struct->dma_handle,
+					       GFP_KERNEL);
+	if (!uncached_address)
 		return NULL;
-	}
 
 	/* memset the whole memory area. */
 	memset((char *)uncached_address, 0, size);
@@ -355,8 +352,6 @@ static int isci_host_mdl_allocate_coherent(
 	struct sci_physical_memory_descriptor *current_mde;
 	struct coherent_memory_info *mdl_struct;
 	u32 size = 0;
-	int ret = 0;
-
 
 	SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T mdl_handle
 		= sci_controller_get_memory_descriptor_list_handle(
@@ -372,11 +367,8 @@ static int isci_host_mdl_allocate_coherent(
 			+ current_mde->constant_memory_alignment);
 
 		mdl_struct = isci_host_alloc_mdl_struct(isci_host, size);
-
-		if (NULL == mdl_struct) {
-			ret = -ENOMEM;
-			goto nomem_out;
-		}
+		if (!mdl_struct)
+			return -ENOMEM;
 
 		list_add_tail(&mdl_struct->node, &isci_host->mdl_struct_list);
 
@@ -385,49 +377,9 @@ static int isci_host_mdl_allocate_coherent(
 		sci_mdl_next_entry(mdl_handle);
 		current_mde = sci_mdl_get_current_entry(mdl_handle);
 	}
-	goto out;
 
- nomem_out:
-
-	isci_host_mdl_deallocate_coherent(isci_host);
-
- out:
-	return ret;
+	return 0;
 }
-
-/**
- * isci_host_mdl_deallocate_coherent() - This function is called by the pci
- *    remove function to free dma coherent memory allocated for this ISCI Host
- *    object
- * @isci_host: This parameter specifies the ISCI host object that allocated the
- *    memory.
- *
- */
-void isci_host_mdl_deallocate_coherent(
-	struct isci_host *isci_host)
-{
-	struct coherent_memory_info *mdl_struct, *temp_mdl;
-
-	list_for_each_entry_safe(
-		mdl_struct,
-		temp_mdl,
-		&isci_host->mdl_struct_list,
-		node
-		) {
-		pci_free_consistent(
-			isci_host->pdev,
-			mdl_struct->size,
-			mdl_struct->vaddr,
-			mdl_struct->dma_handle
-			);
-		mdl_struct->mde->virtual_address = NULL;
-		mdl_struct->mde->physical_address = 0;
-		list_del(&mdl_struct->node);
-		kfree(mdl_struct);
-	}
-
-}
-
 
 
 /**
@@ -562,8 +514,6 @@ void isci_host_deinit(
 
 	/* destroy remote device and request memory queues. */
 	kmem_cache_destroy(isci_host->rem_device_cache);
-	dma_pool_destroy(isci_host->request_object_dma_pool);
-
 }
 
 /**
@@ -698,7 +648,7 @@ int isci_host_init(
 		&controller
 		);
 
-	if (SCI_SUCCESS != status) {
+	if (status != SCI_SUCCESS) {
 		isci_logger(error,
 			    "scic_library_allocate_controller failed -"
 			    " status = %x\n",
@@ -721,7 +671,7 @@ int isci_host_init(
 		controller
 		);
 
-	if (SCI_SUCCESS != status) {
+	if (status != SCI_SUCCESS) {
 		isci_logger(error,
 			    "scic_controller_construct failed - status = %x\n",
 			    status
@@ -746,7 +696,9 @@ int isci_host_init(
 	scic_oem_parameters_get(controller, &scic_oem_params);
 	scic_user_parameters_get(controller, &scic_user_params);
 
-	isci_fw = kzalloc(sizeof(struct isci_firmware), GFP_KERNEL);
+	isci_fw = devm_kzalloc(&isci_host->pdev->dev,
+			       sizeof(struct isci_firmware),
+			       GFP_KERNEL);
 	if (!isci_fw) {
 		dev_printk(KERN_WARNING, &isci_host->pdev->dev,
 			   "allocating firmware struct failed\n");
@@ -807,7 +759,7 @@ int isci_host_init(
 					 &scic_oem_params
 					 );
 
-	if (SCI_SUCCESS != status) {
+	if (status != SCI_SUCCESS) {
 		printk(KERN_WARNING "%s: scic_oem_parameters_set failed\n",
 		       __func__
 		       );
@@ -820,7 +772,7 @@ int isci_host_init(
 					  &scic_user_params
 					  );
 
-	if (SCI_SUCCESS != status) {
+	if (status != SCI_SUCCESS) {
 		printk(KERN_WARNING "%s: scic_user_parameters_set failed\n",
 		       __func__
 		       );
@@ -829,7 +781,7 @@ int isci_host_init(
 	}
 
 	status = scic_controller_initialize(isci_host->core_controller);
-	if (SCI_SUCCESS != status) {
+	if (status != SCI_SUCCESS) {
 		printk(KERN_WARNING "%s: scic_controller_initialize failed -"
 		       " status = 0x%x\n",
 		       __func__, status
@@ -907,7 +859,7 @@ int isci_host_init(
 	isci_host->dma_pool_alloc_size = sizeof(struct isci_request) +
 					 scic_io_request_get_object_size();
 	isci_host->request_object_dma_pool
-		= dma_pool_create(
+		= dmam_pool_create(
 		isci_host->dma_pool_name,
 		&isci_host->pdev->dev,
 		isci_host->dma_pool_alloc_size,
@@ -948,10 +900,7 @@ int isci_host_init(
 /* SPB_Debug: undo controller init, construct and alloc, remove from parent
  * controller list. */
  out:
-	if (isci_fw)
-		kfree(isci_fw);
 	if (fw)
 		release_firmware(fw);
 	return err;
-
 }

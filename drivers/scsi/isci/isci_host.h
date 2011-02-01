@@ -325,15 +325,6 @@ void *isci_host_pci_get_bar(
 
 
 /**
- * isci_host_mdl_deallocate_coherent() -
- *
- * This function is called by the pci remove function to free dma coherent
- * memory allocated for this ISCI Host object
- */
-void isci_host_mdl_deallocate_coherent(
-	struct isci_host *);
-
-/**
  * isci_host_init() -
  *
  * This function intializes a newly created host adapter object.

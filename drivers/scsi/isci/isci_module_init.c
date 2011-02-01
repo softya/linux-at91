@@ -272,24 +272,24 @@ static struct sas_domain_function_template isci_domain_functions = {
  * should check for possible memory allocation error return otherwise, a zero
  * indicates success.
  */
-static int isci_module_register_sas_ha(
-	struct isci_host *isci_host)
+static int isci_module_register_sas_ha(struct isci_host *isci_host)
 {
 	int i;
 	struct sas_ha_struct *sas_ha = &(isci_host->sas_ha);
 	struct asd_sas_phy **sas_phys;
 	struct asd_sas_port **sas_ports;
 
-	sas_phys = kmalloc(SCI_MAX_PHYS * sizeof(void *), GFP_KERNEL);
+	sas_phys = devm_kzalloc(&isci_host->pdev->dev,
+				SCI_MAX_PHYS * sizeof(void *),
+				GFP_KERNEL);
 	if (!sas_phys)
 		return -ENOMEM;
 
-	sas_ports = kmalloc(SCI_MAX_PORTS * sizeof(void *), GFP_KERNEL);
-	if (!sas_ports) {
-		kfree(sas_phys);
+	sas_ports = devm_kzalloc(&isci_host->pdev->dev,
+				 SCI_MAX_PORTS * sizeof(void *),
+				 GFP_KERNEL);
+	if (!sas_ports)
 		return -ENOMEM;
-	}
-
 
 	/*----------------- Libsas Initialization Stuff----------------------
 	 * Set various fields in the sas_ha struct:
@@ -319,52 +319,17 @@ static int isci_module_register_sas_ha(
 	return 0;
 }
 
-static void isci_module_unregister_sas_ha(
-	struct isci_host *isci_host)
+static void isci_module_unregister_sas_ha(struct isci_host *isci_host)
 {
+	if (!isci_host)
+		return;
+
 	sas_unregister_ha(&(isci_host->sas_ha));
 
 	sas_remove_host(isci_host->shost);
 	scsi_remove_host(isci_host->shost);
 	scsi_host_put(isci_host->shost);
-
-	kfree(isci_host->sas_ha.sas_phy);
-	kfree(isci_host->sas_ha.sas_port);
-
 }
-
-
-/**
- * isci_pci_deinit() - This method disables the pci device and unmaps/releases
- *    memory regions used by the specified BARs
- * @dev_p: This parameter specifies the pci device being disabled.
- * @isci_host: This parameter specifies the host adapter representing this pci
- *    device.
- * @bar_num: This parameter speifies last BAR number to be released starting
- *    with zero.
- *
- */
-static void isci_pci_deinit(
-	struct pci_dev *dev_p,
-	struct isci_pci_func *isci_pci,
-	int bar_num)
-{
-	isci_logger(trace, "\n", 0);
-
-	for (; bar_num >= 0; bar_num--) {
-		if (isci_pci->pci_bar[bar_num].virt_addr)
-			iounmap(isci_pci->pci_bar[bar_num].virt_addr);
-
-		isci_logger(trace,
-			    "releasing bar #%d\n",
-			    bar_num
-			    );
-		pci_release_region(dev_p, bar_num * 2);
-	}
-
-	pci_disable_device(dev_p);
-}
-
 
 /**
  * isci_module_pci_init() - This method performs various PCI initialization
@@ -382,8 +347,10 @@ static int __devinit isci_module_pci_init(
 {
 	int err = 0;
 	int bar_num = 0;
+	int bar_mask;
+	void __iomem * const *iomap;
 
-	err = pci_enable_device(dev_p);
+	err = pcim_enable_device(dev_p);
 	if (err) {
 		isci_logger(error,
 			    "failed enable PCI device %s!\n",
@@ -392,53 +359,17 @@ static int __devinit isci_module_pci_init(
 		return err;
 	}
 
-	pci_set_master(dev_p);
+	err = pcim_iomap_regions(dev_p, bar_mask, isci_pci->pci_func_name);
+	if (err)
+		return err;
 
-	pci_set_drvdata(dev_p, isci_pci);
+	iomap = pcim_iomap_table(dev_p);
+	if (!iomap)
+		return -ENOMEM;
 
 	for (bar_num = 0; bar_num < SCI_PCI_BAR_COUNT; bar_num++) {
+		isci_pci->pci_bar[bar_num].virt_addr = iomap[bar_num * 2];
 
-		if (pci_request_region(dev_p, bar_num * 2, isci_pci->pci_func_name)) {
-			isci_logger(error,
-				    "pci_request_region failed for barNum %d\n",
-				    bar_num
-				    );
-			err = -ENODEV;
-			goto err_out;
-		}
-		isci_pci->pci_bar[bar_num].phys_addr =
-			pci_resource_start(
-				dev_p,
-				bar_num * 2
-				);
-		isci_pci->pci_bar[bar_num].len =
-			pci_resource_len(
-				dev_p,
-				bar_num * 2
-				);
-		isci_pci->pci_bar[bar_num].virt_addr =
-			ioremap(
-				isci_pci->pci_bar[bar_num].phys_addr,
-				isci_pci->pci_bar[bar_num].len
-				);
-
-		if (NULL == isci_pci->pci_bar[bar_num].virt_addr) {
-			err = -ENOMEM;
-			goto err_out;
-		}
-
-#ifdef RCJ
-		isci_logger(trace,
-			    "HA Name: %s, isci_host->controller_id = %x\n"
-			    "pci_bar[%d].phys_addr = %lx\n"
-			    "pci_bar[%d].len = 0x%x\n"
-			    "pci_bar[%d].virt_addr = %p\n",
-			    isci_host->ha_name, isci_host->controller_id,
-			    bar_num, isci_host->pci_bar[bar_num].phys_addr,
-			    bar_num, isci_host->pci_bar[bar_num].len,
-			    bar_num, isci_host->pci_bar[bar_num].virt_addr
-			    );
-#else
 		isci_logger(trace,
 			    "PCI Name: %s, isci_pci_func->controller_count = %d\n"
 			    "pci_bar[%d].phys_addr = %lx\n"
@@ -449,59 +380,22 @@ static int __devinit isci_module_pci_init(
 			    bar_num, isci_pci->pci_bar[bar_num].len,
 			    bar_num, isci_pci->pci_bar[bar_num].virt_addr
 			    );
-#endif
-	} /* for (bar_num = 0; bar_num < SCI_PCI_BAR_COUNT; bar_num++) */
-
-
-	goto out;
-
- err_out:
-	isci_pci_deinit(
-		dev_p,
-		isci_pci,
-		bar_num
-		);
- out:
-	return err;
-}
-
-static void isci_module_free_interrupts(
-	struct isci_pci_func *isci_pci)
-{
-	int i, ctl_idx, sci_num_msix_entries;
-	struct isci_host *isci_host;
-
-	if (isci_pci->msix_int_enabled) {
-		/*
-		 *  Determine the number of vectors associated with this
-		 *  PCI function.
-		 */
-		sci_num_msix_entries = (isci_pci->controller_count == 2) ?
-				       (SCI_NUM_MSI_X_INT + 2) : SCI_NUM_MSI_X_INT;
-		/*
-		 *  For MSIX, free IRQs on per entry & controller basis.
-		 */
-		for (i = 0; i < sci_num_msix_entries; i++) {
-			ctl_idx = (isci_pci->msix_entries[i].entry < 2) ? 0 : 1;
-			isci_host = &(isci_pci->ctrl[ctl_idx]);
-			free_irq(isci_pci->msix_entries[i].vector, (void *)isci_host);
-		}
-		pci_disable_msix(isci_pci->k_pci_dev);
-	} else {
-		/*
-		 *  For legacy, free IRQs on IRQ line and PCI Function basis.
-		 */
-		free_irq(isci_pci->k_pci_dev->irq, isci_pci);
 	}
+
+	pci_set_master(dev_p);
+
+	pci_set_drvdata(dev_p, isci_pci);
+
+	return 0;
 }
 
-static int isci_module_enable_interrupts(
-	struct isci_pci_func *isci_pci)
+static int isci_module_enable_interrupts(struct isci_pci_func *isci_pci)
 {
-	int i;
-	int err = 0;
+	int i, j;
+	int err = -EINVAL;
 	struct pci_dev *dev_p = isci_pci->k_pci_dev;
 	int sci_num_msix_entries;
+	struct msix_entry *msix;
 
 	/*
 	 *  Determine the number of vectors associated with this
@@ -515,20 +409,17 @@ static int isci_module_enable_interrupts(
 	for (i = 0; i < sci_num_msix_entries; i++)
 		isci_pci->msix_entries[i].entry = i;
 
-	err = -1;
-
 	if (!disable_msix)
-		err = pci_enable_msix(
-			dev_p,
-			isci_pci->msix_entries,
-			sci_num_msix_entries
-			);
+		err = pci_enable_msix(dev_p,
+				      isci_pci->msix_entries,
+				      sci_num_msix_entries);
 
 	if (!err) { /* Successfully enabled MSIX */
 
 		isci_pci->msix_int_enabled = 1;
 		for (i = 0; i < sci_num_msix_entries; i++) {
-			u32 ctl_idx = (isci_pci->msix_entries[i].entry < 2) ? 0 : 1;
+			u32 ctl_idx =
+				(isci_pci->msix_entries[i].entry < 2) ? 0 : 1;
 
 			isci_logger(trace,
 				    "msix entry = %d, vector = %d\n",
@@ -537,31 +428,39 @@ static int isci_module_enable_interrupts(
 				    );
 
 			/* @todo: need to handle error case. */
-			err = request_irq(
-				isci_pci->msix_entries[i].vector,
-				isci_isr,
-				IRQF_SHARED,
-				"isci-msix",
-				&(isci_pci->ctrl[ctl_idx])
-				);
-			if (err)
+			err = devm_request_irq(&dev_p->dev,
+					       isci_pci->msix_entries[i].vector,
+					       isci_isr,
+					       0,
+					       "isci-msix",
+					       &(isci_pci->ctrl[ctl_idx]));
+			if (err) {
 				isci_logger(error,
 					    "request_irq failed - err = 0x%x\n",
 					    err
 					    );
+				for (j = 0; j < i; j++) {
+					msix = &isci_pci->msix_entries[j];
+					devm_free_irq(&dev_p->dev,
+						      msix->vector,
+						      &(isci_pci->ctrl[ctl_idx]));
+				}
+				pci_disable_msix(dev_p);
+				goto intx;
+			}
 
 		}
 
 	} else {
+intx:
 		isci_logger(trace, "using legacy interrupts\n", 0);
 		isci_pci->msix_int_enabled = 0;
-		err = request_irq(
-			isci_pci->k_pci_dev->irq,
-			isci_legacy_isr,
-			IRQF_SHARED,
-			"isci",
-			isci_pci
-			);
+		err = devm_request_irq(&dev_p->dev,
+				       isci_pci->k_pci_dev->irq,
+				       isci_legacy_isr,
+				       IRQF_SHARED,
+				       "isci",
+				       isci_pci);
 		if (err)
 			isci_logger(error, "request_irq failed - err = 0x%x\n",
 				    err);
@@ -733,9 +632,13 @@ static int __devinit isci_module_pci_probe(
 	 *      upto 2 isci_host (SCIC controllers) per pci function depending on
 	 *          SKU.
 	 */
-	for (core_lib_idx = 0; core_lib_idx < SCI_MAX_PCI_DEVICES; core_lib_idx++) {
-		if ((isci_module_struct.core_lib[core_lib_idx].core_lib_handle == NULL) &&
-		    (isci_module_struct.core_lib[core_lib_idx].core_lib_memory == NULL)) {
+	for (core_lib_idx = 0;
+	     core_lib_idx < SCI_MAX_PCI_DEVICES;
+	     core_lib_idx++) {
+		if ((isci_module_struct.core_lib[core_lib_idx].core_lib_handle
+					== NULL) &&
+		    (isci_module_struct.core_lib[core_lib_idx].core_lib_memory
+					== NULL)) {
 			found = true;
 			break;
 		}
@@ -749,16 +652,18 @@ static int __devinit isci_module_pci_probe(
 		err = -ENOMEM;
 		goto out;
 	}
-	scil_memory = isci_module_struct.core_lib[core_lib_idx].core_lib_memory =
-			      kzalloc(
-				      scic_library_get_object_size(SCI_MAX_CONTROLLERS),
-				      GFP_KERNEL);
 
-	if (NULL == scil_memory) {
+	scil_memory =
+		isci_module_struct.core_lib[core_lib_idx].core_lib_memory =
+			devm_kzalloc(&dev_p->dev,
+				     scic_library_get_object_size(
+					     SCI_MAX_CONTROLLERS),
+				     GFP_KERNEL);
+	if (!scil_memory) {
 		isci_logger(error, " kmalloc failed for library memory\n", 0);
-		err = -ENOMEM;
-		goto out;
+		return -ENOMEM;
 	}
+
 	/*
 	 *  Construct core library using memory allocated for core library above.
 	 */
@@ -799,7 +704,9 @@ static int __devinit isci_module_pci_probe(
 	 * Now allocate the isci_pci_func struct which in turn contains
 	 * the isci_host structures that correspond to the SCU controllers.
 	 */
-	isci_pci = kzalloc(sizeof(struct isci_pci_func), GFP_KERNEL);
+	isci_pci = devm_kzalloc(&dev_p->dev,
+				sizeof(struct isci_pci_func),
+				GFP_KERNEL);
 	if (!isci_pci) {
 		err = -ENOMEM;
 		goto lib_out;
@@ -840,7 +747,6 @@ static int __devinit isci_module_pci_probe(
 	 */
 	err = isci_module_pci_init(dev_p, isci_pci);
 	if (err) {
-		kfree(isci_pci);
 		err = -ENOMEM;
 		goto lib_out;
 	}
@@ -856,7 +762,7 @@ static int __devinit isci_module_pci_probe(
 		shost[count] = scsi_host_alloc(&isci_sht, sizeof(void *));
 		if (!shost[count]) {
 			err = -ENODEV;
-			goto err_do_pci_deinit;
+			goto lib_out;
 		}
 		/*
 		 *  SCSI host adapter instance was allocated. Link to corresponding
@@ -869,19 +775,27 @@ static int __devinit isci_module_pci_probe(
 	err = isci_module_enable_interrupts(isci_pci);
 	if (err) {
 		err = -ENODEV;
-		goto err_do_pci_deinit;
+		goto lib_out;
 	}
 
-	if (pci_set_dma_mask(dev_p, DMA_BIT_MASK(64))
-	    || pci_set_consistent_dma_mask(dev_p, DMA_BIT_MASK(64))) {
-
-		if (pci_set_dma_mask(dev_p, DMA_BIT_MASK(32))
-		    || pci_set_consistent_dma_mask(dev_p, DMA_BIT_MASK(32))) {
-			isci_logger(error, "set dma mask failed!\n", 0);
-			err = -ENODEV;
-			goto err_do_pci_deinit;
+	err = pci_set_dma_mask(dev_p, DMA_BIT_MASK(64));
+	if (err) {
+		err = pci_set_dma_mask(dev_p, DMA_BIT_MASK(32));
+		if (err) {
+			isci_logger(error, "set DMA mask failed!\n", 0);
+			goto lib_out;
 		}
+	}
 
+	err = pci_set_consistent_dma_mask(dev_p, DMA_BIT_MASK(64));
+	if (err) {
+		err = pci_set_consistent_dma_mask(dev_p, DMA_BIT_MASK(32));
+		if (err) {
+			isci_logger(error,
+				    "set consistent DMA mask failed!\n", 0);
+			goto lib_out;
+
+		}
 	}
 
 	/*------------- SCIC controller Initialization Stuff ---------------*/
@@ -896,7 +810,7 @@ static int __devinit isci_module_pci_probe(
 		if (err) {
 			isci_logger(error, "isci_host_init failed - err = %d\n", err);
 			scsi_host_put(shost[count]);
-			goto err_do_free_irq;
+			goto lib_out;
 		}
 
 		SHOST_TO_SAS_HA(shost[count]) = &isci_host->sas_ha;
@@ -906,9 +820,9 @@ static int __devinit isci_module_pci_probe(
 		/* SPB Debug: where do these max vaules come from ? */
 		(shost[count])->max_id = ~0;
 		(shost[count])->max_lun = ~0;
-		(shost[count])->max_cmd_len = 16;
+		(shost[count])->max_cmd_len = MAX_COMMAND_SIZE;
 
-		/*----------- SCSI Midlayer Initialization Stuff -------------------
+		/*----------- SCSI Midlayer Initialization Stuff --------------
 		 * struct scsi_transport_template* is stored in the scsi_host
 		 * struct transport member. the scsi_host struct pointer is
 		 * passed in the call to scsi_add_host().
@@ -916,31 +830,21 @@ static int __devinit isci_module_pci_probe(
 		err = scsi_add_host(shost[count], &dev_p->dev);
 		if (err) {
 			scsi_host_put(shost[count]);
-			goto err_do_free_irq;
+			goto lib_out;
 		}
 	}
 
 	for (count = 0; count < SCI_MAX_CONTROLLERS; count++) {
 		struct isci_host *isci_host = &(isci_pci->ctrl[count]);
 		err = isci_module_register_sas_ha(isci_host);
-		if (err) {
-			isci_host_mdl_deallocate_coherent(isci_host);
-		}
 	}
-	if (err) goto err_do_scsi_host_clean;
-	/*
-	 *  Now scan each controller for attached devices
-	 *  (i.e. device discovery).  The api attempts to
-	 *  schedule an async scan by default.  However,
-	 *  if resources to schedule the scan aren't available,
-	 *  it will call our scan entry points and perform device
-	 *  discovery under the current thread.
-	 */
-	for (count = 0; count < ctlr_count; count++) {
-		scsi_scan_host(shost[count]);
-	}
+	if (err)
+		goto err_do_scsi_host_clean;
 
-	goto out;
+	for (count = 0; count < ctlr_count; count++)
+		scsi_scan_host(shost[count]);
+
+	return 0;
 
  err_do_scsi_host_clean:
 	for (count = 0; count < ctlr_count; count++) {
@@ -950,21 +854,10 @@ static int __devinit isci_module_pci_probe(
 		}
 	}
 
- err_do_free_irq:
-	isci_module_free_interrupts(isci_pci);
-
- err_do_pci_deinit:
-	isci_pci_deinit(
-		dev_p,
-		isci_pci,
-		SCI_PCI_BAR_COUNT - 1
-		);
-	kfree(isci_pci);
-
  lib_out:
-	kfree(scil_memory);
 	isci_module_struct.core_lib[core_lib_idx].core_lib_handle = NULL;
 	isci_module_struct.core_lib[core_lib_idx].core_lib_memory = NULL;
+
  out:
 	return err;
 }
@@ -975,8 +868,7 @@ static int __devinit isci_module_pci_probe(
  * @dev_p: This parameter specifies the pci device being removed.
  *
  */
-static void __devexit isci_module_pci_remove(
-	struct pci_dev *dev_p)
+static void __devexit isci_module_pci_remove(struct pci_dev *dev_p)
 {
 	int i;
 	struct isci_pci_func *isci_pci =
@@ -992,29 +884,16 @@ static void __devexit isci_module_pci_remove(
 		scic_controller_disable_interrupts(isci_host->core_controller);
 	}
 
+	if (isci_pci->msix_int_enabled)
+		pci_disable_msix(dev_p);
+
 	device_remove_file(&dev_p->dev, &dev_attr_can_queue);
-
-	isci_module_free_interrupts(isci_pci);
-
-	/*
-	 *  Now that SAS HA is unregistered per controller,
-	 *  controller unregistered with SCIL and
-	 *  IRQs freed, clean up memory per controller.
-	 */
-	for (i = 0; i < isci_pci->controller_count; i++) {
-		isci_host = &(isci_pci->ctrl[i]);
-		isci_host_mdl_deallocate_coherent(isci_host);
-	}
-
-	isci_pci_deinit(dev_p, isci_pci, SCI_PCI_BAR_COUNT - 1);
 
 	list_del(&(isci_pci->node));
 	if (list_empty(&(isci_module_struct.pci_devices)))
 		isci_timer_list_destroy(
 			&(isci_module_struct.timer_list_struct)
 			);
-
-	kfree(isci_pci);
 }
 
 #define SCI_MAX_TIMER_COUNT 25
@@ -1053,7 +932,7 @@ static __init int isci_module_init(
 	isci_module_struct.stt =
 		sas_domain_attach_transport(&isci_domain_functions);
 
-	if (NULL == isci_module_struct.stt) {
+	if (isci_module_struct.stt == NULL) {
 		isci_logger(error, "sas_domain_attach_transport failed\n", 0);
 		goto err;
 	}
@@ -1086,14 +965,8 @@ static __init int isci_module_init(
 static __exit void isci_module_exit(
 	void)
 {
-	int count;
-
 	pci_unregister_driver(&isci_pci_driver);
 	sas_release_transport(isci_module_struct.stt);
-	for (count = 0; count < SCI_MAX_PCI_DEVICES; count++) {
-		if (isci_module_struct.core_lib[count].core_lib_memory != NULL)
-			kfree(isci_module_struct.core_lib[count].core_lib_memory);
-	}
 }
 
 module_init(isci_module_init);
