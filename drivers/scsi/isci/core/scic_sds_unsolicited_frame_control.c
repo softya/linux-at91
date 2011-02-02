@@ -66,6 +66,7 @@
 #include "scic_sds_controller.h"
 #include "scic_user_callback.h"
 #include "sci_util.h"
+#include "sci_environment.h"
 
 /**
  * The UF buffer address table size must be programmed to a power of 2.  Find
@@ -344,7 +345,7 @@ bool scic_sds_unsolicited_frame_control_release_frame(
 	/*
 	 * The table has a NULL entry as it's last element.  This is
 	 * illegal. */
-	ASSERT(frame_get < uf_control->address_table.count);
+	BUG_ON(frame_get >= uf_control->address_table.count);
 
 	if (frame_index < uf_control->address_table.count) {
 		uf_control->buffers.array[frame_index].state = UNSOLICITED_FRAME_RELEASED;

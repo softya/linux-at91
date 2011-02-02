@@ -178,7 +178,7 @@ void isci_port_link_up(
 	enum sci_status call_status;
 	unsigned long success = true;
 
-	ASSERT(isci_phy->isci_port == NULL);
+	BUG_ON(isci_phy->isci_port != NULL);
 	isci_phy->isci_port = isci_port;
 
 	dev_dbg(&isci_host->pdev->dev,
@@ -201,7 +201,11 @@ void isci_port_link_up(
 		call_status = scic_sata_phy_get_properties(phy,
 							   &sata_phy_properties);
 
-		ASSERT(call_status == SCI_SUCCESS);
+		/* 
+		 * XXX I am concerned about this "assert". shouldn't we
+		 * handle the return appropriately?
+		 */
+		BUG_ON(call_status != SCI_SUCCESS);
 
 		memcpy(isci_phy->frame_rcvd.fis,
 		       &sata_phy_properties.signature_fis,
@@ -217,8 +221,8 @@ void isci_port_link_up(
 		 * to be obtained from struct scic_port_properties properties.
 		 */
 
-		ASSERT(((size_t)SAS_ADDR_SIZE / 2)
-		       == sizeof(properties.remote.sas_address.low));
+		BUG_ON(((size_t)SAS_ADDR_SIZE / 2)
+		       != sizeof(properties.remote.sas_address.low));
 
 		memcpy(&isci_phy->sas_phy.attached_sas_addr[0],
 		       &properties.remote.sas_address.low,
@@ -228,9 +232,8 @@ void isci_port_link_up(
 		       &properties.remote.sas_address.high,
 		       SAS_ADDR_SIZE / 2);
 
-	} else
-	if (properties.remote.protocols.u.bits.ssp_target
-	    || properties.remote.protocols.u.bits.smp_target) {
+	} else if (properties.remote.protocols.u.bits.ssp_target ||
+		   properties.remote.protocols.u.bits.smp_target) {
 
 		struct scic_sas_phy_properties sas_phy_properties;
 
@@ -240,7 +243,7 @@ void isci_port_link_up(
 		call_status = scic_sas_phy_get_properties(phy,
 							  &sas_phy_properties);
 
-		ASSERT(call_status == SCI_SUCCESS);
+		BUG_ON(call_status != SCI_SUCCESS);
 
 		memcpy(isci_phy->frame_rcvd.aif,
 		       &(sas_phy_properties.received_iaf),
@@ -427,7 +430,7 @@ int isci_port_perform_hard_reset(
 		"%s: isci_port = %p\n",
 		__func__, isci_port);
 
-	ASSERT(isci_port != NULL);
+	BUG_ON(isci_port == NULL);
 
 	init_completion(&isci_port->hard_reset_complete);
 

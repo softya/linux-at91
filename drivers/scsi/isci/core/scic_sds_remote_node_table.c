@@ -59,7 +59,8 @@
  *
  *
  */
-
+#include "sci_util.h"
+#include "sci_environment.h"
 #include "scic_sds_remote_node_table.h"
 #include "scic_sds_remote_node_context.h"
 
@@ -118,8 +119,8 @@ static void scic_sds_remote_node_table_clear_group_index(
 	u32 bit_index;
 	u32 *group_table;
 
-	ASSERT(group_table_index < SCU_STP_REMOTE_NODE_COUNT);
-	ASSERT(group_index < (u32)(remote_node_table->group_array_size * 32));
+	BUG_ON(group_table_index >= SCU_STP_REMOTE_NODE_COUNT);
+	BUG_ON(group_index >= (u32)(remote_node_table->group_array_size * 32));
 
 	dword_index = group_index / 32;
 	bit_index   = group_index % 32;
@@ -148,8 +149,8 @@ static void scic_sds_remote_node_table_set_group_index(
 	u32 bit_index;
 	u32 *group_table;
 
-	ASSERT(group_table_index < SCU_STP_REMOTE_NODE_COUNT);
-	ASSERT(group_index < (u32)(remote_node_table->group_array_size * 32));
+	BUG_ON(group_table_index >= SCU_STP_REMOTE_NODE_COUNT);
+	BUG_ON(group_index >= (u32)(remote_node_table->group_array_size * 32));
 
 	dword_index = group_index / 32;
 	bit_index   = group_index % 32;
@@ -177,9 +178,9 @@ static void scic_sds_remote_node_table_set_node_index(
 	u32 slot_normalized;
 	u32 slot_position;
 
-	ASSERT(
+	BUG_ON(
 		(remote_node_table->available_nodes_array_size * SCIC_SDS_REMOTE_NODE_SETS_PER_DWORD)
-		> (remote_node_index / SCU_STP_REMOTE_NODE_COUNT)
+		<= (remote_node_index / SCU_STP_REMOTE_NODE_COUNT)
 		);
 
 	dword_location  = remote_node_index / SCIC_SDS_REMOTE_NODES_PER_DWORD;
@@ -210,9 +211,9 @@ static void scic_sds_remote_node_table_clear_node_index(
 	u32 slot_position;
 	u32 slot_normalized;
 
-	ASSERT(
+	BUG_ON(
 		(remote_node_table->available_nodes_array_size * SCIC_SDS_REMOTE_NODE_SETS_PER_DWORD)
-		> (remote_node_index / SCU_STP_REMOTE_NODE_COUNT)
+		<= (remote_node_index / SCU_STP_REMOTE_NODE_COUNT)
 		);
 
 	dword_location  = remote_node_index / SCIC_SDS_REMOTE_NODES_PER_DWORD;
@@ -240,9 +241,9 @@ static void scic_sds_remote_node_table_clear_group(
 	u32 dword_remainder;
 	u32 dword_value;
 
-	ASSERT(
+	BUG_ON(
 		(remote_node_table->available_nodes_array_size * SCIC_SDS_REMOTE_NODE_SETS_PER_DWORD)
-		> (group_index / SCU_STP_REMOTE_NODE_COUNT)
+		<= (group_index / SCU_STP_REMOTE_NODE_COUNT)
 		);
 
 	dword_location  = group_index / SCIC_SDS_REMOTE_NODE_SETS_PER_DWORD;
@@ -267,9 +268,9 @@ static void scic_sds_remote_node_table_set_group(
 	u32 dword_remainder;
 	u32 dword_value;
 
-	ASSERT(
+	BUG_ON(
 		(remote_node_table->available_nodes_array_size * SCIC_SDS_REMOTE_NODE_SETS_PER_DWORD)
-		> (group_index / SCU_STP_REMOTE_NODE_COUNT)
+		<= (group_index / SCU_STP_REMOTE_NODE_COUNT)
 		);
 
 	dword_location  = group_index / SCIC_SDS_REMOTE_NODE_SETS_PER_DWORD;
@@ -526,7 +527,7 @@ static void scic_sds_remote_node_table_release_single_remote_node(
 	/*
 	 * Assert that we are not trying to add an entry to a slot that is already
 	 * full. */
-	ASSERT(group_value != SCIC_SDS_REMOTE_NODE_TABLE_FULL_SLOT_VALUE);
+	BUG_ON(group_value == SCIC_SDS_REMOTE_NODE_TABLE_FULL_SLOT_VALUE);
 
 	if (group_value == 0x00) {
 		/*

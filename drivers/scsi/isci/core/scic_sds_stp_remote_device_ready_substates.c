@@ -59,6 +59,8 @@
 #include "scic_sds_controller.h"
 #include "scic_sds_port.h"
 #include "scic_sds_remote_device.h"
+#include "sci_util.h"
+#include "sci_environment.h"
 
 /*
  * *****************************************************************************
@@ -144,7 +146,7 @@ static void scic_sds_stp_remote_device_ready_cmd_substate_enter(
 
 	this_device = (struct scic_sds_remote_device *)device;
 
-	ASSERT(this_device->working_request != NULL);
+	BUG_ON(this_device->working_request == NULL);
 
 	SET_STATE_HANDLER(
 		this_device,

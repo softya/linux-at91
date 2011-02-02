@@ -385,7 +385,7 @@ static void isci_tmf_timeout_cb(void *tmf_request_arg)
 	struct isci_tmf *tmf = isci_request_access_tmf(request);
 	enum sci_status status;
 
-	ASSERT(tmf_task == request->ttype);
+	BUG_ON(request->ttype != tmf_task);
 
 	/* This task management request has timed-out.  Terminate the request
 	 * so that the request eventually completes to the requestor in the
@@ -1083,7 +1083,7 @@ static void isci_abort_task_process_cb(
 		 * request state was already set to "aborted" by the abort
 		 * task function.
 		 */
-		ASSERT(old_request->status == aborted);
+		BUG_ON(old_request->status != aborted);
 		break;
 
 	case isci_tmf_timed_out:

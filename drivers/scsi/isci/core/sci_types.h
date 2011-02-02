@@ -57,7 +57,6 @@
 #define _SCI_TYPES_H_
 
 #include <linux/string.h>
-#include "assert.h"
 
 /**
  * This file contains all of the basic data types utilized by an SCI user or

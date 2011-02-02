@@ -205,7 +205,7 @@ static inline enum isci_request_status isci_request_change_started_to_newstate(
 	old_state = isci_request->status;
 
 	if (old_state == started) {
-		ASSERT(isci_request->io_request_completion == NULL);
+		BUG_ON(isci_request->io_request_completion != NULL);
 
 		isci_request->io_request_completion = completion_ptr;
 		isci_request->status = newstate;
@@ -264,14 +264,14 @@ static inline void isci_request_free(
 static inline
 struct sas_task *isci_request_access_task(struct isci_request *isci_request)
 {
-	ASSERT(isci_request->ttype == io_task);
+	BUG_ON(isci_request->ttype != io_task);
 	return isci_request->ttype_ptr.io_task_ptr;
 }
 
 static inline
 struct isci_tmf *isci_request_access_tmf(struct isci_request *isci_request)
 {
-	ASSERT(isci_request->ttype == tmf_task);
+	BUG_ON(isci_request->ttype != tmf_task);
 	return isci_request->ttype_ptr.tmf_task_ptr;
 }
 

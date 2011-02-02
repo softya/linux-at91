@@ -693,7 +693,7 @@ static void scic_sds_apc_agent_link_up(
 	struct scic_sds_port *port,
 	struct scic_sds_phy *phy)
 {
-	ASSERT(port == SCI_INVALID_HANDLE);
+	BUG_ON(port != SCI_INVALID_HANDLE);
 
 	port_agent->phy_ready_mask |= (1 << scic_sds_phy_get_index(phy));
 

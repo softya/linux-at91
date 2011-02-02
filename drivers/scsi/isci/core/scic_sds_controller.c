@@ -1108,7 +1108,7 @@ void scic_sds_controller_power_control_queue_insert(
 	struct scic_sds_controller *this_controller,
 	struct scic_sds_phy *the_phy)
 {
-	ASSERT(the_phy != NULL);
+	BUG_ON(the_phy == NULL);
 
 	if (
 		(this_controller->power_control.timer_started)
@@ -1132,7 +1132,7 @@ void scic_sds_controller_power_control_queue_remove(
 	struct scic_sds_controller *this_controller,
 	struct scic_sds_phy *the_phy)
 {
-	ASSERT(the_phy != NULL);
+	BUG_ON(the_phy == NULL);
 
 	if (this_controller->power_control.requesters[the_phy->phy_index] != NULL) {
 		this_controller->power_control.phys_waiting--;
@@ -2909,7 +2909,7 @@ enum sci_status scic_controller_free_io_tag(
 
 	this_controller = (struct scic_sds_controller *)controller;
 
-	ASSERT(io_tag != SCI_CONTROLLER_INVALID_IO_TAG);
+	BUG_ON(io_tag == SCI_CONTROLLER_INVALID_IO_TAG);
 
 	sequence = scic_sds_io_tag_get_sequence(io_tag);
 	index    = scic_sds_io_tag_get_index(io_tag);
@@ -2937,7 +2937,7 @@ void scic_controller_enable_interrupts(
 
 	this_controller = (struct scic_sds_controller *)controller;
 
-	ASSERT(this_controller->smu_registers != NULL);
+	BUG_ON(this_controller->smu_registers == NULL);
 
 	SMU_IMR_WRITE(this_controller, 0x00000000);
 }
@@ -2951,7 +2951,7 @@ void scic_controller_disable_interrupts(
 
 	this_controller = (struct scic_sds_controller *)controller;
 
-	ASSERT(this_controller->smu_registers != NULL);
+	BUG_ON(this_controller->smu_registers == NULL);
 
 	SMU_IMR_WRITE(this_controller, 0xffffffff);
 }

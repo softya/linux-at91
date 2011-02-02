@@ -89,7 +89,7 @@ static void scic_sds_cb_remote_device_rnc_destruct_complete(
 
 	this_device = (struct scic_sds_remote_device *)user_parameter;
 
-	ASSERT(this_device->started_request_count == 0);
+	BUG_ON(this_device->started_request_count != 0);
 
 	sci_base_state_machine_change_state(
 		scic_sds_remote_device_get_base_state_machine(this_device),
@@ -809,7 +809,7 @@ static enum sci_status scic_sds_remote_device_starting_state_stop_handler(
 	/*
 	 * This device has not yet started so there had better be no IO requests
 	 */
-	ASSERT(this_device->started_request_count == 0);
+	BUG_ON(this_device->started_request_count != 0);
 
 	/*
 	 * Destroy the remote node context

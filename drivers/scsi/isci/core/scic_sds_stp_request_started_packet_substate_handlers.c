@@ -156,7 +156,7 @@ enum sci_status scic_sds_stp_packet_request_packet_phase_await_pio_setup_frame_h
 		);
 
 	if (status == SCI_SUCCESS) {
-		ASSERT(frame_header->fis_type == SATA_FIS_TYPE_PIO_SETUP);
+		BUG_ON(frame_header->fis_type != SATA_FIS_TYPE_PIO_SETUP);
 
 		/*
 		 * Get from the frame buffer the PIO Setup Data, although we don't need
@@ -334,7 +334,7 @@ enum sci_status scic_sds_stp_packet_request_command_phase_common_frame_handler(
 		);
 
 	if (status == SCI_SUCCESS) {
-		ASSERT(frame_header->fis_type == SATA_FIS_TYPE_REGD2H);
+		BUG_ON(frame_header->fis_type != SATA_FIS_TYPE_REGD2H);
 
 		/*
 		 * Get from the frame buffer the PIO Setup Data, although we don't need

@@ -69,11 +69,13 @@
  * isci_module.h
  */
 
+#include <linux/kernel.h>
 #include <linux/list.h>
 #include <linux/types.h>
 #include <linux/spinlock.h>
 #include <linux/interrupt.h>
 #include <linux/firmware.h>
+#include <linux/bug.h>
 #include <scsi/libsas.h>
 #include <scsi/scsi.h>
 
