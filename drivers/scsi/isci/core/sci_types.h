@@ -65,9 +65,6 @@
  *
  */
 
-
-#define sci_cb_physical_address_upper(address) ((u32)((u64)(address) >> 32))
-#define sci_cb_physical_address_lower(address) ((u32)(address))
 #define sci_cb_make_physical_address(physical_addr, addr_upper, addr_lower) \
 	((physical_addr) = (addr_lower) | ((u64)addr_upper) << 32)
 

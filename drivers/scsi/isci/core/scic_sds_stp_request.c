@@ -56,6 +56,7 @@
 #include "intel_sat.h"
 #include "intel_sata.h"
 #include "sci_types.h"
+#include "sci_environment.h"
 #include "scic_remote_device.h"
 #include "scic_user_callback.h"
 #include "scic_sds_controller.h"
@@ -252,9 +253,9 @@ static void scu_sata_reqeust_construct_task_context(
 		);
 
 	task_context->command_iu_upper =
-		sci_cb_physical_address_upper(physical_address);
+		upper_32_bits(physical_address);
 	task_context->command_iu_lower =
-		sci_cb_physical_address_lower(physical_address);
+		lower_32_bits(physical_address);
 
 	/* SATA Requests do not have a response buffer */
 	task_context->response_iu_upper = 0;

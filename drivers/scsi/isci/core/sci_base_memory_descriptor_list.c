@@ -60,6 +60,7 @@
  *
  */
 
+#include "sci_environment.h"
 #include "sci_base_memory_descriptor_list.h"
 
 /*
@@ -148,7 +149,7 @@ bool sci_base_mde_is_valid(
 	u16 attributes)
 {
 	/* Only need the lower 32 bits to ensure alignment is met. */
-	u32 physical_address = sci_cb_physical_address_lower(mde->physical_address);
+	u32 physical_address = lower_32_bits(mde->physical_address);
 
 	if (
 		((((unsigned long)mde->virtual_address) & (alignment - 1)) != 0)

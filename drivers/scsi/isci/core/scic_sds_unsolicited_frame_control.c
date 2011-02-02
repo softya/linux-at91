@@ -330,17 +330,12 @@ bool scic_sds_unsolicited_frame_control_release_frame(
 	 * In the event there are NULL entries in the UF table, we need to
 	 * advance the get pointer in order to find out if this frame should
 	 * be released (i.e. update the get pointer). */
-	while (
-		(
-			(sci_cb_physical_address_lower(
-				 uf_control->address_table.array[frame_get]) == 0)
-			&& (sci_cb_physical_address_upper(
-				    uf_control->address_table.array[frame_get]) == 0)
-		)
-		&& (frame_get < uf_control->address_table.count)
-		) {
+	while (((lower_32_bits(uf_control->address_table.array[frame_get])
+					== 0) &&
+		(upper_32_bits(uf_control->address_table.array[frame_get])
+					== 0)) &&
+	       (frame_get < uf_control->address_table.count))
 		frame_get++;
-	}
 
 	/*
 	 * The table has a NULL entry as it's last element.  This is

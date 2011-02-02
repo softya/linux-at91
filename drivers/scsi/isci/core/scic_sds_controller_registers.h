@@ -144,12 +144,12 @@
 		scic_sds_controller_smu_register_write(\
 			controller, \
 			host_task_table_lower, \
-			sci_cb_physical_address_lower(address) \
+			lower_32_bits(address) \
 			); \
 		scic_sds_controller_smu_register_write(\
 			controller, \
 			host_task_table_upper, \
-			sci_cb_physical_address_upper(address) \
+			upper_32_bits(address) \
 			); \
 	}
 
@@ -158,12 +158,12 @@
 		scic_sds_controller_smu_register_write(\
 			controller, \
 			completion_queue_lower,	\
-			sci_cb_physical_address_lower(address) \
+			lower_32_bits(address) \
 			); \
 		scic_sds_controller_smu_register_write(\
 			controller, \
 			completion_queue_upper,	\
-			sci_cb_physical_address_upper(address) \
+			upper_32_bits(address) \
 			); \
 	}
 
@@ -187,12 +187,12 @@
 		scic_sds_controller_smu_register_write(\
 			controller, \
 			remote_node_context_lower, \
-			sci_cb_physical_address_lower(address) \
+			lower_32_bits(address) \
 			); \
 		scic_sds_controller_smu_register_write(\
 			controller, \
 			remote_node_context_upper, \
-			sci_cb_physical_address_upper(address) \
+			upper_32_bits(address) \
 			); \
 	}
 
@@ -324,12 +324,12 @@
 		scu_sdma_register_write(\
 			controller, \
 			uf_address_table_lower,	\
-			sci_cb_physical_address_lower(address) \
+			lower_32_bits(address) \
 			); \
 		scu_sdma_register_write(\
 			controller, \
 			uf_address_table_upper,	\
-			sci_cb_physical_address_upper(address) \
+			upper_32_bits(address) \
 			); \
 	}
 
@@ -338,12 +338,12 @@
 		scu_sdma_register_write(\
 			controller, \
 			uf_header_base_address_lower, \
-			sci_cb_physical_address_lower(address) \
+			lower_32_bits(address) \
 			); \
 		scu_sdma_register_write(\
 			controller, \
 			uf_header_base_address_upper, \
-			sci_cb_physical_address_upper(address) \
+			upper_32_bits(address) \
 			); \
 	}
 

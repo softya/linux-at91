@@ -345,9 +345,9 @@ static void scu_smp_request_construct_task_context(
 		);
 
 	task_context->command_iu_upper =
-		sci_cb_physical_address_upper(physical_address);
+		upper_32_bits(physical_address);
 	task_context->command_iu_lower =
-		sci_cb_physical_address_lower(physical_address);
+		lower_32_bits(physical_address);
 
 
 	/* SMP response comes as UF, so no need to set response IU address. */

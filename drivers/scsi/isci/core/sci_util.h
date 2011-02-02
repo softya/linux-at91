@@ -90,8 +90,8 @@
  */
 #define sci_physical_address_add(physical_address, value) \
 	{ \
-		u32 lower = sci_cb_physical_address_lower((physical_address)); \
-		u32 upper = sci_cb_physical_address_upper((physical_address)); \
+		u32 lower = lower_32_bits((physical_address)); \
+		u32 upper = upper_32_bits((physical_address)); \
  \
 		if (lower + (value) < lower) \
 			upper += 1; \
@@ -109,8 +109,8 @@
  */
 #define sci_physical_address_subtract(physical_address, value) \
 	{ \
-		u32 lower = sci_cb_physical_address_lower((physical_address)); \
-		u32 upper = sci_cb_physical_address_upper((physical_address)); \
+		u32 lower = lower_32_bits((physical_address)); \
+		u32 upper = upper_32_bits((physical_address)); \
  \
 		if (lower - (value) > lower) \
 			upper -= 1; \

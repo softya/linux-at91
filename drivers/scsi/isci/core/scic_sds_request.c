@@ -312,9 +312,9 @@ void scic_sds_request_build_sgl(
 				);
 
 			previous_pair->next_pair_upper =
-				sci_cb_physical_address_upper(physical_address);
+				upper_32_bits(physical_address);
 			previous_pair->next_pair_lower =
-				sci_cb_physical_address_lower(physical_address);
+				lower_32_bits(physical_address);
 		}
 
 		previous_pair = scu_sgl_list;
@@ -569,9 +569,9 @@ static void scu_ssp_reqeust_construct_task_context(
 		);
 
 	task_context->command_iu_upper =
-		sci_cb_physical_address_upper(physical_address);
+		upper_32_bits(physical_address);
 	task_context->command_iu_lower =
-		sci_cb_physical_address_lower(physical_address);
+		lower_32_bits(physical_address);
 
 	/* Copy the physical address for the response buffer to the SCU Task Context */
 	scic_cb_io_request_get_physical_address(
@@ -582,9 +582,9 @@ static void scu_ssp_reqeust_construct_task_context(
 		);
 
 	task_context->response_iu_upper =
-		sci_cb_physical_address_upper(physical_address);
+		upper_32_bits(physical_address);
 	task_context->response_iu_lower =
-		sci_cb_physical_address_lower(physical_address);
+		lower_32_bits(physical_address);
 }
 
 /**

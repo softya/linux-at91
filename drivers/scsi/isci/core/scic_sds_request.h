@@ -394,9 +394,9 @@ extern const struct scic_sds_io_request_state_handler scic_sds_smp_request_start
 		(scu_sge).length = \
 			scic_cb_sge_get_length_field(os_handle, os_sge); \
 		(scu_sge).address_upper = \
-			sci_cb_physical_address_upper(scic_cb_sge_get_address_field(os_handle, os_sge)); \
+			upper_32_bits(scic_cb_sge_get_address_field(os_handle, os_sge)); \
 		(scu_sge).address_lower = \
-			sci_cb_physical_address_lower(scic_cb_sge_get_address_field(os_handle, os_sge)); \
+			lower_32_bits(scic_cb_sge_get_address_field(os_handle, os_sge)); \
 		(scu_sge).address_modifier = 0;	\
 	}
 
