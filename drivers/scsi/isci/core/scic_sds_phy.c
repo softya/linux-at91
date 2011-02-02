@@ -198,14 +198,14 @@ static enum sci_status scic_sds_phy_link_layer_initialization(
 		   phys[this_phy->phy_index].max_speed_generation == SCIC_SDS_PARM_GEN2_SPEED) {
 		link_layer_control |= SCU_SAS_LLCTL_GEN_VAL(
 			MAX_LINK_RATE,
-			MIN(
+			min(
 				SCU_SAS_LINK_LAYER_CONTROL_MAX_LINK_RATE_GEN2,
 				COMPILED_MAX_LINK_RATE)
 			);
 	} else {
 		link_layer_control |= SCU_SAS_LLCTL_GEN_VAL(
 			MAX_LINK_RATE,
-			MIN(
+			min(
 				SCU_SAS_LINK_LAYER_CONTROL_MAX_LINK_RATE_GEN1,
 				COMPILED_MAX_LINK_RATE)
 			);

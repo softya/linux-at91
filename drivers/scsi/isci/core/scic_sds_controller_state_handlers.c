@@ -314,13 +314,13 @@ static enum sci_status scic_sds_controller_reset_state_initialize_handler(
 
 		/* Record the smaller of the two capacity values */
 		this_controller->logical_port_entries =
-			MIN(max_supported_ports, this_controller->logical_port_entries);
+			min(max_supported_ports, this_controller->logical_port_entries);
 
 		this_controller->task_context_entries =
-			MIN(max_supported_io_requests, this_controller->task_context_entries);
+			min(max_supported_io_requests, this_controller->task_context_entries);
 
 		this_controller->remote_node_entries =
-			MIN(max_supported_devices, this_controller->remote_node_entries);
+			min(max_supported_devices, this_controller->remote_node_entries);
 
 		/*
 		 * Now that we have the correct hardware reported minimum values

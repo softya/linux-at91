@@ -61,6 +61,7 @@
 
 #include "intel_sas.h"
 #include "sci_util.h"
+#include "sci_environment.h"
 #include "scic_port.h"
 #include "scic_phy.h"
 #include "scic_remote_device.h"
@@ -255,7 +256,7 @@ enum sci_status scic_remote_device_ea_construct(
 		 * connection the logical link rate is that same as the
 		 * physical.  Furthermore, the SAS-2 and SAS-1.1 fields overlay
 		 * one another, so this code works for both situations. */
-		this_device->connection_rate = MIN(
+		this_device->connection_rate = min_t(u16,
 			scic_sds_port_get_max_allowed_speed(this_device->owning_port),
 			discover_response->u2.sas1_1.negotiated_physical_link_rate
 			);

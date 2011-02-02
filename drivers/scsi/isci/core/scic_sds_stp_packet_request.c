@@ -157,7 +157,7 @@ void scu_stp_packet_request_command_phase_construct_task_context(
 	memcpy(((u8 *)this_request->command_buffer + sizeof(u32)), atapi_cdb, atapi_cdb_length);
 
 	atapi_cdb_length =
-		MAX(atapi_cdb_length, stp_request->type.packet.device_preferred_cdb_length);
+		max(atapi_cdb_length, stp_request->type.packet.device_preferred_cdb_length);
 
 	task_context->ssp_command_iu_length =
 		((atapi_cdb_length % 4) == 0) ?

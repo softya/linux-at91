@@ -780,7 +780,7 @@ u32 scic_io_request_get_object_size(void)
 	stp_request_size = scic_sds_stp_request_get_object_size();
 	smp_request_size = scic_sds_smp_request_get_object_size();
 
-	return MAX(ssp_request_size, MAX(stp_request_size, smp_request_size));
+	return max(ssp_request_size, max(stp_request_size, smp_request_size));
 }
 
 /* --------------------------------------------------------------------------- */
@@ -1255,7 +1255,7 @@ void scic_sds_io_request_copy_response(
 		ssp_response->response_data_length
 		);
 
-	user_response_length = MIN(user_response_length, core_response_length);
+	user_response_length = min(user_response_length, core_response_length);
 
 	memcpy(response_buffer, ssp_response->data, user_response_length);
 }

@@ -249,7 +249,7 @@ static enum sci_status scic_sds_stp_request_pio_data_in_copy_data_buffer(
 			source_address += data_offset;
 			destination_address += sgl_offset;
 
-			copy_length = MIN(length, current_sgl->length - sgl_offset);
+			copy_length = min(length, current_sgl->length - sgl_offset);
 
 			memcpy(destination_address, source_address, copy_length);
 
