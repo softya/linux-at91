@@ -64,7 +64,6 @@
 #include "scic_port.h"
 #include "scic_user_callback.h"
 #include "scic_controller.h"
-#include "scic_sds_logger.h"
 #include "scic_sds_controller.h"
 #include "scic_sds_port.h"
 #include "scic_sds_phy.h"

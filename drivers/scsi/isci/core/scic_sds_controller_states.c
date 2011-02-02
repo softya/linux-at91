@@ -65,7 +65,6 @@
 #include "scic_sds_controller.h"
 #include "scic_sds_controller.h"
 #include "scic_sds_controller_registers.h"
-#include "scic_sds_logger.h"
 
 /**
  *
@@ -205,13 +204,6 @@ static void scic_sds_controller_resetting_state_enter(
 	struct scic_sds_controller *this_controller;
 
 	this_controller = (struct scic_sds_controller *)object;
-
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_controller),
-			       SCIC_LOG_OBJECT_CONTROLLER,
-			       "scic_sds_controller_resetting_state_enter(0x%x) enter\n",
-			       this_controller
-			       ));
 
 	scic_sds_controller_reset_hardware(this_controller);
 

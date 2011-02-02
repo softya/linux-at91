@@ -69,10 +69,6 @@
 #include "scic_sds_remote_device.h"
 #include "scic_sds_request.h"
 #include "scic_sds_controller.h"
-#include "scic_sds_logger.h"
-
-static void scic_sds_remote_device_initialize_state_logging(
-	struct scic_sds_remote_device *this_device);
 
 #define SCIC_SDS_REMOTE_DEVICE_RESET_TIMEOUT  (1000)
 
@@ -103,15 +99,6 @@ void scic_remote_device_construct(
 						remote_device_memory;
 	struct scic_sds_port *the_port    = (struct scic_sds_port *)port;
 
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(the_port),
-			       SCIC_LOG_OBJECT_SSP_REMOTE_TARGET |
-			       SCIC_LOG_OBJECT_STP_REMOTE_TARGET |
-			       SCIC_LOG_OBJECT_SMP_REMOTE_TARGET,
-			       "scic_remote_device_construct(0x%x, 0x%x, 0x%x) enter\n",
-			       port, remote_device_memory, new_remote_device_handle
-			       ));
-
 	memset(remote_device_memory, 0, sizeof(struct scic_sds_remote_device));
 
 	*new_remote_device_handle          = this_device;
@@ -122,7 +109,6 @@ void scic_remote_device_construct(
 
 	sci_base_remote_device_construct(
 		&this_device->parent,
-		sci_base_object_get_logger(the_port),
 		scic_sds_remote_device_state_table
 		);
 
@@ -133,8 +119,6 @@ void scic_remote_device_construct(
 		);
 
 	sci_object_set_association(this_device->rnc, this_device);
-
-	scic_sds_remote_device_initialize_state_logging(this_device);
 }
 
 /* --------------------------------------------------------------------------- */
@@ -147,15 +131,6 @@ enum sci_status scic_remote_device_da_construct(
 	struct scic_sds_remote_device *this_device = (struct scic_sds_remote_device *)
 						remote_device;
 	struct sci_sas_identify_address_frame_protocols protocols;
-
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_device->owning_port),
-			       SCIC_LOG_OBJECT_SSP_REMOTE_TARGET |
-			       SCIC_LOG_OBJECT_STP_REMOTE_TARGET |
-			       SCIC_LOG_OBJECT_SMP_REMOTE_TARGET,
-			       "scic_remote_device_da_construct(0x%x) enter\n",
-			       remote_device
-			       ));
 
 	/*
 	 * This information is request to determine how many remote node context
@@ -247,14 +222,6 @@ enum sci_status scic_remote_device_ea_construct(
 
 	this_device = (struct scic_sds_remote_device *)remote_device;
 
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_device->owning_port),
-			       SCIC_LOG_OBJECT_SSP_REMOTE_TARGET |
-			       SCIC_LOG_OBJECT_SMP_REMOTE_TARGET,
-			       "scic_remote_device_ea_sas_construct0x%x, 0x%x) enter\n",
-			       remote_device, discover_response
-			       ));
-
 	the_controller = scic_sds_port_get_controller(this_device->owning_port);
 
 	scic_sds_remote_device_get_info_from_smp_discover_response(
@@ -319,28 +286,8 @@ enum sci_status scic_remote_device_destruct(
 
 	this_device = (struct scic_sds_remote_device *)remote_device;
 
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_device),
-			       SCIC_LOG_OBJECT_SSP_REMOTE_TARGET |
-			       SCIC_LOG_OBJECT_STP_REMOTE_TARGET |
-			       SCIC_LOG_OBJECT_SMP_REMOTE_TARGET,
-			       "scic_remote_device_destruct(0x%x) enter\n",
-			       remote_device
-			       ));
-
 	return this_device->state_handlers->parent.destruct_handler(&this_device->parent);
 }
-
-/* --------------------------------------------------------------------------- */
-
-
-
-/* --------------------------------------------------------------------------- */
-
-
-/* --------------------------------------------------------------------------- */
-
-
 
 /* --------------------------------------------------------------------------- */
 
@@ -351,15 +298,6 @@ enum sci_status scic_remote_device_start(
 	struct scic_sds_remote_device *this_device;
 
 	this_device = (struct scic_sds_remote_device *)remote_device;
-
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_device),
-			       SCIC_LOG_OBJECT_SSP_REMOTE_TARGET |
-			       SCIC_LOG_OBJECT_STP_REMOTE_TARGET |
-			       SCIC_LOG_OBJECT_SMP_REMOTE_TARGET,
-			       "scic_remote_device_start(0x%x, 0x%x) enter\n",
-			       remote_device, timeout
-			       ));
 
 	return this_device->state_handlers->parent.start_handler(&this_device->parent);
 }
@@ -373,15 +311,6 @@ enum sci_status scic_remote_device_stop(
 	struct scic_sds_remote_device *this_device;
 
 	this_device = (struct scic_sds_remote_device *)remote_device;
-
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_device),
-			       SCIC_LOG_OBJECT_SSP_REMOTE_TARGET |
-			       SCIC_LOG_OBJECT_STP_REMOTE_TARGET |
-			       SCIC_LOG_OBJECT_SMP_REMOTE_TARGET,
-			       "scic_remote_device_stop(0x%x, 0x%x) enter\n",
-			       remote_device, timeout
-			       ));
 
 	return this_device->state_handlers->parent.stop_handler(&this_device->parent);
 }
@@ -399,15 +328,6 @@ enum sci_status scic_remote_device_reset(
 
 	this_device = (struct scic_sds_remote_device *)remote_device;
 
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_device),
-			       SCIC_LOG_OBJECT_SSP_REMOTE_TARGET |
-			       SCIC_LOG_OBJECT_STP_REMOTE_TARGET |
-			       SCIC_LOG_OBJECT_SMP_REMOTE_TARGET,
-			       "scic_remote_device_reset(0x%x) enter\n",
-			       remote_device
-			       ));
-
 	return this_device->state_handlers->parent.reset_handler(&this_device->parent);
 }
 
@@ -423,15 +343,6 @@ enum sci_status scic_remote_device_reset_complete(
 	struct scic_sds_remote_device *this_device;
 
 	this_device = (struct scic_sds_remote_device *)remote_device;
-
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_device),
-			       SCIC_LOG_OBJECT_SSP_REMOTE_TARGET |
-			       SCIC_LOG_OBJECT_STP_REMOTE_TARGET |
-			       SCIC_LOG_OBJECT_SMP_REMOTE_TARGET,
-			       "scic_remote_device_reset_complete(0x%x) enter\n",
-			       remote_device
-			       ));
 
 	return this_device->state_handlers->parent.reset_complete_handler(&this_device->parent);
 }
@@ -455,15 +366,6 @@ enum sci_sas_link_rate scic_remote_device_get_connection_rate(
 
 	this_device = (struct scic_sds_remote_device *)remote_device;
 
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_device),
-			       SCIC_LOG_OBJECT_SSP_REMOTE_TARGET |
-			       SCIC_LOG_OBJECT_STP_REMOTE_TARGET |
-			       SCIC_LOG_OBJECT_SMP_REMOTE_TARGET,
-			       "scic_remote_device_get_connection_rate(0x%x) enter\n",
-			       remote_device
-			       ));
-
 	return this_device->connection_rate;
 }
 
@@ -475,15 +377,6 @@ void scic_remote_device_get_protocols(
 {
 	struct scic_sds_remote_device *this_device = (struct scic_sds_remote_device *)
 						remote_device;
-
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_device),
-			       SCIC_LOG_OBJECT_SSP_REMOTE_TARGET |
-			       SCIC_LOG_OBJECT_STP_REMOTE_TARGET |
-			       SCIC_LOG_OBJECT_SMP_REMOTE_TARGET,
-			       "scic_remote_device_get_protocols(0x%x) enter\n",
-			       remote_device
-			       ));
 
 	protocols->u.all = this_device->target_protocols.u.all;
 }
@@ -529,66 +422,6 @@ bool scic_remote_device_is_atapi(
  */
 
 /* --------------------------------------------------------------------------- */
-
-#ifdef SCI_LOGGING
-/**
- *
- * @this_device: The device for which state transition logging is to be enabled.
- *
- * This method will enable and turn on state transition logging for the remote
- * device object. Nothing
- */
-static void scic_sds_remote_device_initialize_state_logging(
-	struct scic_sds_remote_device *this_device)
-{
-	sci_base_state_machine_logger_initialize(
-		&this_device->parent.state_machine_logger,
-		&this_device->parent.state_machine,
-		&this_device->parent.parent,
-		scic_cb_logger_log_states,
-		"struct scic_sds_remote_device", "base state machine",
-		SCIC_LOG_OBJECT_SSP_REMOTE_TARGET |
-		SCIC_LOG_OBJECT_SMP_REMOTE_TARGET |
-		SCIC_LOG_OBJECT_STP_REMOTE_TARGET
-		);
-
-	if (this_device->has_ready_substate_machine) {
-		sci_base_state_machine_logger_initialize(
-			&this_device->ready_substate_machine_logger,
-			&this_device->ready_substate_machine,
-			&this_device->parent.parent,
-			scic_cb_logger_log_states,
-			"struct scic_sds_remote_device", "ready substate machine",
-			SCIC_LOG_OBJECT_SSP_REMOTE_TARGET |
-			SCIC_LOG_OBJECT_SMP_REMOTE_TARGET |
-			SCIC_LOG_OBJECT_STP_REMOTE_TARGET
-			);
-	}
-}
-
-/**
- *
- * @this_device: The device on which to stop logging state transitions.
- *
- * This method will stop the state machine logging for this object and should
- * be called before the object is destroyed. Nothing
- */
-void scic_sds_remote_device_deinitialize_state_logging(
-	struct scic_sds_remote_device *this_device)
-{
-	sci_base_state_machine_logger_deinitialize(
-		&this_device->parent.state_machine_logger,
-		&this_device->parent.state_machine
-		);
-
-	if (this_device->has_ready_substate_machine) {
-		sci_base_state_machine_logger_deinitialize(
-			&this_device->ready_substate_machine_logger,
-			&this_device->ready_substate_machine
-			);
-	}
-}
-#endif
 
 /**
  *

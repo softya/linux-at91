@@ -57,8 +57,8 @@
 #include "intel_sata.h"
 #include "sci_types.h"
 #include "sci_util.h"
+#include "sci_environment.h"
 #include "scic_user_callback.h"
-#include "scic_sds_logger.h"
 #include "scic_sds_controller.h"
 #include "scic_sds_request.h"
 #include "scic_sds_stp_request.h"
@@ -87,13 +87,6 @@ static enum sci_status scic_sds_stp_request_soft_reset_await_h2d_asserted_tc_com
 	struct scic_sds_request *this_request,
 	u32 completion_code)
 {
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_request),
-			       SCIC_LOG_OBJECT_STP_IO_REQUEST,
-			       "scic_sds_stp_request_soft_reset_await_h2d_tc_completion_handler(0x%x, 0x%x) enter\n",
-			       this_request, completion_code
-			       ));
-
 	switch (SCU_GET_COMPLETION_TL_STATUS(completion_code)) {
 	case SCU_MAKE_COMPLETION_STATUS(SCU_TASK_DONE_GOOD):
 		scic_sds_request_set_status(
@@ -139,13 +132,6 @@ static enum sci_status scic_sds_stp_request_soft_reset_await_h2d_diagnostic_tc_c
 	struct scic_sds_request *this_request,
 	u32 completion_code)
 {
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_request),
-			       SCIC_LOG_OBJECT_STP_IO_REQUEST,
-			       "scic_sds_stp_request_soft_reset_await_h2d_tc_completion_handler(0x%x, 0x%x) enter\n",
-			       this_request, completion_code
-			       ));
-
 	switch (SCU_GET_COMPLETION_TL_STATUS(completion_code)) {
 	case SCU_MAKE_COMPLETION_STATUS(SCU_TASK_DONE_GOOD):
 		scic_sds_request_set_status(
@@ -198,13 +184,6 @@ static enum sci_status scic_sds_stp_request_soft_reset_await_d2h_frame_handler(
 	u32 *frame_buffer;
 	struct scic_sds_stp_request *this_request = (struct scic_sds_stp_request *)request;
 
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_request),
-			       SCIC_LOG_OBJECT_STP_IO_REQUEST,
-			       "scic_sds_stp_request_soft_reset_await_d2h_frame_handler(0x%x, 0x%x) enter\n",
-			       this_request, frame_index
-			       ));
-
 	status = scic_sds_unsolicited_frame_control_get_header(
 		&(this_request->parent.owning_controller->uf_control),
 		frame_index,
@@ -233,12 +212,12 @@ static enum sci_status scic_sds_stp_request_soft_reset_await_d2h_frame_handler(
 			break;
 
 		default:
-			SCIC_LOG_WARNING((
-						 sci_base_object_get_logger(this_request),
-						 SCIC_LOG_OBJECT_STP_IO_REQUEST,
-						 "IO Request:0x%x Frame Id:%d protocol violation occurred\n",
-						 this_request, frame_index
-						 ));
+			dev_warn(scic_to_dev(request->owning_controller),
+				 "%s: IO Request:0x%p Frame Id:%d protocol "
+				 "violation occurred\n",
+				 __func__,
+				 this_request,
+				 frame_index);
 
 			scic_sds_request_set_status(
 				&this_request->parent,
@@ -257,14 +236,11 @@ static enum sci_status scic_sds_stp_request_soft_reset_await_d2h_frame_handler(
 		scic_sds_controller_release_frame(
 			this_request->parent.owning_controller, frame_index
 			);
-	} else {
-		SCIC_LOG_ERROR((
-				       sci_base_object_get_logger(this_request),
-				       SCIC_LOG_OBJECT_STP_IO_REQUEST,
-				       "SCIC IO Request 0x%x could not get frame header for frame index %d, status %x\n",
-				       this_request, frame_index, status
-				       ));
-	}
+	} else
+		dev_err(scic_to_dev(request->owning_controller),
+			"%s: SCIC IO Request 0x%p could not get frame header "
+			"for frame index %d, status %x\n",
+			__func__, this_request, frame_index, status);
 
 	return status;
 }

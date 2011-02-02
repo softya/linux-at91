@@ -64,12 +64,12 @@
 #include "scic_port.h"
 #include "scic_controller.h"
 #include "scic_sds_pci.h"
-#include "scic_sds_logger.h"
 #include "scic_sds_remote_device.h"
 #include "scic_sds_request.h"
 #include "scic_sds_controller.h"
 #include "scic_sds_controller_registers.h"
 #include "sci_util.h"
+#include "sci_environment.h"
 
 #define SCU_CONTEXT_RAM_INIT_STALL_TIME      200
 
@@ -142,13 +142,13 @@ static enum sci_status scic_sds_controller_default_start_operation_handler(
 
 	this_controller = (struct scic_sds_controller *)controller;
 
-	SCIC_LOG_WARNING((
-				 sci_base_object_get_logger(this_controller),
-				 SCIC_LOG_OBJECT_CONTROLLER,
-				 "SCIC Controller requested to start an io/task from invalid state %n\n",
-				 sci_base_state_machine_get_state(
-					 scic_sds_controller_get_base_state_machine(this_controller))
-				 ));
+	dev_warn(scic_to_dev(this_controller),
+		 "%s: SCIC Controller requested to start an io/task from "
+		 "invalid state %d\n",
+		 __func__,
+		 sci_base_state_machine_get_state(
+			 scic_sds_controller_get_base_state_machine(
+				 this_controller)));
 
 	return SCI_FAILURE_INVALID_STATE;
 }
@@ -174,13 +174,12 @@ static enum sci_status scic_sds_controller_default_request_handler(
 
 	this_controller = (struct scic_sds_controller *)controller;
 
-	SCIC_LOG_WARNING((
-				 sci_base_object_get_logger(this_controller),
-				 SCIC_LOG_OBJECT_CONTROLLER,
-				 "SCIC Controller request operation from invalid state %n\n",
-				 sci_base_state_machine_get_state(
-					 scic_sds_controller_get_base_state_machine(this_controller))
-				 ));
+	dev_warn(scic_to_dev(this_controller),
+		"%s: SCIC Controller request operation from invalid state %d\n",
+		__func__,
+		sci_base_state_machine_get_state(
+			scic_sds_controller_get_base_state_machine(
+				this_controller)));
 
 	return SCI_FAILURE_INVALID_STATE;
 }
@@ -205,13 +204,6 @@ static enum sci_status scic_sds_controller_general_reset_handler(
 	struct scic_sds_controller *this_controller;
 
 	this_controller = (struct scic_sds_controller *)controller;
-
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(controller),
-			       SCIC_LOG_OBJECT_CONTROLLER,
-			       "scic_sds_controller_resetting_state_enter(0x%x) enter\n",
-			       controller
-			       ));
 
 	/*
 	 * The reset operation is not a graceful cleanup just perform the state
@@ -246,13 +238,6 @@ static enum sci_status scic_sds_controller_reset_state_initialize_handler(
 	struct scic_sds_controller *this_controller;
 
 	this_controller = (struct scic_sds_controller *)controller;
-
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(controller),
-			       SCIC_LOG_OBJECT_CONTROLLER | SCIC_LOG_OBJECT_INITIALIZATION,
-			       "scic_sds_controller_reset_state_initialize_handler(0x%x) enter\n",
-			       controller
-			       ));
 
 	sci_base_state_machine_change_state(
 		scic_sds_controller_get_base_state_machine(this_controller),

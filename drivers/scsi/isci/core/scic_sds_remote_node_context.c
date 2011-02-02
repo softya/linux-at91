@@ -62,7 +62,6 @@
  */
 
 #include "sci_util.h"
-#include "scic_sds_logger.h"
 #include "scic_sds_controller.h"
 #include "scic_sds_remote_device.h"
 #include "scic_sds_remote_node_context.h"
@@ -83,8 +82,6 @@ void scic_sds_remote_node_context_construct(
 	rnc->device            = device;
 	rnc->destination_state = SCIC_SDS_REMOTE_NODE_DESTINATION_STATE_UNSPECIFIED;
 
-	rnc->parent.logger = device->parent.parent.logger;
-
 	sci_base_state_machine_construct(
 		&rnc->state_machine,
 		&rnc->parent,
@@ -93,10 +90,6 @@ void scic_sds_remote_node_context_construct(
 		);
 
 	sci_base_state_machine_start(&rnc->state_machine);
-
-	/*
-	 * State logging initialization takes place late for the remote node context
-	 * see the resume state handler for the initial state. */
 }
 
 /**
@@ -198,46 +191,3 @@ void scic_sds_remote_node_context_construct_buffer(
 }
 
 /* --------------------------------------------------------------------------- */
-
-#ifdef SCI_LOGGING
-/**
- *
- * @this_rnc: The remote node context for which state transition logging is to
- *    be enabled.
- *
- * This method will enable and turn on state transition logging for the remote
- * node context object. none
- */
-void scic_sds_remote_node_context_initialize_state_logging(
-	struct scic_sds_remote_node_context *this_rnc)
-{
-	sci_base_state_machine_logger_initialize(
-		&this_rnc->state_machine_logger,
-		&this_rnc->state_machine,
-		&this_rnc->parent,
-		scic_cb_logger_log_states,
-		"struct scic_sds_remote_node_context", "state machine",
-		SCIC_LOG_OBJECT_SSP_REMOTE_TARGET |
-		SCIC_LOG_OBJECT_SMP_REMOTE_TARGET |
-		SCIC_LOG_OBJECT_STP_REMOTE_TARGET
-		);
-}
-
-/**
- *
- * @this_rnc: The remote node context on which to stop logging state
- *    transitions.
- *
- * This method will stop the state machine logging for this object and should
- * be called before the object is destroyed. none
- */
-void scic_sds_remote_node_context_deinitialize_state_logging(
-	struct scic_sds_remote_node_context *this_rnc)
-{
-	sci_base_state_machine_logger_deinitialize(
-		&this_rnc->state_machine_logger,
-		&this_rnc->state_machine
-		);
-}
-#endif
-

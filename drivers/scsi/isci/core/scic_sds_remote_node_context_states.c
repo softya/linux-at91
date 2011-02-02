@@ -211,12 +211,6 @@ static void scic_sds_remote_node_context_initial_state_enter(
 		rnc->destination_state = SCIC_SDS_REMOTE_NODE_DESTINATION_STATE_UNSPECIFIED;
 
 		scic_sds_remote_node_context_notify_user(rnc);
-
-		/*
-		 * Since we are destroying the remote node context deinitialize the state logging
-		 * should we resume the remote node context the state logging will be reinitialized
-		 * on the resume handler. */
-		scic_sds_remote_node_context_deinitialize_state_logging(rnc);
 	}
 }
 

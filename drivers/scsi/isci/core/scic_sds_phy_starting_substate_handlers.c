@@ -61,10 +61,10 @@
  */
 
 #include "sci_util.h"
+#include "sci_environment.h"
 #include "intel_ata.h"
 #include "intel_sata.h"
 #include "sci_base_state_machine.h"
-#include "scic_sds_logger.h"
 #include "scic_sds_controller.h"
 #include "scic_sds_port.h"
 #include "scic_sds_phy.h"
@@ -202,12 +202,11 @@ static enum sci_status scic_sds_phy_starting_substate_await_ossp_event_handler(
 		break;
 
 	default:
-		SCIC_LOG_WARNING((
-					 sci_base_object_get_logger(this_phy),
-					 SCIC_LOG_OBJECT_PHY | SCIC_LOG_OBJECT_RECEIVED_EVENTS,
-					 "PHY starting substate machine recieved unexpected event_code %x\n",
-					 event_code
-					 ));
+		dev_warn(sciphy_to_dev(this_phy),
+			 "%s: PHY starting substate machine recieved "
+			 "unexpected event_code %x\n",
+			 __func__,
+			 event_code);
 
 		result = SCI_FAILURE;
 		break;
@@ -277,12 +276,11 @@ static enum sci_status scic_sds_phy_starting_substate_await_sas_phy_speed_event_
 		break;
 
 	default:
-		SCIC_LOG_WARNING((
-					 sci_base_object_get_logger(this_phy),
-					 SCIC_LOG_OBJECT_PHY | SCIC_LOG_OBJECT_RECEIVED_EVENTS,
-					 "PHY starting substate machine recieved unexpected event_code %x\n",
-					 event_code
-					 ));
+		dev_warn(sciphy_to_dev(this_phy),
+			 "%s: PHY starting substate machine recieved "
+			 "unexpected event_code %x\n",
+			 __func__,
+			 event_code);
 
 		result = SCI_FAILURE;
 		break;
@@ -332,12 +330,11 @@ static enum sci_status scic_sds_phy_starting_substate_await_iaf_uf_event_handler
 		break;
 
 	default:
-		SCIC_LOG_WARNING((
-					 sci_base_object_get_logger(this_phy),
-					 SCIC_LOG_OBJECT_PHY | SCIC_LOG_OBJECT_RECEIVED_EVENTS,
-					 "PHY starting substate machine recieved unexpected event_code %x\n",
-					 event_code
-					 ));
+		dev_warn(sciphy_to_dev(this_phy),
+			 "%s: PHY starting substate machine recieved "
+			 "unexpected event_code %x\n",
+			 __func__,
+			 event_code);
 
 		result = SCI_FAILURE;
 		break;
@@ -371,12 +368,11 @@ static enum sci_status scic_sds_phy_starting_substate_await_sas_power_event_hand
 		break;
 
 	default:
-		SCIC_LOG_WARNING((
-					 sci_base_object_get_logger(this_phy),
-					 SCIC_LOG_OBJECT_PHY | SCIC_LOG_OBJECT_RECEIVED_EVENTS,
-					 "PHY starting substate machine recieved unexpected event_code %x\n",
-					 event_code
-					 ));
+		dev_warn(sciphy_to_dev(this_phy),
+			"%s: PHY starting substate machine recieved unexpected "
+			"event_code %x\n",
+			__func__,
+			event_code);
 
 		result = SCI_FAILURE;
 		break;
@@ -421,12 +417,11 @@ static enum sci_status scic_sds_phy_starting_substate_await_sata_power_event_han
 		break;
 
 	default:
-		SCIC_LOG_WARNING((
-					 sci_base_object_get_logger(this_phy),
-					 SCIC_LOG_OBJECT_PHY | SCIC_LOG_OBJECT_RECEIVED_EVENTS,
-					 "PHY starting substate machine recieved unexpected event_code %x\n",
-					 event_code
-					 ));
+		dev_warn(sciphy_to_dev(this_phy),
+			 "%s: PHY starting substate machine recieved "
+			 "unexpected event_code %x\n",
+			 __func__,
+			 event_code);
 
 		result = SCI_FAILURE;
 		break;
@@ -484,12 +479,11 @@ static enum sci_status scic_sds_phy_starting_substate_await_sata_phy_event_handl
 		break;
 
 	default:
-		SCIC_LOG_WARNING((
-					 sci_base_object_get_logger(this_phy),
-					 SCIC_LOG_OBJECT_PHY | SCIC_LOG_OBJECT_RECEIVED_EVENTS,
-					 "PHY starting substate machine recieved unexpected event_code %x\n",
-					 event_code
-					 ));
+		dev_warn(sciphy_to_dev(this_phy),
+			 "%s: PHY starting substate machine recieved "
+			 "unexpected event_code %x\n",
+			 __func__,
+			 event_code);
 
 		result = SCI_FAILURE;
 		break;
@@ -564,12 +558,11 @@ static enum sci_status scic_sds_phy_starting_substate_await_sata_speed_event_han
 		break;
 
 	default:
-		SCIC_LOG_WARNING((
-					 sci_base_object_get_logger(this_phy),
-					 SCIC_LOG_OBJECT_PHY | SCIC_LOG_OBJECT_RECEIVED_EVENTS,
-					 "PHY starting substate machine recieved unexpected event_code %x\n",
-					 event_code
-					 ));
+		dev_warn(sciphy_to_dev(this_phy),
+			 "%s: PHY starting substate machine recieved "
+			 "unexpected event_code %x\n",
+			 __func__,
+			 event_code);
 
 		result = SCI_FAILURE;
 		break;
@@ -613,12 +606,11 @@ static enum sci_status scic_sds_phy_starting_substate_await_sig_fis_event_handle
 		break;
 
 	default:
-		SCIC_LOG_WARNING((
-					 sci_base_object_get_logger(this_phy),
-					 SCIC_LOG_OBJECT_PHY | SCIC_LOG_OBJECT_RECEIVED_EVENTS,
-					 "PHY starting substate machine recieved unexpected event_code %x\n",
-					 event_code
-					 ));
+		dev_warn(sciphy_to_dev(this_phy),
+			 "%s: PHY starting substate machine recieved "
+			 "unexpected event_code %x\n",
+			 __func__,
+			 event_code);
 
 		result = SCI_FAILURE;
 		break;
@@ -699,14 +691,12 @@ static enum sci_status scic_sds_phy_starting_substate_await_iaf_uf_frame_handler
 		}
 
 		result = SCI_SUCCESS;
-	} else {
-		SCIC_LOG_WARNING((
-					 sci_base_object_get_logger(this_phy),
-					 SCIC_LOG_OBJECT_PHY | SCIC_LOG_OBJECT_UNSOLICITED_FRAMES,
-					 "PHY starting substate machine recieved unexpected frame id %x\n",
-					 frame_index
-					 ));
-	}
+	} else
+		dev_warn(sciphy_to_dev(this_phy),
+			"%s: PHY starting substate machine recieved "
+			"unexpected frame id %x\n",
+			__func__,
+			frame_index);
 
 	/* Regardless of the result release this frame since we are done with it */
 	scic_sds_controller_release_frame(
@@ -773,14 +763,12 @@ static enum sci_status scic_sds_phy_starting_substate_await_sig_fis_frame_handle
 			);
 
 		result = SCI_SUCCESS;
-	} else {
-		SCIC_LOG_WARNING((
-					 sci_base_object_get_logger(this_phy),
-					 SCIC_LOG_OBJECT_PHY | SCIC_LOG_OBJECT_UNSOLICITED_FRAMES,
-					 "PHY starting substate machine recieved unexpected frame id %x\n",
-					 frame_index
-					 ));
-	}
+	} else
+		dev_warn(sciphy_to_dev(this_phy),
+			 "%s: PHY starting substate machine recieved "
+			 "unexpected frame id %x\n",
+			 __func__,
+			 frame_index);
 
 	/* Regardless of the result release this frame since we are done with it */
 	scic_sds_controller_release_frame(

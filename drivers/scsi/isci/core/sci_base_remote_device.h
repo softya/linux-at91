@@ -64,8 +64,6 @@
  */
 
 #include "sci_base_state_machine.h"
-#include "sci_base_logger.h"
-#include "sci_base_state_machine_logger.h"
 
 struct sci_base_request;
 
@@ -155,14 +153,6 @@ struct sci_base_remote_device {
 	 * machine.
 	 */
 	struct sci_base_state_machine state_machine;
-
-   #ifdef SCI_LOGGING
-	/**
-	 * This field contains the state machine observer for the state machine.
-	 */
-	struct sci_base_state_machine_logger state_machine_logger;
-   #endif /* SCI_LOGGING */
-
 };
 
 
@@ -264,15 +254,12 @@ struct sci_base_remote_device_state_handler {
  * sci_base_remote_device_construct() - Construct the base remote device
  * @this_remote_device: This parameter specifies the base remote device to be
  *    constructed.
- * @logger: This parameter specifies the logger associated with this base
- *    remote device object.
  * @state_table: This parameter specifies the table of state definitions to be
  *    utilized for the remote device state machine.
  *
  */
 void sci_base_remote_device_construct(
 	struct sci_base_remote_device *this_device,
-	struct sci_base_logger *logger,
 	const struct sci_base_state *state_table);
 
 #endif /* _SCI_BASE_REMOTE_DEVICE_H_ */

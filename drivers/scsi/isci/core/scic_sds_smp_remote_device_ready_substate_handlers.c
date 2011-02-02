@@ -60,8 +60,8 @@
  *
  */
 
+#include "sci_environment.h"
 #include "scic_user_callback.h"
-#include "scic_sds_logger.h"
 #include "scic_sds_remote_device.h"
 #include "scic_sds_controller.h"
 #include "scic_sds_port.h"
@@ -172,14 +172,16 @@ static enum sci_status scic_sds_smp_remote_device_ready_cmd_substate_complete_io
 				&this_device->ready_substate_machine,
 				SCIC_SDS_SMP_REMOTE_DEVICE_READY_SUBSTATE_IDLE
 				);
-		} else {
-			SCIC_LOG_ERROR((
-					       sci_base_object_get_logger(this_device),
-					       SCIC_LOG_OBJECT_SMP_REMOTE_TARGET,
-					       "SCIC SDS Remote Device 0x%x io request 0x%x could not be completd on the port 0x%x failed with status %d.\n",
-					       this_device, the_request, this_device->owning_port, status
-					       ));
-		}
+		} else
+			dev_err(scirdev_to_dev(this_device),
+				"%s: SCIC SDS Remote Device 0x%p io request "
+				"0x%p could not be completd on the port 0x%p "
+				"failed with status %d.\n",
+				__func__,
+				this_device,
+				the_request,
+				this_device->owning_port,
+				status);
 	}
 
 	return status;

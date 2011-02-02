@@ -57,13 +57,9 @@
 
 void sci_base_remote_device_construct(
 	struct sci_base_remote_device *this_device,
-	struct sci_base_logger *logger,
 	const struct sci_base_state *state_table)
 {
-	sci_base_object_construct(
-		&this_device->parent,
-		logger
-		);
+	sci_base_object_construct(&this_device->parent);
 
 	sci_base_state_machine_construct(
 		&this_device->state_machine,

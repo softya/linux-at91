@@ -70,10 +70,9 @@
 
 void sci_base_phy_construct(
 	struct sci_base_phy *this_phy,
-	struct sci_base_logger *logger,
 	const struct sci_base_state *state_table)
 {
-	sci_base_object_construct(&this_phy->parent, logger);
+	sci_base_object_construct(&this_phy->parent);
 
 	sci_base_state_machine_construct(
 		&this_phy->state_machine,

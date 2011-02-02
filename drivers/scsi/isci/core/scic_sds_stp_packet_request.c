@@ -55,7 +55,6 @@
 #if !defined(DISABLE_ATAPI)
 
 #include "scic_sds_stp_packet_request.h"
-#include "scic_sds_logger.h"
 #include "scic_sds_controller.h"
 #include "scic_sds_remote_device.h"
 #include "scic_remote_device.h"

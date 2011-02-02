@@ -66,7 +66,6 @@
 #include "scic_io_request.h"
 
 #include "sci_base_request.h"
-#include "sci_base_state_machine_logger.h"
 #include "scu_task_context.h"
 #include "intel_sas.h"
 
@@ -221,13 +220,6 @@ struct scic_sds_request {
 	 * changes state.
 	 */
 	const struct scic_sds_io_request_state_handler *state_handlers;
-
-   #ifdef SCI_LOGGING
-	/**
-	 * This field is the observer of the started subsate machine
-	 */
-	struct sci_base_state_machine_logger started_substate_machine_logger;
-   #endif
 
 	/**
 	 * This field in the recorded device sequence for the io request.  This is
@@ -449,15 +441,6 @@ enum sci_status scic_sds_io_request_frame_handler(
 
 enum sci_status scic_sds_task_request_terminate(
 	struct scic_sds_request *this_request);
-
-#ifdef SCI_LOGGING
-
-void scic_sds_request_deinitialize_state_logging(
-	struct scic_sds_request *this_request);
-#else /* SCI_LOGGING */
-#define scic_sds_request_initialize_state_logging(x)
-#define scic_sds_request_deinitialize_state_logging(x)
-#endif /* SCI_LOGGING */
 
 /*
  * *****************************************************************************

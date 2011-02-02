@@ -57,13 +57,9 @@
 
 void sci_base_request_construct(
 	struct sci_base_request *this_request,
-	struct sci_base_logger *my_logger,
 	const struct sci_base_state *my_state_table)
 {
-	sci_base_object_construct(
-		&this_request->parent,
-		my_logger
-		);
+	sci_base_object_construct(&this_request->parent);
 
 	sci_base_state_machine_construct(
 		&this_request->state_machine,

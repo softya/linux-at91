@@ -143,66 +143,8 @@ struct isci_firmware {
 	u8 sas_addrs_size;
 };
 
-#define LOGGER_PRINT(kern_prefix, format, verb)	\
-	do {						\
-		va_list vargs;				\
-		char buffer[512];			\
-			\
-		if (loglevel & (1 << verb)		\
-		    ) {					\
-			\
-			va_start(vargs, format);	\
-			vsnprintf(\
-				buffer,			\
-				sizeof(buffer),		\
-				format, vargs		\
-				);				\
-			\
-			va_end(vargs);			\
-			printk(\
-				kern_prefix		\
-				DRV_NAME		\
-				": "			\
-				"%s\n", buffer);	\
-		}					\
-	} while (0);
-
-#if defined(SCI_LOGGING)
-#define isci_logger(name, format, args ...) \
-	scic_cb_logger_log_ ## name(0, 0,    \
-				    "%s: " format,	       \
-				    __func__,		       \
-				    args		       \
-				    );
-#else
-#define isci_logger(name, format, args ...) {}
-#endif
-
 irqreturn_t isci_isr(int vec, void *data);
 irqreturn_t isci_legacy_isr(int vec, void *data);
-
-#if defined(SCI_LOGGING)
-void scic_cb_logger_log_states(
-	SCI_LOGGER_HANDLE_T logger_object,
-	u32 log_object_mask,
-	char *log_message,
-	...);
-void scic_cb_logger_log_trace(
-	SCI_LOGGER_HANDLE_T logger_object,
-	u32 log_object_mask,
-	char *log_message,
-	...);
-void scic_cb_logger_log_warning(
-	SCI_LOGGER_HANDLE_T logger_object,
-	u32 log_object_mask,
-	char *log_message,
-	...);
-void scic_cb_logger_log_error(
-	SCI_LOGGER_HANDLE_T logger_object,
-	u32 log_object_mask,
-	char *log_message,
-	...);
-#endif
 
 enum sci_status isci_module_parse_oem_parameters(
 	union scic_oem_parameters *oem_params,

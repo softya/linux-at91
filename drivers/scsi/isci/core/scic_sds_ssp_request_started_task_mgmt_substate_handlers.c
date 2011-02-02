@@ -61,9 +61,9 @@
  */
 
 #include "intel_sas.h"
+#include "sci_environment.h"
 #include "scic_sds_request.h"
 #include "scic_controller.h"
-#include "scic_sds_logger.h"
 #include "scic_sds_controller.h"
 #include "scu_completion_codes.h"
 #include "scu_task_context.h"
@@ -85,13 +85,6 @@ static enum sci_status scic_sds_ssp_task_request_await_tc_completion_tc_completi
 	struct scic_sds_request *this_request,
 	u32 completion_code)
 {
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_request),
-			       SCIC_LOG_OBJECT_TASK_MANAGEMENT,
-			       "scic_sds_ssp_task_request_await_tc_completion_tc_completion_handler(0x%x, 0x%x) enter\n",
-			       this_request, completion_code
-			       ));
-
 	switch (SCU_GET_COMPLETION_TL_STATUS(completion_code)) {
 	case SCU_MAKE_COMPLETION_STATUS(SCU_TASK_DONE_GOOD):
 		scic_sds_request_set_status(
@@ -110,12 +103,12 @@ static enum sci_status scic_sds_ssp_task_request_await_tc_completion_tc_completi
 		 * timeout if the task IU wasn't received successfully.
 		 * There is a potential for receiving multiple task responses if we
 		 * decide to send the task IU again. */
-		SCIC_LOG_WARNING((
-					 sci_base_object_get_logger(this_request),
-					 SCIC_LOG_OBJECT_TASK_MANAGEMENT,
-					 "TaskRequest:0x%x CompletionCode:%x - ACK/NAK timeout\n",
-					 this_request, completion_code
-					 ));
+		dev_warn(scic_to_dev(this_request->owning_controller),
+			 "%s: TaskRequest:0x%p CompletionCode:%x - "
+			 "ACK/NAK timeout\n",
+			 __func__,
+			 this_request,
+			 completion_code);
 
 		sci_base_state_machine_change_state(
 			&this_request->started_substate_machine,
@@ -160,13 +153,6 @@ static enum sci_status scic_sds_ssp_task_request_await_tc_response_abort_handler
 {
 	struct scic_sds_request *this_request = (struct scic_sds_request *)request;
 
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_request),
-			       SCIC_LOG_OBJECT_TASK_MANAGEMENT,
-			       "scic_sds_ssp_task_request_await_tc_response_abort_handler(0x%x) enter\n",
-			       this_request
-			       ));
-
 	sci_base_state_machine_change_state(
 		&this_request->parent.state_machine,
 		SCI_BASE_REQUEST_STATE_ABORTING
@@ -199,13 +185,6 @@ static enum sci_status scic_sds_ssp_task_request_await_tc_response_frame_handler
 	struct scic_sds_request *this_request,
 	u32 frame_index)
 {
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_request),
-			       SCIC_LOG_OBJECT_TASK_MANAGEMENT,
-			       "scic_sds_ssp_task_request_await_tc_response_frame_handler(0x%x, 0x%x) enter\n",
-			       this_request, frame_index
-			       ));
-
 	scic_sds_io_request_copy_response(this_request);
 
 	sci_base_state_machine_change_state(

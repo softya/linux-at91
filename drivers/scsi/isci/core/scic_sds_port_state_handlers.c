@@ -60,11 +60,11 @@
  */
 
 #include "intel_sas.h"
+#include "sci_environment.h"
 #include "scic_controller.h"
 #include "scic_phy.h"
 #include "scic_port.h"
 #include "scic_user_callback.h"
-#include "scic_sds_logger.h"
 #include "scic_sds_controller.h"
 #include "scic_sds_port.h"
 #include "scic_sds_phy.h"
@@ -88,14 +88,16 @@
 enum sci_status scic_sds_port_default_start_handler(
 	struct sci_base_port *port)
 {
-	SCIC_LOG_WARNING((
-				 sci_base_object_get_logger((struct scic_sds_port *)port),
-				 SCIC_LOG_OBJECT_PORT,
-				 "SCIC Port 0x%08x requested to start while in invalid state %d\n",
-				 port,
-				 sci_base_state_machine_get_state(
-					 scic_sds_port_get_base_state_machine((struct scic_sds_port *)port))
-				 ));
+	struct scic_sds_port *sci_port = (struct scic_sds_port *)port;
+
+	dev_warn(sciport_to_dev(sci_port),
+		 "%s: SCIC Port 0x%p requested to start while in invalid "
+		 "state %d\n",
+		 __func__,
+		 port,
+		 sci_base_state_machine_get_state(
+			 scic_sds_port_get_base_state_machine(
+				 (struct scic_sds_port *)port)));
 
 	return SCI_FAILURE_INVALID_STATE;
 }
@@ -111,14 +113,16 @@ enum sci_status scic_sds_port_default_start_handler(
 static enum sci_status scic_sds_port_default_stop_handler(
 	struct sci_base_port *port)
 {
-	SCIC_LOG_WARNING((
-				 sci_base_object_get_logger((struct scic_sds_port *)port),
-				 SCIC_LOG_OBJECT_PORT,
-				 "SCIC Port 0x%08x requested to stop while in invalid state %d\n",
-				 port,
-				 sci_base_state_machine_get_state(
-					 scic_sds_port_get_base_state_machine((struct scic_sds_port *)port))
-				 ));
+	struct scic_sds_port *sci_port = (struct scic_sds_port *)port;
+
+	dev_warn(sciport_to_dev(sci_port),
+		 "%s: SCIC Port 0x%p requested to stop while in invalid "
+		 "state %d\n",
+		 __func__,
+		 port,
+		 sci_base_state_machine_get_state(
+			 scic_sds_port_get_base_state_machine(
+				 (struct scic_sds_port *)port)));
 
 	return SCI_FAILURE_INVALID_STATE;
 }
@@ -134,14 +138,16 @@ static enum sci_status scic_sds_port_default_stop_handler(
 enum sci_status scic_sds_port_default_destruct_handler(
 	struct sci_base_port *port)
 {
-	SCIC_LOG_WARNING((
-				 sci_base_object_get_logger((struct scic_sds_port *)port),
-				 SCIC_LOG_OBJECT_PORT,
-				 "SCIC Port 0x%08x requested to destruct while in invalid state %d\n",
-				 port,
-				 sci_base_state_machine_get_state(
-					 scic_sds_port_get_base_state_machine((struct scic_sds_port *)port))
-				 ));
+	struct scic_sds_port *sci_port = (struct scic_sds_port *)port;
+
+	dev_warn(sciport_to_dev(sci_port),
+		 "%s: SCIC Port 0x%p requested to destruct while in invalid "
+		 "state %d\n",
+		 __func__,
+		 port,
+		 sci_base_state_machine_get_state(
+			 scic_sds_port_get_base_state_machine(
+				 (struct scic_sds_port *)port)));
 
 	return SCI_FAILURE_INVALID_STATE;
 }
@@ -159,14 +165,16 @@ enum sci_status scic_sds_port_default_reset_handler(
 	struct sci_base_port *port,
 	u32 timeout)
 {
-	SCIC_LOG_WARNING((
-				 sci_base_object_get_logger((struct scic_sds_port *)port),
-				 SCIC_LOG_OBJECT_PORT,
-				 "SCIC Port 0x%08x requested to reset while in invalid state %d\n",
-				 port,
-				 sci_base_state_machine_get_state(
-					 scic_sds_port_get_base_state_machine((struct scic_sds_port *)port))
-				 ));
+	struct scic_sds_port *sci_port = (struct scic_sds_port *)port;
+
+	dev_warn(sciport_to_dev(sci_port),
+		 "%s: SCIC Port 0x%p requested to reset while in invalid "
+		 "state %d\n",
+		 __func__,
+		 port,
+		 sci_base_state_machine_get_state(
+			 scic_sds_port_get_base_state_machine(
+				 (struct scic_sds_port *)port)));
 
 	return SCI_FAILURE_INVALID_STATE;
 }
@@ -183,14 +191,17 @@ static enum sci_status scic_sds_port_default_add_phy_handler(
 	struct sci_base_port *port,
 	struct sci_base_phy *phy)
 {
-	SCIC_LOG_WARNING((
-				 sci_base_object_get_logger((struct scic_sds_port *)port),
-				 SCIC_LOG_OBJECT_PORT,
-				 "SCIC Port 0x%08x requested to add phy 0x%08x while in invalid state %d\n",
-				 port, phy,
-				 sci_base_state_machine_get_state(
-					 scic_sds_port_get_base_state_machine((struct scic_sds_port *)port))
-				 ));
+	struct scic_sds_port *sci_port = (struct scic_sds_port *)port;
+
+	dev_warn(sciport_to_dev(sci_port),
+		 "%s: SCIC Port 0x%p requested to add phy 0x%p while in "
+		 "invalid state %d\n",
+		 __func__,
+		 port,
+		 phy,
+		 sci_base_state_machine_get_state(
+			 scic_sds_port_get_base_state_machine(
+				 (struct scic_sds_port *)port)));
 
 	return SCI_FAILURE_INVALID_STATE;
 }
@@ -207,14 +218,17 @@ enum sci_status scic_sds_port_default_remove_phy_handler(
 	struct sci_base_port *port,
 	struct sci_base_phy *phy)
 {
-	SCIC_LOG_WARNING((
-				 sci_base_object_get_logger((struct scic_sds_port *)port),
-				 SCIC_LOG_OBJECT_PORT,
-				 "SCIC Port 0x%08x requested to remove phy 0x%08x while in invalid state %d\n",
-				 port, phy,
-				 sci_base_state_machine_get_state(
-					 scic_sds_port_get_base_state_machine((struct scic_sds_port *)port))
-				 ));
+	struct scic_sds_port *sci_port = (struct scic_sds_port *)port;
+
+	dev_warn(sciport_to_dev(sci_port),
+		 "%s: SCIC Port 0x%p requested to remove phy 0x%p while in "
+		 "invalid state %d\n",
+		 __func__,
+		 port,
+		 phy,
+		 sci_base_state_machine_get_state(
+			 scic_sds_port_get_base_state_machine(
+				 (struct scic_sds_port *)port)));
 
 	return SCI_FAILURE_INVALID_STATE;
 }
@@ -233,19 +247,17 @@ enum sci_status scic_sds_port_default_frame_handler(
 	struct scic_sds_port *port,
 	u32 frame_index)
 {
-	struct scic_sds_port *this_port = (struct scic_sds_port *)port;
-
-	SCIC_LOG_WARNING((
-				 sci_base_object_get_logger(this_port),
-				 SCIC_LOG_OBJECT_PORT,
-				 "SCIC Port 0x%08x requested to process frame %d while in invalid state %d\n",
-				 port, frame_index,
-				 sci_base_state_machine_get_state(
-					 scic_sds_port_get_base_state_machine(this_port))
-				 ));
+	dev_warn(sciport_to_dev(port),
+		 "%s: SCIC Port 0x%p requested to process frame %d while in "
+		 "invalid state %d\n",
+		 __func__,
+		 port,
+		 frame_index,
+		 sci_base_state_machine_get_state(
+			 scic_sds_port_get_base_state_machine(port)));
 
 	scic_sds_controller_release_frame(
-		scic_sds_port_get_controller(this_port), frame_index
+		scic_sds_port_get_controller(port), frame_index
 		);
 
 	return SCI_FAILURE_INVALID_STATE;
@@ -263,14 +275,15 @@ enum sci_status scic_sds_port_default_event_handler(
 	struct scic_sds_port *port,
 	u32 event_code)
 {
-	SCIC_LOG_WARNING((
-				 sci_base_object_get_logger((struct scic_sds_port *)port),
-				 SCIC_LOG_OBJECT_PORT,
-				 "SCIC Port 0x%08x requested to process event 0x%08x while in invalid state %d\n",
-				 port, event_code,
-				 sci_base_state_machine_get_state(
-					 scic_sds_port_get_base_state_machine((struct scic_sds_port *)port))
-				 ));
+	dev_warn(sciport_to_dev(port),
+		 "%s: SCIC Port 0x%p requested to process event 0x%x while "
+		 "in invalid state %d\n",
+		 __func__,
+		 port,
+		 event_code,
+		 sci_base_state_machine_get_state(
+			 scic_sds_port_get_base_state_machine(
+				 (struct scic_sds_port *)port)));
 
 	return SCI_FAILURE_INVALID_STATE;
 }
@@ -287,14 +300,14 @@ void scic_sds_port_default_link_up_handler(
 	struct scic_sds_port *this_port,
 	struct scic_sds_phy *phy)
 {
-	SCIC_LOG_WARNING((
-				 sci_base_object_get_logger(this_port),
-				 SCIC_LOG_OBJECT_PORT,
-				 "SCIC Port 0x%08x received link_up notification from phy 0x%08x while in invalid state %d\n",
-				 this_port, phy,
-				 sci_base_state_machine_get_state(
-					 scic_sds_port_get_base_state_machine(this_port))
-				 ));
+	dev_warn(sciport_to_dev(this_port),
+		 "%s: SCIC Port 0x%p received link_up notification from phy "
+		 "0x%p while in invalid state %d\n",
+		 __func__,
+		 this_port,
+		 phy,
+		 sci_base_state_machine_get_state(
+			 scic_sds_port_get_base_state_machine(this_port)));
 }
 
 /**
@@ -309,14 +322,14 @@ void scic_sds_port_default_link_down_handler(
 	struct scic_sds_port *this_port,
 	struct scic_sds_phy *phy)
 {
-	SCIC_LOG_WARNING((
-				 sci_base_object_get_logger(this_port),
-				 SCIC_LOG_OBJECT_PORT,
-				 "SCIC Port 0x%08x received link down notification from phy 0x%08x while in invalid state %d\n",
-				 this_port, phy,
-				 sci_base_state_machine_get_state(
-					 scic_sds_port_get_base_state_machine(this_port))
-				 ));
+	dev_warn(sciport_to_dev(this_port),
+		 "%s: SCIC Port 0x%p received link down notification from "
+		 "phy 0x%p while in invalid state %d\n",
+		 __func__,
+		 this_port,
+		 phy,
+		 sci_base_state_machine_get_state(
+			 scic_sds_port_get_base_state_machine(this_port)));
 }
 
 /**
@@ -332,14 +345,14 @@ enum sci_status scic_sds_port_default_start_io_handler(
 	struct scic_sds_remote_device *device,
 	struct scic_sds_request *io_request)
 {
-	SCIC_LOG_WARNING((
-				 sci_base_object_get_logger(this_port),
-				 SCIC_LOG_OBJECT_PORT,
-				 "SCIC Port 0x%08x requested to start io request 0x%08x while in invalid state %d\n",
-				 this_port, io_request,
-				 sci_base_state_machine_get_state(
-					 scic_sds_port_get_base_state_machine(this_port))
-				 ));
+	dev_warn(sciport_to_dev(this_port),
+		 "%s: SCIC Port 0x%p requested to start io request 0x%p "
+		 "while in invalid state %d\n",
+		 __func__,
+		 this_port,
+		 io_request,
+		 sci_base_state_machine_get_state(
+			 scic_sds_port_get_base_state_machine(this_port)));
 
 	return SCI_FAILURE_INVALID_STATE;
 }
@@ -357,14 +370,14 @@ static enum sci_status scic_sds_port_default_complete_io_handler(
 	struct scic_sds_remote_device *device,
 	struct scic_sds_request *io_request)
 {
-	SCIC_LOG_WARNING((
-				 sci_base_object_get_logger(this_port),
-				 SCIC_LOG_OBJECT_PORT,
-				 "SCIC Port 0x%08x requested to complete io request 0x%08x while in invalid state %d\n",
-				 this_port, io_request,
-				 sci_base_state_machine_get_state(
-					 scic_sds_port_get_base_state_machine(this_port))
-				 ));
+	dev_warn(sciport_to_dev(this_port),
+		 "%s: SCIC Port 0x%p requested to complete io request 0x%p "
+		 "while in invalid state %d\n",
+		 __func__,
+		 this_port,
+		 io_request,
+		 sci_base_state_machine_get_state(
+			 scic_sds_port_get_base_state_machine(this_port)));
 
 	return SCI_FAILURE_INVALID_STATE;
 }

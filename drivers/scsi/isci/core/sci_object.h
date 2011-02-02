@@ -111,16 +111,5 @@ enum sci_status sci_object_set_association(
 	((*((void **)base_object)) = (associated_object))
 #endif
 
-/**
- * sci_object_get_logger() - This method will get the logger for an object.
- * @object: This parameter specifies SCI object for which to retrieve its
- *    logger.
- *
- * This method returns a SCI_LOGGER_HANDLE to SCI user.
- */
-SCI_LOGGER_HANDLE_T sci_object_get_logger(
-	SCI_OBJECT_HANDLE_T object);
-
-
 #endif  /* _SCI_OBJECT_H_ */
 

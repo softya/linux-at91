@@ -64,7 +64,6 @@
  */
 
 
-#include "sci_base_subject.h"
 #include "sci_base_state.h"
 
 
@@ -83,15 +82,6 @@
  *
  */
 struct sci_base_state_machine {
-#if defined(SCI_LOGGING)
-	/**
-	 * The state machine object participates in the observer design pattern.
-	 * Thus, the struct sci_base_subject is the parent object, which allows a
-	 * state machine to be easily monitored by a user.
-	 */
-	struct sci_base_subject parent;
-#endif  /* defined(SCI_LOGGING) */
-
 	/**
 	 * This field points to the start of the state machine's state table.
 	 */

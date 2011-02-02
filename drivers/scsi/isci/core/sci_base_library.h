@@ -66,7 +66,6 @@
 #include "sci_library.h"
 #include "sci_pool.h"
 #include "sci_base_object.h"
-#include "sci_base_logger.h"
 #include "sci_controller_constants.h"
 
 /**
@@ -82,12 +81,6 @@ struct sci_base_library {
 	 * structure.
 	 */
 	struct sci_base_object parent;
-
-	/**
-	 * This field provides the logger object to be utilized by all objects
-	 * contained inside of a library.
-	 */
-	struct sci_base_logger logger;
 
 	/* Create a pool structure to manage free controller indices. */
 	SCI_POOL_CREATE(controller_id_pool, u16, SCI_MAX_CONTROLLERS);
@@ -172,7 +165,7 @@ void sci_base_library_construct(
 		) \
 	{ \
 		u32 controller_index; \
-		sci_base_object_construct(&(base_library)->parent, &(base_library)->logger); \
+		sci_base_object_construct(&(base_library)->parent); \
 		sci_pool_initialize((base_library)->controller_id_pool); \
 		for (controller_index = 0; controller_index < max_controller_count; controller_index++) {	\
 			SCI_BASE_LIBRARY_FREE_CONTROLLER(\

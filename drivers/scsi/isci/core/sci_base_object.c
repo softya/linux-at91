@@ -92,24 +92,7 @@ enum sci_status sci_object_set_association(
 /* --------------------------------------------------------------------------- */
 
 void sci_base_object_construct(
-	struct sci_base_object *base_object,
-	struct sci_base_logger *logger)
+	struct sci_base_object *base_object)
 {
-#if defined(SCI_LOGGING)
-	base_object->logger = logger;
-#endif  /* defined(SCI_LOGGING) */
 	base_object->associated_object = NULL;
 }
-
-/* --------------------------------------------------------------------------- */
-
-SCI_LOGGER_HANDLE_T sci_object_get_logger(
-	SCI_OBJECT_HANDLE_T object)
-{
-#if defined(SCI_LOGGING)
-	return sci_base_object_get_logger(object);
-#else   /* defined(SCI_LOGGING) */
-	return NULL;
-#endif /* defined(SCI_LOGGING) */
-}
-

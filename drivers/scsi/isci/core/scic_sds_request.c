@@ -64,12 +64,12 @@
 #include "intel_sata.h"
 #include "intel_sas.h"
 #include "sci_util.h"
+#include "sci_environment.h"
 #include "sci_base_request.h"
 #include "scic_controller.h"
 #include "scic_io_request.h"
 #include "scic_remote_device.h"
 #include "scic_user_callback.h"
-#include "scic_sds_logger.h"
 #include "scic_sds_request.h"
 #include "scic_sds_pci.h"
 #include "scic_sds_stp_request.h"
@@ -228,66 +228,6 @@
  * * SCIC SDS IO REQUEST PRIVATE METHODS
  * **************************************************************************** */
 
-#ifdef SCI_LOGGING
-/**
- *
- *
- * This method will initialize state transition logging for the task request
- * object.
- */
-static void scic_sds_request_initialize_state_logging(
-	struct scic_sds_request *this_request)
-{
-	sci_base_state_machine_logger_initialize(
-		&this_request->parent.state_machine_logger,
-		&this_request->parent.state_machine,
-		&this_request->parent.parent,
-		scic_cb_logger_log_states,
-		this_request->is_task_management_request ?
-		"SCIC_SDS_IO_REQUEST_T(Task)" : "SCIC_SDS_IO_REQUEST_T(IO)",
-		"base state machine",
-		SCIC_LOG_OBJECT_SMP_IO_REQUEST |
-		SCIC_LOG_OBJECT_STP_IO_REQUEST |
-		SCIC_LOG_OBJECT_SSP_IO_REQUEST
-		);
-
-	if (this_request->has_started_substate_machine) {
-		sci_base_state_machine_logger_initialize(
-			&this_request->started_substate_machine_logger,
-			&this_request->started_substate_machine,
-			&this_request->parent.parent,
-			scic_cb_logger_log_states,
-			"SCIC_SDS_IO_REQUEST_T(Task)", "starting substate machine",
-			SCIC_LOG_OBJECT_SMP_IO_REQUEST |
-			SCIC_LOG_OBJECT_STP_IO_REQUEST |
-			SCIC_LOG_OBJECT_SSP_IO_REQUEST
-			);
-	}
-}
-
-/**
- *
- *
- * This method will stop the state transition logging for the task request
- * object.
- */
-void scic_sds_request_deinitialize_state_logging(
-	struct scic_sds_request *this_request)
-{
-	sci_base_state_machine_logger_deinitialize(
-		&this_request->parent.state_machine_logger,
-		&this_request->parent.state_machine
-		);
-
-	if (this_request->has_started_substate_machine) {
-		sci_base_state_machine_logger_deinitialize(
-			&this_request->started_substate_machine_logger,
-			&this_request->started_substate_machine
-			);
-	}
-}
-#endif /* SCI_LOGGING */
-
 /**
  *
  *
@@ -410,7 +350,6 @@ static void scic_sds_general_request_construct(
 {
 	sci_base_request_construct(
 		&this_request->parent,
-		sci_base_object_get_logger(the_controller),
 		scic_sds_request_state_table
 		);
 
@@ -809,12 +748,10 @@ static enum sci_status scic_io_request_construct_sata(
 	case SAT_PROTOCOL_DEVICE_RESET:
 	case SAT_PROTOCOL_RETURN_RESPONSE_INFO:
 	default:
-		SCIC_LOG_ERROR((
-				       sci_base_object_get_logger(this_request),
-				       SCIC_LOG_OBJECT_STP_IO_REQUEST,
-				       "SCIC IO Request 0x%x received un-handled SAT Protocl %d.\n",
-				       this_request, sat_protocol
-				       ));
+		dev_err(scic_to_dev(this_request->owning_controller),
+			"%s: SCIC IO Request 0x%p received un-handled "
+			"SAT Protocl %d.\n",
+			__func__, this_request, sat_protocol);
 
 		status = SCI_FAILURE;
 		break;
@@ -870,17 +807,6 @@ enum sci_status scic_io_request_construct(
 	struct smp_discover_response_protocols device_protocol;
 
 	this_request = (struct scic_sds_request *)scic_io_request_memory;
-
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(scic_controller),
-			       (SCIC_LOG_OBJECT_SSP_IO_REQUEST
-				| SCIC_LOG_OBJECT_SMP_IO_REQUEST
-				| SCIC_LOG_OBJECT_STP_IO_REQUEST),
-			       "scic_io_request_construct(0x%x, 0x%x, 0x02x, 0x%x, 0x%x, 0x%x) enter\n",
-			       scic_controller, scic_remote_device,
-			       io_tag, user_io_request_object,
-			       this_request, new_scic_io_request_handle
-			       ));
 
 	/* Build the common part of the request */
 	scic_sds_general_request_construct(
@@ -940,17 +866,6 @@ enum sci_status scic_task_request_construct(
 					   scic_task_request_memory;
 	struct smp_discover_response_protocols device_protocol;
 
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(controller),
-			       (SCIC_LOG_OBJECT_SSP_IO_REQUEST
-				| SCIC_LOG_OBJECT_SMP_IO_REQUEST
-				| SCIC_LOG_OBJECT_STP_IO_REQUEST),
-			       "scic_task_request_construct(0x%x, 0x%x, 0x02x, 0x%x, 0x%x, 0x%x) enter\n",
-			       controller, remote_device,
-			       io_tag, user_io_request_object,
-			       scic_task_request_memory, new_scic_task_request_handle
-			       ));
-
 	/* Build the common part of the request */
 	scic_sds_general_request_construct(
 		(struct scic_sds_controller *)controller,
@@ -1000,13 +915,6 @@ enum sci_status scic_io_request_construct_basic_ssp(
 
 	this_request = (struct scic_sds_request *)scic_io_request;
 
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_request),
-			       SCIC_LOG_OBJECT_SSP_IO_REQUEST,
-			       "scic_io_request_construct_basic_ssp(0x%x) enter\n",
-			       this_request
-			       ));
-
 	this_request->protocol = SCIC_SSP_PROTOCOL;
 
 	os_handle = scic_sds_request_get_user_request(this_request);
@@ -1019,8 +927,6 @@ enum sci_status scic_io_request_construct_basic_ssp(
 
 
 	scic_sds_io_request_build_ssp_command_iu(this_request);
-
-	scic_sds_request_initialize_state_logging(this_request);
 
 	sci_base_state_machine_change_state(
 		&this_request->parent.state_machine,
@@ -1039,20 +945,11 @@ enum sci_status scic_task_request_construct_ssp(
 	struct scic_sds_request *this_request = (struct scic_sds_request *)
 					   scic_task_request;
 
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_request),
-			       SCIC_LOG_OBJECT_SSP_IO_REQUEST,
-			       "scic_task_request_construct_ssp(0x%x) enter\n",
-			       this_request
-			       ));
-
 	/* Construct the SSP Task SCU Task Context */
 	scu_ssp_task_request_construct_task_context(this_request);
 
 	/* Fill in the SSP Task IU */
 	scic_sds_task_request_build_ssp_task_iu(this_request);
-
-	scic_sds_request_initialize_state_logging(this_request);
 
 	sci_base_state_machine_change_state(
 		&this_request->parent.state_machine,
@@ -1061,12 +958,6 @@ enum sci_status scic_task_request_construct_ssp(
 
 	return SCI_SUCCESS;
 }
-
-
-/* --------------------------------------------------------------------------- */
-
-
-/* --------------------------------------------------------------------------- */
 
 
 /* --------------------------------------------------------------------------- */
@@ -1085,13 +976,6 @@ enum sci_status scic_io_request_construct_basic_sata(
 	this_request = (struct scic_sds_request *)scic_io_request;
 	this_stp_request = (struct scic_sds_stp_request *)this_request;
 
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(scic_io_request),
-			       SCIC_LOG_OBJECT_STP_IO_REQUEST,
-			       "scic_io_request_construct_basic_sata(0x%x) enter\n",
-			       scic_io_request
-			       ));
-
 	this_request->protocol = SCIC_STP_PROTOCOL;
 
 	transfer_length = scic_cb_io_request_get_transfer_length(this_request->user_request);
@@ -1108,14 +992,11 @@ enum sci_status scic_io_request_construct_basic_sata(
 		copy_rx_frame
 		);
 
-	if (status == SCI_SUCCESS) {
-		scic_sds_request_initialize_state_logging(this_request);
-
+	if (status == SCI_SUCCESS)
 		sci_base_state_machine_change_state(
 			&this_request->parent.state_machine,
 			SCI_BASE_REQUEST_STATE_CONSTRUCTED
 			);
-	}
 
 	return status;
 }
@@ -1132,13 +1013,6 @@ enum sci_status scic_task_request_construct_sata(
 
 	this_request = (struct scic_sds_request *)scic_task_request;
 
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_request),
-			       SCIC_LOG_OBJECT_STP_IO_REQUEST,
-			       "scic_task_request_construct_sata(0x%x) enter\n",
-			       this_request
-			       ));
-
 	sat_protocol =
 		scic_cb_request_get_sat_protocol(this_request->user_request);
 
@@ -1149,25 +1023,22 @@ enum sci_status scic_task_request_construct_sata(
 		break;
 
 	default:
-		SCIC_LOG_ERROR((
-				       sci_base_object_get_logger(this_request),
-				       SCIC_LOG_OBJECT_STP_IO_REQUEST,
-				       "SCIC IO Request 0x%x received un-handled SAT Protocl %d.\n",
-				       this_request, sat_protocol
-				       ));
+		dev_err(scic_to_dev(this_request->owning_controller),
+			"%s: SCIC IO Request 0x%p received un-handled SAT "
+			"Protocl %d.\n",
+			__func__,
+			this_request,
+			sat_protocol);
 
 		status = SCI_FAILURE;
 		break;
 	}
 
-	if (status == SCI_SUCCESS) {
-		scic_sds_request_initialize_state_logging(this_request);
-
+	if (status == SCI_SUCCESS)
 		sci_base_state_machine_change_state(
 			&this_request->parent.state_machine,
 			SCI_BASE_REQUEST_STATE_CONSTRUCTED
 			);
-	}
 
 	return status;
 }
@@ -1184,13 +1055,6 @@ u16 scic_io_request_get_io_tag(
 	struct scic_sds_request *this_request;
 
 	this_request = (struct scic_sds_request *)scic_io_request;
-
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(scic_io_request),
-			       SCIC_LOG_OBJECT_SMP_IO_REQUEST,
-			       "scic_io_request_get_io_tag(0x%x) enter\n",
-			       scic_io_request
-			       ));
 
 	return this_request->io_tag;
 }

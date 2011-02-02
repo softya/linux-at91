@@ -656,15 +656,6 @@ void scic_sds_controller_link_down(
  * * CORE CONTROLLER PRIVATE METHODS
  * ***************************************************************************** */
 
-#ifdef SCI_LOGGING
-
-void scic_sds_controller_deinitialize_state_logging(
-	struct scic_sds_controller *this_controller);
-#else
-#define scic_sds_controller_initialize_state_logging(x)
-#define scic_sds_controller_deinitialize_state_logging(x)
-#endif
-
 enum sci_status scic_sds_controller_validate_memory_descriptor_table(
 	struct scic_sds_controller *this_controller);
 

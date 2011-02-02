@@ -54,10 +54,10 @@
  */
 
 #include "scic_sds_smp_request.h"
-#include "scic_sds_logger.h"
 #include "scic_sds_controller.h"
 #include "scic_sds_remote_device.h"
 #include "scic_remote_device.h"
+#include "sci_environment.h"
 #include "sci_util.h"
 
 static void scu_smp_request_construct_task_context(
@@ -157,13 +157,6 @@ enum sci_status scic_io_request_construct_smp(
 
 	struct scic_sds_request *this_request = (struct scic_sds_request *)scic_smp_request;
 
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_request),
-			       SCIC_LOG_OBJECT_SMP_IO_REQUEST,
-			       "scic_io_request_construct_smp(0x%x) enter\n",
-			       this_request
-			       ));
-
 	this_request->protocol                     = SCIC_SMP_PROTOCOL;
 	this_request->has_started_substate_machine = true;
 
@@ -260,16 +253,6 @@ static void scu_smp_request_construct_task_context(
 	owning_controller = scic_sds_request_get_controller(this_request);
 	target_device = scic_sds_request_get_device(this_request);
 	target_port = scic_sds_request_get_port(this_request);
-
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_request),
-			       SCIC_LOG_OBJECT_SMP_IO_REQUEST,
-			       "scu_smp_request_construct_task_context(0x%x) contents\n"
-			       "   reqlen=%x; function=%x;\n",
-			       this_request,
-			       smp_request->header.request_length,
-			       smp_request->header.function
-			       ));
 
 	/*
 	 * Fill in the TC with the its required data

@@ -68,10 +68,8 @@
 
 #include "sci_base_object.h"
 #include "sci_base_state.h"
-#include "sci_base_logger.h"
 #include "sci_base_memory_descriptor_list.h"
 #include "sci_base_state_machine.h"
-#include "sci_base_state_machine_logger.h"
 
 /**
  * enum sci_base_controller_states - This enumeration depicts all the states
@@ -188,11 +186,6 @@ struct sci_base_controller {
 	 * machine.
 	 */
 	struct sci_base_state_machine state_machine;
-
-   #ifdef SCI_LOGGING
-	struct sci_base_state_machine_logger state_machine_logger;
-   #endif /* SCI_LOGGING */
-
 };
 
 /* Forward declarations */
@@ -284,8 +277,6 @@ struct sci_base_controller_state_handler {
  * sci_base_controller_construct() - Construct the base controller
  * @this_controller: This parameter specifies the base controller to be
  *    constructed.
- * @logger: This parameter specifies the logger associated with this base
- *    controller object.
  * @state_table: This parameter specifies the table of state definitions to be
  *    utilized for the controller state machine.
  * @mde_array: This parameter specifies the array of memory descriptor entries
@@ -299,7 +290,6 @@ struct sci_base_controller_state_handler {
  */
 void sci_base_controller_construct(
 	struct sci_base_controller *this_controller,
-	struct sci_base_logger *logger,
 	const struct sci_base_state *state_table,
 	struct sci_physical_memory_descriptor *mdes,
 	u32 mde_count,

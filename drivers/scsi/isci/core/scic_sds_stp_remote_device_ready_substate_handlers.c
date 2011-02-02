@@ -62,9 +62,9 @@
 #include "intel_sat.h"
 #include "intel_ata.h"
 #include "intel_sata.h"
+#include "sci_environment.h"
 #include "scic_remote_device.h"
 #include "scic_user_callback.h"
-#include "scic_sds_logger.h"
 #include "scic_sds_controller.h"
 #include "scic_sds_port.h"
 #include "scic_sds_remote_device.h"
@@ -117,14 +117,15 @@ static enum sci_status scic_sds_stp_remote_device_complete_request(
 		}
 	}
 
-	if (status != SCI_SUCCESS) {
-		SCIC_LOG_ERROR((
-				       sci_base_object_get_logger(this_device),
-				       SCIC_LOG_OBJECT_STP_REMOTE_TARGET,
-				       "Port:0x%x Device:0x%x Request:0x%x Status:0x%x could not complete\n",
-				       this_device->owning_port, this_device, the_request, status
-				       ));
-	}
+	if (status != SCI_SUCCESS)
+		dev_err(scirdev_to_dev(this_device),
+			"%s: Port:0x%p Device:0x%p Request:0x%p Status:0x%x "
+			"could not complete\n",
+			__func__,
+			this_device->owning_port,
+			this_device,
+			the_request,
+			status);
 
 	return status;
 }
@@ -492,14 +493,15 @@ static enum sci_status scic_sds_stp_remote_device_ready_await_reset_substate_com
 			scic_sds_remote_device_decrement_request_count(this_device);
 	}
 
-	if (status != SCI_SUCCESS) {
-		SCIC_LOG_ERROR((
-				       sci_base_object_get_logger(this_device),
-				       SCIC_LOG_OBJECT_STP_REMOTE_TARGET,
-				       "Port:0x%x Device:0x%x Request:0x%x Status:0x%x could not complete\n",
-				       this_device->owning_port, this_device, the_request, status
-				       ));
-	}
+	if (status != SCI_SUCCESS)
+		dev_err(scirdev_to_dev(this_device),
+			"%s: Port:0x%p Device:0x%p Request:0x%p Status:0x%x "
+			"could not complete\n",
+			__func__,
+			this_device->owning_port,
+			this_device,
+			the_request,
+			status);
 
 	return status;
 }

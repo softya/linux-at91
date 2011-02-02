@@ -65,8 +65,8 @@
 #include "scic_sds_phy.h"
 #include "scic_sds_port.h"
 #include "scic_sds_phy_registers.h"
-#include "scic_sds_logger.h"
 #include "sci_util.h"
+#include "sci_environment.h"
 
 #define SCIC_SDS_PHY_MIN_TIMER_COUNT  (SCI_MAX_PHYS)
 #define SCIC_SDS_PHY_MAX_TIMER_COUNT  (SCI_MAX_PHYS)
@@ -95,13 +95,6 @@ static enum sci_status scic_sds_phy_link_layer_initialization(
 	u32 parity_check = 0;
 	u32 parity_count = 0;
 	u32 link_layer_control;
-
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_phy),
-			       SCIC_LOG_OBJECT_PHY,
-			       "scic_sds_phy_link_layer_initialization(this_phy:0x%x, link_layer_registers:0x%x)\n",
-			       this_phy, link_layer_registers
-			       ));
 
 	this_phy->link_layer_registers = link_layer_registers;
 
@@ -263,12 +256,11 @@ static void scic_sds_phy_sata_timeout(SCI_OBJECT_HANDLE_T cookie)
 {
 	struct scic_sds_phy *this_phy = (struct scic_sds_phy *)cookie;
 
-	SCIC_LOG_INFO((
-			      sci_base_object_get_logger(this_phy),
-			      SCIC_LOG_OBJECT_PHY,
-			      "SCIC SDS Phy 0x%x did not receive signature fis before timeout.\n",
-			      this_phy
-			      ));
+	dev_dbg(sciphy_to_dev(this_phy),
+		 "%s: SCIC SDS Phy 0x%p did not receive signature fis before "
+		 "timeout.\n",
+		 __func__,
+		 this_phy);
 
 	sci_base_state_machine_stop(
 		scic_sds_phy_get_starting_substate_machine(this_phy));
@@ -301,30 +293,6 @@ static void scic_sds_phy_sata_timeout(SCI_OBJECT_HANDLE_T cookie)
  *
  * u32
  */
-
-#ifdef SCI_LOGGING
-static void scic_sds_phy_initialize_state_logging(
-	struct scic_sds_phy *this_phy)
-{
-	sci_base_state_machine_logger_initialize(
-		&this_phy->parent.state_machine_logger,
-		&this_phy->parent.state_machine,
-		&this_phy->parent.parent,
-		scic_cb_logger_log_states,
-		"struct scic_sds_phy", "base state machine",
-		SCIC_LOG_OBJECT_PHY
-		);
-
-	sci_base_state_machine_logger_initialize(
-		&this_phy->starting_substate_machine_logger,
-		&this_phy->starting_substate_machine,
-		&this_phy->parent.parent,
-		scic_cb_logger_log_states,
-		"struct scic_sds_phy", "starting substate machine",
-		SCIC_LOG_OBJECT_PHY
-		);
-}
-#endif /* SCI_LOGGING */
 
 #ifdef SCIC_DEBUG_ENABLED
 /**
@@ -412,10 +380,9 @@ void scic_sds_phy_construct(
 {
 	/*
 	 * Call the base constructor first
-	 * Copy the logger from the port (this could be the dummy port) */
+	 */
 	sci_base_phy_construct(
 		&this_phy->parent,
-		sci_base_object_get_logger(owning_port),
 		scic_sds_phy_state_table
 		);
 
@@ -438,10 +405,6 @@ void scic_sds_phy_construct(
 		SCIC_SDS_PHY_STARTING_SUBSTATE_INITIAL
 		);
 
-   #ifdef SCI_LOGGING
-	scic_sds_phy_initialize_state_logging(this_phy);
-   #endif /* SCI_LOGGING */
-
    #ifdef SCIC_DEBUG_ENABLED
 	scic_sds_phy_initialize_state_recording(this_phy);
    #endif /* SCIC_DEBUG_ENABLED */
@@ -462,13 +425,6 @@ void scic_sds_phy_construct(
 SCI_PORT_HANDLE_T scic_sds_phy_get_port(
 	struct scic_sds_phy *this_phy)
 {
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_phy),
-			       SCIC_LOG_OBJECT_PHY,
-			       "scic_phy_get_port(0x%x) enter\n",
-			       this_phy
-			       ));
-
 	if (scic_sds_port_get_index(this_phy->owning_port) == SCIC_SDS_DUMMY_PORT)
 		return SCI_INVALID_HANDLE;
 
@@ -505,13 +461,6 @@ enum sci_status scic_sds_phy_initialize(
 	struct scic_sds_phy *this_phy,
 	struct scu_link_layer_registers *link_layer_registers)
 {
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_phy),
-			       SCIC_LOG_OBJECT_PHY,
-			       "scic_sds_phy_initialize(this_phy:0x%x, link_layer_registers:0x%x)\n",
-			       this_phy, link_layer_registers
-			       ));
-
 	/* Create the SIGNATURE FIS Timeout timer for this phy */
 	this_phy->sata_timeout_timer = scic_cb_timer_create(
 		scic_sds_phy_get_controller(this_phy),
@@ -584,13 +533,6 @@ void scic_sds_phy_get_sas_address(
 	struct scic_sds_phy *this_phy,
 	struct sci_sas_address *sas_address)
 {
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_phy),
-			       SCIC_LOG_OBJECT_PHY,
-			       "scic_sds_phy_get_sas_address(this_phy:0x%x, sas_address:0x%x)\n",
-			       this_phy, sas_address
-			       ));
-
 	sas_address->high = SCU_SAS_TISSAH_READ(this_phy);
 	sas_address->low  = SCU_SAS_TISSAL_READ(this_phy);
 }
@@ -608,13 +550,6 @@ void scic_sds_phy_get_attached_sas_address(
 	struct scic_sds_phy *this_phy,
 	struct sci_sas_address *sas_address)
 {
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_phy),
-			       SCIC_LOG_OBJECT_PHY,
-			       "scic_sds_phy_get_attached_sas_address(0x%x, 0x%x) enter\n",
-			       this_phy, sas_address
-			       ));
-
 	sas_address->high
 		= this_phy->phy_type.sas.identify_address_frame_buffer.sas_address.high;
 	sas_address->low
@@ -631,13 +566,6 @@ void scic_sds_phy_get_protocols(
 	struct scic_sds_phy *this_phy,
 	struct sci_sas_identify_address_frame_protocols *protocols)
 {
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_phy),
-			       SCIC_LOG_OBJECT_PHY,
-			       "scic_sds_phy_get_protocols(this_phy:0x%x, protocols:0x%x)\n",
-			       this_phy, protocols
-			       ));
-
 	protocols->u.all = (u16)(SCU_SAS_TIID_READ(this_phy) & 0x0000FFFF);
 }
 
@@ -656,13 +584,6 @@ void scic_sds_phy_get_attached_phy_protocols(
 	struct scic_sds_phy *this_phy,
 	struct sci_sas_identify_address_frame_protocols *protocols)
 {
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_phy),
-			       SCIC_LOG_OBJECT_PHY,
-			       "scic_sds_phy_get_attached_phy_protocols(this_phy:0x%x, protocols:0x%x[0x%x])\n",
-			       this_phy, protocols, protocols->u.all
-			       ));
-
 	protocols->u.all = 0;
 
 	if (this_phy->protocol == SCIC_SDS_PHY_PROTOCOL_SAS) {
@@ -688,13 +609,6 @@ void scic_sds_phy_get_attached_phy_protocols(
 enum sci_status scic_sds_phy_start(
 	struct scic_sds_phy *this_phy)
 {
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_phy),
-			       SCIC_LOG_OBJECT_PHY,
-			       "scic_sds_phy_start(this_phy:0x%x)\n",
-			       this_phy
-			       ));
-
 	return this_phy->state_handlers->parent.start_handler(&this_phy->parent);
 }
 
@@ -708,13 +622,6 @@ enum sci_status scic_sds_phy_start(
 enum sci_status scic_sds_phy_stop(
 	struct scic_sds_phy *this_phy)
 {
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_phy),
-			       SCIC_LOG_OBJECT_PHY,
-			       "scic_sds_phy_stop(this_phy:0x%x)\n",
-			       this_phy
-			       ));
-
 	return this_phy->state_handlers->parent.stop_handler(&this_phy->parent);
 }
 
@@ -728,13 +635,6 @@ enum sci_status scic_sds_phy_stop(
 enum sci_status scic_sds_phy_reset(
 	struct scic_sds_phy *this_phy)
 {
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_phy),
-			       SCIC_LOG_OBJECT_PHY,
-			       "scic_sds_phy_reset(this_phy:0x%08x)\n",
-			       this_phy
-			       ));
-
 	return this_phy->state_handlers->parent.reset_handler(
 		       &this_phy->parent
 		       );
@@ -751,13 +651,6 @@ enum sci_status scic_sds_phy_event_handler(
 	struct scic_sds_phy *this_phy,
 	u32 event_code)
 {
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_phy),
-			       SCIC_LOG_OBJECT_PHY,
-			       "scic_sds_phy_event_handler(this_phy:0x%08x, event_code:%d)\n",
-			       this_phy, event_code
-			       ));
-
 	return this_phy->state_handlers->event_handler(this_phy, event_code);
 }
 
@@ -772,13 +665,6 @@ enum sci_status scic_sds_phy_frame_handler(
 	struct scic_sds_phy *this_phy,
 	u32 frame_index)
 {
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_phy),
-			       SCIC_LOG_OBJECT_PHY,
-			       "scic_sds_phy_frame_handler(this_phy:0x%08x, frame_index:%d)\n",
-			       this_phy, frame_index
-			       ));
-
 	return this_phy->state_handlers->frame_handler(this_phy, frame_index);
 }
 
@@ -791,13 +677,6 @@ enum sci_status scic_sds_phy_frame_handler(
 enum sci_status scic_sds_phy_consume_power_handler(
 	struct scic_sds_phy *this_phy)
 {
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_phy),
-			       SCIC_LOG_OBJECT_PHY,
-			       "scic_sds_phy_consume_power_handler(this_phy:0x%08x)\n",
-			       this_phy
-			       ));
-
 	return this_phy->state_handlers->consume_power_handler(this_phy);
 }
 
@@ -816,13 +695,6 @@ enum sci_status scic_sas_phy_get_properties(
 	struct scic_sds_phy *this_phy;
 
 	this_phy = (struct scic_sds_phy *)phy;
-
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_phy),
-			       SCIC_LOG_OBJECT_PHY,
-			       "scic_sas_phy_get_properties(0x%x, 0x%x) enter\n",
-			       this_phy, properties
-			       ));
 
 	if (this_phy->protocol == SCIC_SDS_PHY_PROTOCOL_SAS) {
 		memcpy(
@@ -849,13 +721,6 @@ enum sci_status scic_sata_phy_get_properties(
 	struct scic_sds_phy *this_phy;
 
 	this_phy = (struct scic_sds_phy *)phy;
-
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_phy),
-			       SCIC_LOG_OBJECT_PHY,
-			       "scic_sata_phy_get_properties(0x%x, 0x%x) enter\n",
-			       this_phy, properties
-			       ));
 
 	if (this_phy->protocol == SCIC_SDS_PHY_PROTOCOL_SATA) {
 		memcpy(

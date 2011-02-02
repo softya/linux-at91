@@ -61,7 +61,6 @@
  */
 
 #include "intel_sata.h"
-#include "scic_sds_logger.h"
 #include "scic_sds_controller.h"
 #include "scic_sds_remote_device.h"
 #include "scic_sds_stp_request.h"
@@ -97,13 +96,6 @@ static enum sci_status scic_sds_stp_request_udma_general_frame_handler(
 	enum sci_status status;
 	struct sata_fis_header *frame_header;
 	u32 *frame_buffer;
-
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_request),
-			       SCIC_LOG_OBJECT_STP_IO_REQUEST,
-			       "scic_sds_stp_pio_request_data_in_await_frame_frame_handler(0x%x, 0x%x) enter\n",
-			       this_request, frame_index
-			       ));
 
 	status = scic_sds_unsolicited_frame_control_get_header(
 		&this_request->owning_controller->uf_control,

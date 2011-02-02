@@ -88,13 +88,6 @@
 typedef void *SCI_OBJECT_HANDLE_T;
 
 /**
- * This typedef just provides an opaque handle for all SCI Logger objects.
- *
- * SCI_LOGGER_HANDLE_T
- */
-typedef void *SCI_LOGGER_HANDLE_T;
-
-/**
  * The SCI_IO_REQUEST_HANDLE_T will be utilized by SCI users as an opaque
  *    handle for the various SCI IO Request objects.
  *

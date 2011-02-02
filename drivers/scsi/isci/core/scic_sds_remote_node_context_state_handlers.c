@@ -60,9 +60,9 @@
  *
  */
 
+#include "sci_environment.h"
 #include "sci_base_state_machine.h"
 #include "scic_remote_device.h"
-#include "scic_sds_logger.h"
 #include "scic_sds_port.h"
 #include "scic_sds_remote_device.h"
 #include "scic_sds_remote_node_context.h"
@@ -140,14 +140,12 @@ static enum sci_status scic_sds_remote_node_context_default_destruct_handler(
 	SCICS_SDS_REMOTE_NODE_CONTEXT_CALLBACK the_callback,
 	void *callback_parameter)
 {
-	SCIC_LOG_WARNING((
-				 sci_base_object_get_logger(this_rnc->device),
-				 SCIC_LOG_OBJECT_SSP_REMOTE_TARGET |
-				 SCIC_LOG_OBJECT_SMP_REMOTE_TARGET |
-				 SCIC_LOG_OBJECT_STP_REMOTE_TARGET,
-				 "SCIC Remote Node Context 0x%x requested to stop while in unexpected state %d\n",
-				 this_rnc, sci_base_state_machine_get_state(&this_rnc->state_machine)
-				 ));
+	dev_warn(scirdev_to_dev(this_rnc->device),
+		 "%s: SCIC Remote Node Context 0x%p requested to stop while "
+		 "in unexpected state %d\n",
+		 __func__,
+		 this_rnc,
+		 sci_base_state_machine_get_state(&this_rnc->state_machine));
 
 	/*
 	 * We have decided that the destruct request on the remote node context can not fail
@@ -161,14 +159,12 @@ static enum sci_status scic_sds_remote_node_context_default_suspend_handler(
 	SCICS_SDS_REMOTE_NODE_CONTEXT_CALLBACK the_callback,
 	void *callback_parameter)
 {
-	SCIC_LOG_WARNING((
-				 sci_base_object_get_logger(this_rnc->device),
-				 SCIC_LOG_OBJECT_SSP_REMOTE_TARGET |
-				 SCIC_LOG_OBJECT_SMP_REMOTE_TARGET |
-				 SCIC_LOG_OBJECT_STP_REMOTE_TARGET,
-				 "SCIC Remote Node Context 0x%x requested to suspend while in wrong state %d\n",
-				 this_rnc, sci_base_state_machine_get_state(&this_rnc->state_machine)
-				 ));
+	dev_warn(scirdev_to_dev(this_rnc->device),
+		 "%s: SCIC Remote Node Context 0x%p requested to suspend "
+		 "while in wrong state %d\n",
+		 __func__,
+		 this_rnc,
+		 sci_base_state_machine_get_state(&this_rnc->state_machine));
 
 	return SCI_FAILURE_INVALID_STATE;
 }
@@ -178,14 +174,12 @@ static enum sci_status scic_sds_remote_node_context_default_resume_handler(
 	SCICS_SDS_REMOTE_NODE_CONTEXT_CALLBACK the_callback,
 	void *callback_parameter)
 {
-	SCIC_LOG_WARNING((
-				 sci_base_object_get_logger(this_rnc->device),
-				 SCIC_LOG_OBJECT_SSP_REMOTE_TARGET |
-				 SCIC_LOG_OBJECT_SMP_REMOTE_TARGET |
-				 SCIC_LOG_OBJECT_STP_REMOTE_TARGET,
-				 "SCIC Remote Node Context 0x%x requested to resume while in wrong state %d\n",
-				 this_rnc, sci_base_state_machine_get_state(&this_rnc->state_machine)
-				 ));
+	dev_warn(scirdev_to_dev(this_rnc->device),
+		 "%s: SCIC Remote Node Context 0x%p requested to resume "
+		 "while in wrong state %d\n",
+		 __func__,
+		 this_rnc,
+		 sci_base_state_machine_get_state(&this_rnc->state_machine));
 
 	return SCI_FAILURE_INVALID_STATE;
 }
@@ -194,14 +188,13 @@ static enum sci_status scic_sds_remote_node_context_default_start_io_handler(
 	struct scic_sds_remote_node_context *this_rnc,
 	struct scic_sds_request *the_request)
 {
-	SCIC_LOG_WARNING((
-				 sci_base_object_get_logger(this_rnc->device),
-				 SCIC_LOG_OBJECT_SSP_REMOTE_TARGET |
-				 SCIC_LOG_OBJECT_SMP_REMOTE_TARGET |
-				 SCIC_LOG_OBJECT_STP_REMOTE_TARGET,
-				 "SCIC Remote Node Context 0x%x requested to start io 0x%x while in wrong state %d\n",
-				 this_rnc, the_request, sci_base_state_machine_get_state(&this_rnc->state_machine)
-				 ));
+	dev_warn(scirdev_to_dev(this_rnc->device),
+		 "%s: SCIC Remote Node Context 0x%p requested to start io "
+		 "0x%p while in wrong state %d\n",
+		 __func__,
+		 this_rnc,
+		 the_request,
+		 sci_base_state_machine_get_state(&this_rnc->state_machine));
 
 	return SCI_FAILURE_REMOTE_DEVICE_RESET_REQUIRED;
 }
@@ -210,14 +203,13 @@ static enum sci_status scic_sds_remote_node_context_default_start_task_handler(
 	struct scic_sds_remote_node_context *this_rnc,
 	struct scic_sds_request *the_request)
 {
-	SCIC_LOG_WARNING((
-				 sci_base_object_get_logger(this_rnc->device),
-				 SCIC_LOG_OBJECT_SSP_REMOTE_TARGET |
-				 SCIC_LOG_OBJECT_SMP_REMOTE_TARGET |
-				 SCIC_LOG_OBJECT_STP_REMOTE_TARGET,
-				 "SCIC Remote Node Context 0x%x requested to start task 0x%x while in wrong state %d\n",
-				 this_rnc, the_request, sci_base_state_machine_get_state(&this_rnc->state_machine)
-				 ));
+	dev_warn(scirdev_to_dev(this_rnc->device),
+		 "%s: SCIC Remote Node Context 0x%p requested to start "
+		 "task 0x%p while in wrong state %d\n",
+		 __func__,
+		 this_rnc,
+		 the_request,
+		 sci_base_state_machine_get_state(&this_rnc->state_machine));
 
 	return SCI_FAILURE;
 }
@@ -226,14 +218,13 @@ static enum sci_status scic_sds_remote_node_context_default_event_handler(
 	struct scic_sds_remote_node_context *this_rnc,
 	u32 event_code)
 {
-	SCIC_LOG_WARNING((
-				 sci_base_object_get_logger(this_rnc->device),
-				 SCIC_LOG_OBJECT_SSP_REMOTE_TARGET |
-				 SCIC_LOG_OBJECT_SMP_REMOTE_TARGET |
-				 SCIC_LOG_OBJECT_STP_REMOTE_TARGET,
-				 "SCIC Remote Node Context 0x%x requested to process event 0x%x while in wrong state %d\n",
-				 this_rnc, event_code, sci_base_state_machine_get_state(&this_rnc->state_machine)
-				 ));
+	dev_warn(scirdev_to_dev(this_rnc->device),
+		 "%s: SCIC Remote Node Context 0x%p requested to process "
+		 "event 0x%x while in wrong state %d\n",
+		 __func__,
+		 this_rnc,
+		 event_code,
+		 sci_base_state_machine_get_state(&this_rnc->state_machine));
 
 	return SCI_FAILURE_INVALID_STATE;
 }
@@ -296,12 +287,6 @@ static enum sci_status scic_sds_remote_node_context_initial_state_resume_handler
 
 		scic_sds_remote_node_context_construct_buffer(this_rnc);
 
-		/*
-		 * In the unlikely condition that we resume a remote node context
-		 * after requesting to destroy the remote node context we must initialize
-		 * the state logging on the resume request. */
-		scic_sds_remote_node_context_initialize_state_logging(this_rnc);
-
 		sci_base_state_machine_change_state(
 			&this_rnc->state_machine,
 			SCIC_SDS_REMOTE_NODE_CONTEXT_POSTING_STATE
@@ -333,14 +318,13 @@ static enum sci_status scic_sds_remote_node_context_posting_state_event_handler(
 
 	default:
 		status = SCI_FAILURE;
-		SCIC_LOG_WARNING((
-					 sci_base_object_get_logger(this_rnc->device),
-					 SCIC_LOG_OBJECT_SSP_REMOTE_TARGET |
-					 SCIC_LOG_OBJECT_SMP_REMOTE_TARGET |
-					 SCIC_LOG_OBJECT_STP_REMOTE_TARGET,
-					 "SCIC Remote Node Context 0x%x requested to process unexpected event 0x%x while in posting state\n",
-					 this_rnc, event_code
-					 ));
+		dev_warn(scirdev_to_dev(this_rnc->device),
+			 "%s: SCIC Remote Node Context 0x%p requested to "
+			 "process unexpected event 0x%x while in posting "
+			 "state\n",
+			 __func__,
+			 this_rnc,
+			 event_code);
 		break;
 	}
 
@@ -388,26 +372,25 @@ static enum sci_status scic_sds_remote_node_context_invalidating_state_event_han
 			/*
 			 * We really dont care if the hardware is going to suspend
 			 * the device since it's being invalidated anyway */
-			SCIC_LOG_INFO((
-					      sci_base_object_get_logger(this_rnc->device),
-					      SCIC_LOG_OBJECT_SSP_REMOTE_TARGET |
-					      SCIC_LOG_OBJECT_SMP_REMOTE_TARGET |
-					      SCIC_LOG_OBJECT_STP_REMOTE_TARGET,
-					      "SCIC Remote Node Context 0x%x was suspeneded by hardware while being invalidated.\n",
-					      this_rnc
-					      ));
+			dev_dbg(scirdev_to_dev(this_rnc->device),
+				"%s: SCIC Remote Node Context 0x%p was "
+				"suspeneded by hardware while being "
+				"invalidated.\n",
+				__func__,
+				this_rnc);
 			status = SCI_SUCCESS;
 			break;
 
 		default:
-			SCIC_LOG_WARNING((
-						 sci_base_object_get_logger(this_rnc->device),
-						 SCIC_LOG_OBJECT_SSP_REMOTE_TARGET |
-						 SCIC_LOG_OBJECT_SMP_REMOTE_TARGET |
-						 SCIC_LOG_OBJECT_STP_REMOTE_TARGET,
-						 "SCIC Remote Node Context 0x%x requested to process event 0x%x while in state %d.\n",
-						 this_rnc, event_code, sci_base_state_machine_get_state(&this_rnc->state_machine)
-						 ));
+			dev_warn(scirdev_to_dev(this_rnc->device),
+				 "%s: SCIC Remote Node Context 0x%p "
+				 "requested to process event 0x%x while "
+				 "in state %d.\n",
+				 __func__,
+				 this_rnc,
+				 event_code,
+				 sci_base_state_machine_get_state(
+					 &this_rnc->state_machine));
 			status = SCI_FAILURE;
 			break;
 		}
@@ -439,26 +422,23 @@ static enum sci_status scic_sds_remote_node_context_resuming_state_event_handler
 			/*
 			 * We really dont care if the hardware is going to suspend
 			 * the device since it's being resumed anyway */
-			SCIC_LOG_INFO((
-					      sci_base_object_get_logger(this_rnc->device),
-					      SCIC_LOG_OBJECT_SSP_REMOTE_TARGET |
-					      SCIC_LOG_OBJECT_SMP_REMOTE_TARGET |
-					      SCIC_LOG_OBJECT_STP_REMOTE_TARGET,
-					      "SCIC Remote Node Context 0x%x was suspeneded by hardware while being resumed.\n",
-					      this_rnc
-					      ));
+			dev_dbg(scirdev_to_dev(this_rnc->device),
+				"%s: SCIC Remote Node Context 0x%p was "
+				"suspeneded by hardware while being resumed.\n",
+				__func__,
+				this_rnc);
 			status = SCI_SUCCESS;
 			break;
 
 		default:
-			SCIC_LOG_WARNING((
-						 sci_base_object_get_logger(this_rnc->device),
-						 SCIC_LOG_OBJECT_SSP_REMOTE_TARGET |
-						 SCIC_LOG_OBJECT_SMP_REMOTE_TARGET |
-						 SCIC_LOG_OBJECT_STP_REMOTE_TARGET,
-						 "SCIC Remote Node Context 0x%x requested to process event 0x%x while in state %d.\n",
-						 this_rnc, event_code, sci_base_state_machine_get_state(&this_rnc->state_machine)
-						 ));
+			dev_warn(scirdev_to_dev(this_rnc->device),
+				 "%s: SCIC Remote Node Context 0x%p requested "
+				 "to process event 0x%x while in state %d.\n",
+				 __func__,
+				 this_rnc,
+				 event_code,
+				 sci_base_state_machine_get_state(
+					 &this_rnc->state_machine));
 			status = SCI_FAILURE;
 			break;
 		}
@@ -548,14 +528,14 @@ static enum sci_status scic_sds_remote_node_context_ready_state_event_handler(
 		break;
 
 	default:
-		SCIC_LOG_WARNING((
-					 sci_base_object_get_logger(this_rnc->device),
-					 SCIC_LOG_OBJECT_SSP_REMOTE_TARGET |
-					 SCIC_LOG_OBJECT_SMP_REMOTE_TARGET |
-					 SCIC_LOG_OBJECT_STP_REMOTE_TARGET,
-					 "SCIC Remote Node Context 0x%x requested to process event 0x%x while in state %d.\n",
-					 this_rnc, event_code, sci_base_state_machine_get_state(&this_rnc->state_machine)
-					 ));
+		dev_warn(scirdev_to_dev(this_rnc->device),
+			"%s: SCIC Remote Node Context 0x%p requested to "
+			"process event 0x%x while in state %d.\n",
+			__func__,
+			this_rnc,
+			event_code,
+			sci_base_state_machine_get_state(
+				&this_rnc->state_machine));
 
 		status = SCI_FAILURE;
 		break;
@@ -723,14 +703,14 @@ static enum sci_status scic_sds_remote_node_context_await_suspension_state_event
 		break;
 
 	default:
-		SCIC_LOG_WARNING((
-					 sci_base_object_get_logger(this_rnc->device),
-					 SCIC_LOG_OBJECT_SSP_REMOTE_TARGET |
-					 SCIC_LOG_OBJECT_SMP_REMOTE_TARGET |
-					 SCIC_LOG_OBJECT_STP_REMOTE_TARGET,
-					 "SCIC Remote Node Context 0x%x requested to process event 0x%x while in state %d.\n",
-					 this_rnc, event_code, sci_base_state_machine_get_state(&this_rnc->state_machine)
-					 ));
+		dev_warn(scirdev_to_dev(this_rnc->device),
+			 "%s: SCIC Remote Node Context 0x%p requested to "
+			 "process event 0x%x while in state %d.\n",
+			 __func__,
+			 this_rnc,
+			 event_code,
+			 sci_base_state_machine_get_state(
+				 &this_rnc->state_machine));
 
 		status = SCI_FAILURE;
 		break;

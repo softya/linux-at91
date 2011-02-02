@@ -53,78 +53,51 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _SCI_BASE_SUBJECT_H_
-#define _SCI_BASE_SUBJECT_H_
+#ifndef _SCI_ENVIRONMENT_H_
+#define _SCI_ENVIRONMENT_H_
 
-/**
- * This file contains all of the structures, constants, and methods common to
- *    all subjects object definitions.  A subject is a participant in the
- *    observer pattern.  A subject represents the object being observed.
- *
- *
- */
+#include "isci_module.h"
 
-#include "sci_types.h"
+struct scic_sds_controller;
+struct scic_sds_phy;
+struct scic_sds_port;
+struct scic_sds_remote_device;
 
-#if defined(SCI_LOGGING)
+static inline struct device *scic_to_dev(struct scic_sds_controller *scic)
+{
+	struct isci_host *isci_host = sci_object_get_association(scic);
 
-struct sci_base_observer;
+	return &isci_host->pdev->dev;
+}
 
-/**
- * struct sci_base_subject - This structure defines the fields common to all
- *    subjects that participate in the observer design pattern
- *
- *
- */
-struct sci_base_subject {
-	struct sci_base_observer *observer_list;
+static inline struct device *sciphy_to_dev(struct scic_sds_phy *sci_phy)
+{
+	struct isci_phy *iphy = sci_object_get_association(sci_phy);
 
-};
+	if (!iphy || !iphy->isci_port || !iphy->isci_port->isci_host)
+		return NULL;
 
+	return &iphy->isci_port->isci_host->pdev->dev;
+}
 
-/**
- * sci_base_subject_construct() - This method acts as the basic constructor for
- *    the subject.
- * @this_subject: This fields specifies the subject being constructed.
- *
- */
-void sci_base_subject_construct(
-	struct sci_base_subject *this_subject);
+static inline struct device *sciport_to_dev(struct scic_sds_port *sci_port)
+{
+	struct isci_port *iport = sci_object_get_association(sci_port);
 
+	if (!iport || !iport->isci_host)
+		return NULL;
 
-/**
- * sci_base_subject_attach_observer() - This method will add an observer to the
- *    subject.
- * @this_subject: This parameter specifies the subject for which an observer is
- *    being added.
- * @observer: This parameter specifies the observer that wishes it listen for
- *    notifications for the supplied subject.
- *
- */
-void sci_base_subject_attach_observer(
-	struct sci_base_subject *this_subject,
-	struct sci_base_observer *observer);
+	return &iport->isci_host->pdev->dev;
+}
 
-/**
- * sci_base_subject_detach_observer() - This method will remove the observer
- *    from the subject.
- * @this_subject:
- * @my_observer:
- *
- */
-void sci_base_subject_detach_observer(
-	struct sci_base_subject *this_subject,
-	struct sci_base_observer *my_observer);
+static inline struct device *scirdev_to_dev(struct scic_sds_remote_device *sci_dev)
+{
+	struct isci_remote_device *idev = sci_object_get_association(sci_dev);
 
-#else /* defined(SCI_LOGGING) */
+	if (!idev || !idev->isci_port || !idev->isci_port->isci_host)
+		return NULL;
 
-typedef u8 struct sci_base_subject;
+	return &idev->isci_port->isci_host->pdev->dev;
+}
 
-#define sci_base_subject_construct
-#define sci_base_subject_notify
-#define sci_base_subject_attach_observer
-#define sci_base_subject_detach_observer
-
-#endif  /* defined(SCI_LOGGING) */
-
-#endif  /* _SCI_BASE_SUBJECT_H_ */
+#endif

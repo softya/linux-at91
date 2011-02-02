@@ -582,16 +582,11 @@ static int __devinit isci_module_pci_probe(struct pci_dev *pdev, const struct pc
 	}
 
 	/*
-	 *  Construct core library using memory allocated for core library above.
+	 *  Construct core library using memory allocated for core library
+	 *  above.
 	 */
 	isci_module_struct.core_lib[core_lib_idx].core_lib_handle
 		= scic_library_construct(scil_memory, SCI_MAX_CONTROLLERS);
-
-	sci_logger_enable(
-		sci_object_get_logger(
-			isci_module_struct.core_lib[core_lib_idx].core_lib_handle),
-		0xFFFFFFFF,
-		0xFF);
 
 	/*
 	 *  Set association to the scu_module struct in the core library obj.

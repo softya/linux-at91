@@ -64,9 +64,7 @@
  */
 
 #include "sci_base_object.h"
-#include "sci_base_logger.h"
 #include "sci_base_state_machine.h"
-#include "sci_base_state_machine_logger.h"
 
 /**
  * enum sci_base_port_states - This enumeration depicts all the states for the
@@ -133,11 +131,6 @@ struct sci_base_port {
 	 * This field contains the information for the base port state machine.
 	 */
 	struct sci_base_state_machine state_machine;
-
-   #ifdef SCI_LOGGING
-	struct sci_base_state_machine_logger state_machine_logger;
-   #endif /* SCI_LOGGING */
-
 };
 
 struct sci_base_phy;
@@ -206,15 +199,12 @@ struct sci_base_port_state_handler {
 /**
  * sci_base_port_construct() - Construct the base port object
  * @this_port: This parameter specifies the base port to be constructed.
- * @logger: This parameter specifies the logger to be associated with this base
- *    port object.
  * @state_table: This parameter specifies the table of state definitions to be
  *    utilized for the domain state machine.
  *
  */
 void sci_base_port_construct(
 	struct sci_base_port *this_port,
-	struct sci_base_logger *logger,
 	const struct sci_base_state *state_table);
 
 #endif /* _SCI_BASE_PORT_H_ */

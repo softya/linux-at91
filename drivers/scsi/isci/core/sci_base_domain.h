@@ -64,9 +64,7 @@
  */
 
 #include "sci_base_object.h"
-#include "sci_base_logger.h"
 #include "sci_base_state_machine.h"
-#include "sci_base_state_machine_logger.h"
 
 /**
  * enum sci_base_domain_states - This enumeration depicts the standard states
@@ -142,11 +140,6 @@ struct sci_base_domain {
 	 * This field contains the information for the base domain state machine.
 	 */
 	struct sci_base_state_machine state_machine;
-
-   #ifdef SCI_LOGGING
-	struct sci_base_state_machine_logger state_machine_logger;
-   #endif /* SCI_LOGGING */
-
 };
 
 struct sci_base_controller;

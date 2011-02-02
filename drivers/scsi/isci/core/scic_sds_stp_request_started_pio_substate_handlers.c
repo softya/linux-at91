@@ -58,8 +58,8 @@
 #include "intel_sat.h"
 #include "sci_types.h"
 #include "sci_util.h"
+#include "sci_environment.h"
 #include "scic_user_callback.h"
-#include "scic_sds_logger.h"
 #include "scic_sds_controller.h"
 #include "scic_sds_request.h"
 #include "scic_sds_stp_request.h"
@@ -311,13 +311,6 @@ static enum sci_status scic_sds_stp_request_pio_await_h2d_completion_tc_completi
 {
 	enum sci_status status = SCI_SUCCESS;
 
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_request),
-			       SCIC_LOG_OBJECT_STP_IO_REQUEST,
-			       "scic_sds_stp_request_pio_data_in_await_h2d_completion_tc_completion_handler(0x%x, 0x%x) enter\n",
-			       this_request, completion_code
-			       ));
-
 	switch (SCU_GET_COMPLETION_TL_STATUS(completion_code)) {
 	case SCU_MAKE_COMPLETION_STATUS(SCU_TASK_DONE_GOOD):
 		scic_sds_request_set_status(
@@ -367,13 +360,6 @@ static enum sci_status scic_sds_stp_request_pio_await_frame_frame_handler(
 	struct scic_sds_stp_request *this_request;
 
 	this_request = (struct scic_sds_stp_request *)request;
-
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_request),
-			       SCIC_LOG_OBJECT_STP_IO_REQUEST,
-			       "scic_sds_stp_request_pio_data_in_await_frame_frame_handler(0x%x, 0x%x) enter\n",
-			       this_request, frame_index
-			       ));
 
 	status = scic_sds_unsolicited_frame_control_get_header(
 		&(this_request->parent.owning_controller->uf_control),
@@ -457,12 +443,13 @@ static enum sci_status scic_sds_stp_request_pio_await_frame_frame_handler(
 				/*
 				 * Now why is the drive sending a D2H Register FIS when it is still busy?
 				 * Do nothing since we are still in the right state. */
-				SCIC_LOG_INFO((
-						      sci_base_object_get_logger(this_request),
-						      SCIC_LOG_OBJECT_STP_IO_REQUEST,
-						      "SCIC PIO Request 0x%x received D2H Register FIS with BSY status 0x%x\n",
-						      this_request, frame_header->status
-						      ));
+				dev_dbg(scic_to_dev(request->owning_controller),
+					"%s: SCIC PIO Request 0x%p received "
+					"D2H Register FIS with BSY status "
+					"0x%x\n",
+					__func__,
+					this_request,
+					frame_header->status);
 			}
 			break;
 
@@ -475,14 +462,11 @@ static enum sci_status scic_sds_stp_request_pio_await_frame_frame_handler(
 			this_request->parent.owning_controller,
 			frame_index
 			);
-	} else {
-		SCIC_LOG_ERROR((
-				       sci_base_object_get_logger(this_request),
-				       SCIC_LOG_OBJECT_STP_IO_REQUEST,
-				       "SCIC IO Request 0x%x could not get frame header for frame index %d, status %x\n",
-				       this_request, frame_index, status
-				       ));
-	}
+	} else
+		dev_err(scic_to_dev(request->owning_controller),
+			"%s: SCIC IO Request 0x%p could not get frame header "
+			"for frame index %d, status %x\n",
+			__func__, this_request, frame_index, status);
 
 	return status;
 }
@@ -504,13 +488,6 @@ static enum sci_status scic_sds_stp_request_pio_data_in_await_data_frame_handler
 	struct scic_sds_stp_request *this_request;
 
 	this_request = (struct scic_sds_stp_request *)request;
-
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_request),
-			       SCIC_LOG_OBJECT_STP_IO_REQUEST,
-			       "scic_sds_stp_request_pio_data_in_await_data_frame_handler(0x%x, 0x%x) enter\n",
-			       this_request, frame_index
-			       ));
 
 	status = scic_sds_unsolicited_frame_control_get_header(
 		&(this_request->parent.owning_controller->uf_control),
@@ -565,12 +542,14 @@ static enum sci_status scic_sds_stp_request_pio_data_in_await_data_frame_handler
 				}
 			}
 		} else {
-			SCIC_LOG_ERROR((
-					       sci_base_object_get_logger(this_request),
-					       SCIC_LOG_OBJECT_STP_IO_REQUEST,
-					       "SCIC PIO Request 0x%x received frame %d with fis type 0x%02x when expecting a data fis.\n",
-					       this_request, frame_index, frame_header->fis_type
-					       ));
+			dev_err(scic_to_dev(request->owning_controller),
+				"%s: SCIC PIO Request 0x%p received frame %d "
+				"with fis type 0x%02x when expecting a data "
+				"fis.\n",
+				__func__,
+				this_request,
+				frame_index,
+				frame_header->fis_type);
 
 			scic_sds_request_set_status(
 				&this_request->parent,
@@ -589,14 +568,11 @@ static enum sci_status scic_sds_stp_request_pio_data_in_await_data_frame_handler
 				frame_index
 				);
 		}
-	} else {
-		SCIC_LOG_ERROR((
-				       sci_base_object_get_logger(this_request),
-				       SCIC_LOG_OBJECT_STP_IO_REQUEST,
-				       "SCIC IO Request 0x%x could not get frame header for frame index %d, status %x\n",
-				       this_request, frame_index, status
-				       ));
-	}
+	} else
+		dev_err(scic_to_dev(request->owning_controller),
+			"%s: SCIC IO Request 0x%p could not get frame header "
+			"for frame index %d, status %x\n",
+			__func__, this_request, frame_index, status);
 
 	return status;
 }
@@ -618,13 +594,6 @@ static enum sci_status scic_sds_stp_request_pio_data_out_await_data_transmit_com
 	bool all_frames_transferred     = false;
 
 	struct scic_sds_stp_request *this_scic_sds_stp_request = (struct scic_sds_stp_request *)this_request;
-
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_request),
-			       SCIC_LOG_OBJECT_STP_IO_REQUEST,
-			       "scic_sds_stp_request_pio_data_in_await_h2d_completion_tc_completion_handler(0x%x, 0x%x) enter\n",
-			       this_request, completion_code
-			       ));
 
 	switch (SCU_GET_COMPLETION_TL_STATUS(completion_code)) {
 	case SCU_MAKE_COMPLETION_STATUS(SCU_TASK_DONE_GOOD):
@@ -701,12 +670,10 @@ static enum sci_status scic_sds_stp_request_pio_data_in_await_data_event_handler
 		break;
 
 	default:
-		SCIC_LOG_ERROR((
-				       sci_base_object_get_logger(request),
-				       SCIC_LOG_OBJECT_STP_IO_REQUEST,
-				       "SCIC PIO Request 0x%x received unexpected event 0x%08x\n",
-				       request, event_code
-				       ));
+		dev_err(scic_to_dev(request->owning_controller),
+			"%s: SCIC PIO Request 0x%p received unexpected "
+			"event 0x%08x\n",
+			__func__, request, event_code);
 
 		/* / @todo Should we fail the PIO request when we get an unexpected event? */
 		status = SCI_FAILURE;

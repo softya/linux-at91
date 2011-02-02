@@ -61,6 +61,7 @@
  */
 
 #include "sci_util.h"
+#include "sci_environment.h"
 #include "scic_controller.h"
 #include "scic_port.h"
 #include "scic_phy.h"
@@ -74,7 +75,6 @@
 #include "scic_sds_phy.h"
 #include "scic_sds_remote_device.h"
 #include "scic_sds_request.h"
-#include "scic_sds_logger.h"
 #include "scic_sds_port_configuration_agent.h"
 #include "scu_constants.h"
 #include "scu_event_codes.h"
@@ -723,13 +723,6 @@ static void scic_sds_controller_transition_to_ready(
 	struct scic_sds_controller *this_controller,
 	enum sci_status status)
 {
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_controller),
-			       SCIC_LOG_OBJECT_CONTROLLER,
-			       "scic_sds_controller_transition_to_ready(0x%x, 0x%x) enter\n",
-			       this_controller, status
-			       ));
-
 	if (this_controller->parent.state_machine.current_state_id
 	    == SCI_BASE_CONTROLLER_STATE_STARTING) {
 		/*
@@ -769,19 +762,18 @@ void scic_sds_controller_timeout_handler(
 			);
 	} else if (current_state == SCI_BASE_CONTROLLER_STATE_STOPPING) {
 		sci_base_state_machine_change_state(
-			scic_sds_controller_get_base_state_machine(this_controller),
+			scic_sds_controller_get_base_state_machine(
+					this_controller),
 			SCI_BASE_CONTROLLER_STATE_FAILED
 			);
 
-		scic_cb_controller_stop_complete(controller, SCI_FAILURE_TIMEOUT);
-	} else {
-		/* / @todo Now what do we want to do in this case? */
-		SCIC_LOG_ERROR((
-				       sci_base_object_get_logger(this_controller),
-				       SCIC_LOG_OBJECT_CONTROLLER,
-				       "Controller timer fired when controller was not in a state being timed.\n"
-				       ));
-	}
+		scic_cb_controller_stop_complete(controller,
+						 SCI_FAILURE_TIMEOUT);
+	} else	/* / @todo Now what do we want to do in this case? */
+		dev_err(scic_to_dev(this_controller),
+			"%s: Controller timer fired when controller was not "
+			"in a state being timed.\n",
+			__func__);
 }
 
 /**
@@ -809,35 +801,25 @@ enum SCIC_PORT_CONFIGURATION_MODE scic_sds_controller_get_port_configuration_mod
 	return mode;
 }
 
-/**
- *
- * @this_controller:
- *
- * enum sci_status
- */
-enum sci_status scic_sds_controller_stop_ports(
-	struct scic_sds_controller *this_controller)
+enum sci_status scic_sds_controller_stop_ports(struct scic_sds_controller *scic)
 {
 	u32 index;
-	enum sci_status status;
 	enum sci_status port_status;
+	enum sci_status status = SCI_SUCCESS;
 
-	status = SCI_SUCCESS;
+	for (index = 0; index < scic->logical_port_entries; index++) {
+		port_status = scic_port_stop(&scic->port_table[index]);
 
-	for (index = 0; index < this_controller->logical_port_entries; index++) {
-		port_status  = scic_port_stop(&this_controller->port_table[index]);
-		if (
-			(port_status != SCI_SUCCESS)
-			&& (port_status != SCI_FAILURE_INVALID_STATE)
-			) {
+		if ((port_status != SCI_SUCCESS) &&
+		    (port_status != SCI_FAILURE_INVALID_STATE)) {
 			status = SCI_FAILURE;
 
-			SCIC_LOG_WARNING((
-						 sci_base_object_get_logger(this_controller),
-						 SCIC_LOG_OBJECT_CONTROLLER | SCIC_LOG_OBJECT_PORT,
-						 "Controller stop operation failed to stop port %d because of status %d.\n",
-						 this_controller->port_table[index].logical_port_index, port_status
-						 ));
+			dev_warn(scic_to_dev(scic),
+				 "%s: Controller stop operation failed to "
+				 "stop port %d because of status %d.\n",
+				 __func__,
+				 scic->port_table[index].logical_port_index,
+				 port_status);
 		}
 	}
 
@@ -971,13 +953,13 @@ enum sci_status scic_sds_controller_start_next_phy(
 			if (status == SCI_SUCCESS) {
 				scic_sds_controller_phy_timer_start(this_controller);
 			} else {
-				SCIC_LOG_WARNING((
-							 sci_base_object_get_logger(this_controller),
-							 SCIC_LOG_OBJECT_CONTROLLER | SCIC_LOG_OBJECT_PHY,
-							 "Controller stop operation failed to stop phy %d because of status %d.\n",
-							 this_controller->phy_table[this_controller->next_phy_to_start].phy_index,
-							 status
-							 ));
+				dev_warn(scic_to_dev(this_controller),
+					 "%s: Controller stop operation failed "
+					 "to stop phy %d because of status "
+					 "%d.\n",
+					 __func__,
+					 this_controller->phy_table[this_controller->next_phy_to_start].phy_index,
+					 status);
 			}
 
 			this_controller->next_phy_to_start++;
@@ -1011,12 +993,11 @@ enum sci_status scic_sds_controller_stop_phys(
 			) {
 			status = SCI_FAILURE;
 
-			SCIC_LOG_WARNING((
-						 sci_base_object_get_logger(this_controller),
-						 SCIC_LOG_OBJECT_CONTROLLER | SCIC_LOG_OBJECT_PHY,
-						 "Controller stop operation failed to stop phy %d because of status %d.\n",
-						 this_controller->phy_table[index].phy_index, phy_status
-						 ));
+			dev_warn(scic_to_dev(this_controller),
+				 "%s: Controller stop operation failed to stop "
+				 "phy %d because of status %d.\n",
+				 __func__,
+				 this_controller->phy_table[index].phy_index, phy_status);
 		}
 	}
 
@@ -1043,16 +1024,14 @@ enum sci_status scic_sds_controller_stop_devices(
 			/* / @todo What timeout value do we want to provide to this request? */
 			device_status = scic_remote_device_stop(this_controller->device_table[index], 0);
 
-			if (
-				(device_status != SCI_SUCCESS)
-				&& (device_status != SCI_FAILURE_INVALID_STATE)
-				) {
-				SCIC_LOG_WARNING((
-							 sci_base_object_get_logger(this_controller),
-							 SCIC_LOG_OBJECT_CONTROLLER | SCIC_LOG_OBJECT_SSP_REMOTE_TARGET,
-							 "Controller stop operation failed to stop device 0x%x because of status %d.\n",
-							 this_controller->device_table[index], device_status
-							 ));
+			if ((device_status != SCI_SUCCESS) &&
+			    (device_status != SCI_FAILURE_INVALID_STATE)) {
+				dev_warn(scic_to_dev(this_controller),
+					 "%s: Controller stop operation failed "
+					 "to stop device 0x%p because of "
+					 "status %d.\n",
+					 __func__,
+					 this_controller->device_table[index], device_status);
 			}
 		}
 	}
@@ -1246,43 +1225,38 @@ static void scic_sds_controller_sdma_completion(
 	case SCU_CONTEXT_COMMAND_REQUEST_TYPE_POST_TC:
 	case SCU_CONTEXT_COMMAND_REQUEST_TYPE_DUMP_TC:
 		io_request = this_controller->io_request_table[index];
-		SCIC_LOG_WARNING((
-					 sci_base_object_get_logger(this_controller),
-					 SCIC_LOG_OBJECT_CONTROLLER
-					 | SCIC_LOG_OBJECT_SMP_IO_REQUEST
-					 | SCIC_LOG_OBJECT_SSP_IO_REQUEST
-					 | SCIC_LOG_OBJECT_STP_IO_REQUEST,
-					 "SCIC SDS Completion type SDMA %x for io request %x\n",
-					 completion_entry,
-					 io_request
-					 ));
-		/* / @todo For a post TC operation we need to fail the IO request */
+		dev_warn(scic_to_dev(this_controller),
+			 "%s: SCIC SDS Completion type SDMA %x for io request "
+			 "%p\n",
+			 __func__,
+			 completion_entry,
+			 io_request);
+		/* @todo For a post TC operation we need to fail the IO
+		 * request
+		 */
 		break;
 
 	case SCU_CONTEXT_COMMAND_REQUEST_TYPE_DUMP_RNC:
 	case SCU_CONTEXT_COMMAND_REQUEST_TYPE_OTHER_RNC:
 	case SCU_CONTEXT_COMMAND_REQUEST_TYPE_POST_RNC:
 		device = this_controller->device_table[index];
-		SCIC_LOG_WARNING((
-					 sci_base_object_get_logger(this_controller),
-					 SCIC_LOG_OBJECT_CONTROLLER
-					 | SCIC_LOG_OBJECT_SSP_REMOTE_TARGET
-					 | SCIC_LOG_OBJECT_SMP_REMOTE_TARGET
-					 | SCIC_LOG_OBJECT_STP_REMOTE_TARGET,
-					 "SCIC SDS Completion type SDMA %x for remote device %x\n",
-					 completion_entry,
-					 device
-					 ));
-		/* / @todo For a port RNC operation we need to fail the device */
+		dev_warn(scic_to_dev(this_controller),
+			 "%s: SCIC SDS Completion type SDMA %x for remote "
+			 "device %p\n",
+			 __func__,
+			 completion_entry,
+			 device);
+		/* @todo For a port RNC operation we need to fail the
+		 * device
+		 */
 		break;
 
 	default:
-		SCIC_LOG_WARNING((
-					 sci_base_object_get_logger(this_controller),
-					 SCIC_LOG_OBJECT_CONTROLLER,
-					 "SCIC SDS Completion unknown SDMA completion type %x\n",
-					 completion_entry
-					 ));
+		dev_warn(scic_to_dev(this_controller),
+			 "%s: SCIC SDS Completion unknown SDMA completion "
+			 "type %x\n",
+			 __func__,
+			 completion_entry);
 		break;
 
 	}
@@ -1384,12 +1358,12 @@ static void scic_sds_controller_event_completion(
 	switch (scu_get_event_type(completion_entry)) {
 	case SCU_EVENT_TYPE_SMU_COMMAND_ERROR:
 		/* / @todo The driver did something wrong and we need to fix the condtion. */
-		SCIC_LOG_ERROR((
-				       sci_base_object_get_logger(this_controller),
-				       SCIC_LOG_OBJECT_CONTROLLER,
-				       "SCIC Controller 0x%x received SMU command error 0x%x\n",
-				       this_controller, completion_entry
-				       ));
+		dev_err(scic_to_dev(this_controller),
+			"%s: SCIC Controller 0x%p received SMU command error "
+			"0x%x\n",
+			__func__,
+			this_controller,
+			completion_entry);
 		break;
 
 	case SCU_EVENT_TYPE_SMU_PCQ_ERROR:
@@ -1398,12 +1372,12 @@ static void scic_sds_controller_event_completion(
 		/*
 		 * / @todo This is a hardware failure and its likely that we want to
 		 * /       reset the controller. */
-		SCIC_LOG_ERROR((
-				       sci_base_object_get_logger(this_controller),
-				       SCIC_LOG_OBJECT_CONTROLLER,
-				       "SCIC Controller 0x%x received fatal controller event  0x%x\n",
-				       this_controller, completion_entry
-				       ));
+		dev_err(scic_to_dev(this_controller),
+			"%s: SCIC Controller 0x%p received fatal controller "
+			"event  0x%x\n",
+			__func__,
+			this_controller,
+			completion_entry);
 		break;
 
 	case SCU_EVENT_TYPE_TRANSPORT_ERROR:
@@ -1416,36 +1390,32 @@ static void scic_sds_controller_event_completion(
 		case SCU_EVENT_SPECIFIC_SMP_RESPONSE_NO_PE:
 		case SCU_EVENT_SPECIFIC_TASK_TIMEOUT:
 			io_request = this_controller->io_request_table[index];
-			if (io_request != SCI_INVALID_HANDLE) {
+			if (io_request != SCI_INVALID_HANDLE)
 				scic_sds_io_request_event_handler(io_request, completion_entry);
-			} else {
-				SCIC_LOG_WARNING((
-							 sci_base_object_get_logger(this_controller),
-							 SCIC_LOG_OBJECT_CONTROLLER |
-							 SCIC_LOG_OBJECT_SMP_IO_REQUEST |
-							 SCIC_LOG_OBJECT_SSP_IO_REQUEST |
-							 SCIC_LOG_OBJECT_STP_IO_REQUEST,
-							 "SCIC Controller 0x%x received event 0x%x for io request object that doesnt exist.\n",
-							 this_controller, completion_entry
-							 ));
-			}
+			else
+				dev_warn(scic_to_dev(this_controller),
+					 "%s: SCIC Controller 0x%p received "
+					 "event 0x%x for io request object "
+					 "that doesnt exist.\n",
+					 __func__,
+					 this_controller,
+					 completion_entry);
+
 			break;
 
 		case SCU_EVENT_SPECIFIC_IT_NEXUS_TIMEOUT:
 			device = this_controller->device_table[index];
-			if (device != SCI_INVALID_HANDLE) {
+			if (device != SCI_INVALID_HANDLE)
 				scic_sds_remote_device_event_handler(device, completion_entry);
-			} else {
-				SCIC_LOG_WARNING((
-							 sci_base_object_get_logger(this_controller),
-							 SCIC_LOG_OBJECT_CONTROLLER |
-							 SCIC_LOG_OBJECT_SMP_REMOTE_TARGET |
-							 SCIC_LOG_OBJECT_SSP_REMOTE_TARGET |
-							 SCIC_LOG_OBJECT_STP_REMOTE_TARGET,
-							 "SCIC Controller 0x%x received event 0x%x for remote device object that doesnt exist.\n",
-							 this_controller, completion_entry
-							 ));
-			}
+			else
+				dev_warn(scic_to_dev(this_controller),
+					 "%s: SCIC Controller 0x%p received "
+					 "event 0x%x for remote device object "
+					 "that doesnt exist.\n",
+					 __func__,
+					 this_controller,
+					 completion_entry);
+
 			break;
 		}
 		break;
@@ -1470,29 +1440,25 @@ static void scic_sds_controller_event_completion(
 		if (index < this_controller->remote_node_entries) {
 			device = this_controller->device_table[index];
 
-			if (device != NULL) {
+			if (device != NULL)
 				scic_sds_remote_device_event_handler(device, completion_entry);
-			}
-		} else {
-			SCIC_LOG_ERROR((
-					       sci_base_object_get_logger(this_controller),
-					       SCIC_LOG_OBJECT_CONTROLLER |
-					       SCIC_LOG_OBJECT_SMP_REMOTE_TARGET |
-					       SCIC_LOG_OBJECT_SSP_REMOTE_TARGET |
-					       SCIC_LOG_OBJECT_STP_REMOTE_TARGET,
-					       "SCIC Controller 0x%x received event 0x%x for remote device object 0x%0x that doesnt exist.\n",
-					       this_controller, completion_entry, index
-					       ));
-		}
+		} else
+			dev_err(scic_to_dev(this_controller),
+				"%s: SCIC Controller 0x%p received event 0x%x "
+				"for remote device object 0x%0x that doesnt "
+				"exist.\n",
+				__func__,
+				this_controller,
+				completion_entry,
+				index);
+
 		break;
 
 	default:
-		SCIC_LOG_WARNING((
-					 sci_base_object_get_logger(this_controller),
-					 SCIC_LOG_OBJECT_CONTROLLER,
-					 "SCIC Controller received unknown event code %x\n",
-					 completion_entry
-					 ));
+		dev_warn(scic_to_dev(this_controller),
+			 "%s: SCIC Controller received unknown event code %x\n",
+			 __func__,
+			 completion_entry);
 		break;
 	}
 }
@@ -1512,19 +1478,10 @@ static void scic_sds_controller_process_completions(
 	u32 event_index;
 	u32 event_cycle;
 
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_controller),
-			       SCIC_LOG_OBJECT_CONTROLLER,
-			       "scic_sds_controller_process_completions(0x%x) enter\n",
-			       this_controller
-			       ));
-
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_controller),
-			       SCIC_LOG_OBJECT_COMPLETION_QUEUE,
-			       "completion queue begining get:0x%08x\n",
-			       this_controller->completion_queue_get
-			       ));
+	dev_dbg(scic_to_dev(this_controller),
+		"%s: completion queue begining get:0x%08x\n",
+		__func__,
+		this_controller->completion_queue_get);
 
 	/* Get the component parts of the completion queue */
 	get_index = NORMALIZE_GET_POINTER(this_controller->completion_queue_get);
@@ -1542,12 +1499,10 @@ static void scic_sds_controller_process_completions(
 		completion_entry = this_controller->completion_queue[get_index];
 		INCREMENT_COMPLETION_QUEUE_GET(this_controller, get_index, get_cycle);
 
-		SCIC_LOG_TRACE((
-				       sci_base_object_get_logger(this_controller),
-				       SCIC_LOG_OBJECT_COMPLETION_QUEUE,
-				       "completion queue entry:0x%08x\n",
-				       completion_entry
-				       ));
+		dev_dbg(scic_to_dev(this_controller),
+			"%s: completion queue entry:0x%08x\n",
+			__func__,
+			completion_entry);
 
 		switch (SCU_GET_COMPLETION_TYPE(completion_entry)) {
 		case SCU_COMPLETION_TYPE_TASK:
@@ -1576,12 +1531,11 @@ static void scic_sds_controller_process_completions(
 			break;
 
 		default:
-			SCIC_LOG_WARNING((
-						 sci_base_object_get_logger(this_controller),
-						 SCIC_LOG_OBJECT_CONTROLLER,
-						 "SCIC Controller received unknown completion type %x\n",
-						 completion_entry
-						 ));
+			dev_warn(scic_to_dev(this_controller),
+				 "%s: SCIC Controller received unknown "
+				 "completion type %x\n",
+				 __func__,
+				 completion_entry);
 			break;
 		}
 	}
@@ -1594,15 +1548,14 @@ static void scic_sds_controller_process_completions(
 			| event_cycle | SMU_CQGR_GEN_VAL(EVENT_POINTER, event_index)
 			| get_cycle   | SMU_CQGR_GEN_VAL(POINTER, get_index);
 
-		SMU_CQGR_WRITE(this_controller, this_controller->completion_queue_get);
+		SMU_CQGR_WRITE(this_controller,
+			       this_controller->completion_queue_get);
 	}
 
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_controller),
-			       SCIC_LOG_OBJECT_COMPLETION_QUEUE,
-			       "completion queue ending get:0x%08x\n",
-			       this_controller->completion_queue_get
-			       ));
+	dev_dbg(scic_to_dev(this_controller),
+		"%s: completion queue ending get:0x%08x\n",
+		__func__,
+		this_controller->completion_queue_get);
 
 }
 
@@ -1621,19 +1574,10 @@ static void scic_sds_controller_transitioned_process_completions(
 	u32 event_index;
 	u32 event_cycle;
 
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_controller),
-			       SCIC_LOG_OBJECT_CONTROLLER,
-			       "scic_sds_controller_transitioned_process_completions(0x%x) enter\n",
-			       this_controller
-			       ));
-
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_controller),
-			       SCIC_LOG_OBJECT_COMPLETION_QUEUE,
-			       "completion queue begining get:0x%08x\n",
-			       this_controller->completion_queue_get
-			       ));
+	dev_dbg(scic_to_dev(this_controller),
+		"%s: completion queue begining get:0x%08x\n",
+		__func__,
+		this_controller->completion_queue_get);
 
 	/* Get the component parts of the completion queue */
 	get_index = NORMALIZE_GET_POINTER(this_controller->completion_queue_get);
@@ -1652,12 +1596,10 @@ static void scic_sds_controller_transitioned_process_completions(
 		completion_entry = this_controller->completion_queue[get_index];
 		INCREMENT_COMPLETION_QUEUE_GET(this_controller, get_index, get_cycle);
 
-		SCIC_LOG_TRACE((
-				       sci_base_object_get_logger(this_controller),
-				       SCIC_LOG_OBJECT_COMPLETION_QUEUE,
-				       "completion queue entry:0x%08x\n",
-				       completion_entry
-				       ));
+		dev_dbg(scic_to_dev(this_controller),
+			"%s: completion queue entry:0x%08x\n",
+			__func__,
+			completion_entry);
 
 		switch (SCU_GET_COMPLETION_TYPE(completion_entry)) {
 		case SCU_COMPLETION_TYPE_TASK:
@@ -1675,12 +1617,11 @@ static void scic_sds_controller_transitioned_process_completions(
 		case SCU_COMPLETION_TYPE_SDMA:
 		case SCU_COMPLETION_TYPE_UFI:
 		default:
-			SCIC_LOG_WARNING((
-						 sci_base_object_get_logger(this_controller),
-						 SCIC_LOG_OBJECT_CONTROLLER,
-						 "SCIC Controller ignoring completion type %x\n",
-						 completion_entry
-						 ));
+			dev_warn(scic_to_dev(this_controller),
+				 "%s: SCIC Controller ignoring completion type "
+				 "%x\n",
+				 __func__,
+				 completion_entry);
 			break;
 		}
 	}
@@ -1696,12 +1637,10 @@ static void scic_sds_controller_transitioned_process_completions(
 		SMU_CQGR_WRITE(this_controller, this_controller->completion_queue_get);
 	}
 
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_controller),
-			       SCIC_LOG_OBJECT_COMPLETION_QUEUE,
-			       "completion queue ending get:0x%08x\n",
-			       this_controller->completion_queue_get
-			       ));
+	dev_dbg(scic_to_dev(this_controller),
+		"%s: completion queue ending get:0x%08x\n",
+		__func__,
+		this_controller->completion_queue_get);
 }
 
 /*
@@ -1725,20 +1664,10 @@ static bool scic_sds_controller_standard_interrupt_handler(
 {
 	bool is_completion_needed = false;
 
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_controller),
-			       SCIC_LOG_OBJECT_CONTROLLER,
-			       "scic_sds_controller_standard_interrupt_handler(0x%d,0x%d) enter\n",
-			       this_controller, interrupt_status
-			       ));
-
-	if (
-		(interrupt_status & SMU_ISR_QUEUE_ERROR)
-		|| (
-			(interrupt_status & SMU_ISR_QUEUE_SUSPEND)
-			&& (!scic_sds_controller_completion_queue_has_entries(this_controller))
-			)
-		) {
+	if ((interrupt_status & SMU_ISR_QUEUE_ERROR) ||
+	    ((interrupt_status & SMU_ISR_QUEUE_SUSPEND) &&
+	     (!scic_sds_controller_completion_queue_has_entries(
+							this_controller)))) {
 		/*
 		 * We have a fatal error on the read of the completion queue bar
 		 * OR
@@ -1768,21 +1697,16 @@ static bool scic_sds_controller_polling_interrupt_handler(
 	SCI_CONTROLLER_HANDLE_T controller)
 {
 	u32 interrupt_status;
-	struct scic_sds_controller *this_controller = (struct scic_sds_controller *)controller;
-
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(controller),
-			       SCIC_LOG_OBJECT_CONTROLLER,
-			       "scic_sds_controller_polling_interrupt_handler(0x%d) enter\n",
-			       controller
-			       ));
+	struct scic_sds_controller *this_controller =
+		(struct scic_sds_controller *)controller;
 
 	/*
-	 * In INTERRUPT_POLLING_MODE we exit the interrupt handler if the hardware
-	 * indicates nothing is pending. Since we are not being called from a real
-	 * interrupt, we don't want to confuse the hardware by servicing the
-	 * completion queue before the hardware indicates it is ready. We'll
-	 * simply wait for another polling interval and check again.
+	 * In INTERRUPT_POLLING_MODE we exit the interrupt handler if the
+	 * hardware indicates nothing is pending. Since we are not being
+	 * called from a real interrupt, we don't want to confuse the hardware
+	 * by servicing the completion queue before the hardware indicates it
+	 * is ready. We'll simply wait for another polling interval and check
+	 * again.
 	 */
 	interrupt_status = SMU_ISR_READ(this_controller);
 	if ((interrupt_status &
@@ -1808,19 +1732,10 @@ static void scic_sds_controller_polling_completion_handler(
 {
 	struct scic_sds_controller *this_controller = (struct scic_sds_controller *)controller;
 
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(controller),
-			       SCIC_LOG_OBJECT_CONTROLLER,
-			       "scic_sds_controller_polling_completion_handler(0x%d) enter\n",
-			       controller
-			       ));
-
 	if (this_controller->encountered_fatal_error == true) {
-		SCIC_LOG_ERROR((
-				       sci_base_object_get_logger(this_controller),
-				       SCIC_LOG_OBJECT_CONTROLLER,
-				       "SCIC Controller has encountered a fatal error.\n"
-				       ));
+		dev_err(scic_to_dev(this_controller),
+			"%s: SCIC Controller has encountered a fatal error.\n",
+			__func__);
 
 		sci_base_state_machine_change_state(
 			scic_sds_controller_get_base_state_machine(this_controller),
@@ -1882,13 +1797,6 @@ static void scic_sds_controller_legacy_completion_handler(
 	SCI_CONTROLLER_HANDLE_T controller)
 {
 	struct scic_sds_controller *this_controller = (struct scic_sds_controller *)controller;
-
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(controller),
-			       SCIC_LOG_OBJECT_CONTROLLER,
-			       "scic_sds_controller_legacy_completion_handler(0x%d) enter\n",
-			       controller
-			       ));
 
 	scic_sds_controller_polling_completion_handler(controller);
 
@@ -1963,22 +1871,13 @@ static void scic_sds_controller_single_vector_completion_handler(
 
 	this_controller = (struct scic_sds_controller *)controller;
 
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(controller),
-			       SCIC_LOG_OBJECT_CONTROLLER,
-			       "scic_sds_controller_single_vector_completion_handler(0x%d) enter\n",
-			       controller
-			       ));
-
 	interrupt_status = SMU_ISR_READ(this_controller);
 	interrupt_status &= (SMU_ISR_QUEUE_ERROR | SMU_ISR_QUEUE_SUSPEND);
 
 	if (interrupt_status & SMU_ISR_QUEUE_ERROR) {
-		SCIC_LOG_ERROR((
-				       sci_base_object_get_logger(this_controller),
-				       SCIC_LOG_OBJECT_CONTROLLER,
-				       "SCIC Controller has encountered a fatal error.\n"
-				       ));
+		dev_err(scic_to_dev(this_controller),
+			"%s: SCIC Controller has encountered a fatal error.\n",
+			__func__);
 
 		/*
 		 * We have a fatal condition and must reset the controller
@@ -1990,15 +1889,12 @@ static void scic_sds_controller_single_vector_completion_handler(
 		return;
 	}
 
-	if (
-		(interrupt_status & SMU_ISR_QUEUE_SUSPEND)
-		&& !scic_sds_controller_completion_queue_has_entries(this_controller)
-		) {
-		SCIC_LOG_ERROR((
-				       sci_base_object_get_logger(this_controller),
-				       SCIC_LOG_OBJECT_CONTROLLER,
-				       "SCIC Controller has encountered a fatal error.\n"
-				       ));
+	if ((interrupt_status & SMU_ISR_QUEUE_SUSPEND) &&
+	    !scic_sds_controller_completion_queue_has_entries(
+						this_controller)) {
+		dev_err(scic_to_dev(this_controller),
+			"%s: SCIC Controller has encountered a fatal error.\n",
+			__func__);
 
 		/*
 		 * We have a fatal condtion and must reset the controller
@@ -2071,13 +1967,6 @@ static void scic_sds_controller_normal_vector_completion_handler(
 
 	this_controller = (struct scic_sds_controller *)controller;
 
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(controller),
-			       SCIC_LOG_OBJECT_CONTROLLER,
-			       "scic_sds_controller_normal_vector_completion_handler(0x%d) enter\n",
-			       controller
-			       ));
-
 	/* Empty out the completion queue */
 	if (scic_sds_controller_completion_queue_has_entries(this_controller)) {
 		scic_sds_controller_process_completions(this_controller);
@@ -2142,13 +2031,6 @@ static void scic_sds_controller_error_vector_completion_handler(
 
 	this_controller = (struct scic_sds_controller *)controller;
 
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(controller),
-			       SCIC_LOG_OBJECT_CONTROLLER,
-			       "scic_sds_controller_error_vector_completion_handler(0x%d) enter\n",
-			       controller
-			       ));
-
 	interrupt_status = SMU_ISR_READ(this_controller);
 
 	if (
@@ -2159,12 +2041,11 @@ static void scic_sds_controller_error_vector_completion_handler(
 
 		SMU_ISR_WRITE(this_controller, SMU_ISR_QUEUE_SUSPEND);
 	} else {
-		SCIC_LOG_ERROR((
-				       sci_base_object_get_logger(this_controller),
-				       SCIC_LOG_OBJECT_CONTROLLER,
-				       "SCIC Controller reports CRC error on completion ISR %x\n",
-				       interrupt_status
-				       ));
+		dev_err(scic_to_dev(this_controller),
+			"%s: SCIC Controller reports CRC error on completion "
+			"ISR %x\n",
+			__func__,
+			interrupt_status);
 
 		sci_base_state_machine_change_state(
 			scic_sds_controller_get_base_state_machine(this_controller),
@@ -2233,16 +2114,15 @@ void scic_sds_controller_link_up(
 
 	if (link_up)
 		link_up(scic, sci_port, sci_phy);
-	else {
-		SCIC_LOG_INFO((
-				      sci_base_object_get_logger(scic),
-				      SCIC_LOG_OBJECT_CONTROLLER,
-				      "SCIC Controller linkup event from phy %d in unexpected state %n\n",
-				      sci_phy->phy_index,
-				      sci_base_state_machine_get_state(
-					      scic_sds_controller_get_base_state_machine(scic))
-				      ));
-	}
+	else
+		dev_warn(scic_to_dev(scic),
+			"%s: SCIC Controller linkup event from phy %d in "
+			"unexpected state %d\n",
+			__func__,
+			sci_phy->phy_index,
+			sci_base_state_machine_get_state(
+				scic_sds_controller_get_base_state_machine(
+					scic)));
 }
 
 /**
@@ -2265,16 +2145,15 @@ void scic_sds_controller_link_down(
 
 	if (link_down)
 		link_down(scic, sci_port, sci_phy);
-	else {
-		SCIC_LOG_INFO((
-				      sci_base_object_get_logger(scic),
-				      SCIC_LOG_OBJECT_CONTROLLER,
-				      "SCIC Controller linkdown event from phy %d in unexpected state %n\n",
-				      sci_phy->phy_index,
-				      sci_base_state_machine_get_state(
-					      scic_sds_controller_get_base_state_machine(scic))
-				      ));
-	}
+	else
+		dev_warn(scic_to_dev(scic),
+			"%s: SCIC Controller linkdown event from phy %d in "
+			"unexpected state %d\n",
+			__func__,
+			sci_phy->phy_index,
+			sci_base_state_machine_get_state(
+				scic_sds_controller_get_base_state_machine(
+					scic)));
 }
 
 /**
@@ -2288,12 +2167,11 @@ void scic_sds_controller_post_request(
 	struct scic_sds_controller *this_controller,
 	u32 request)
 {
-	SCIC_LOG_INFO((
-			      sci_base_object_get_logger(this_controller),
-			      SCIC_LOG_OBJECT_CONTROLLER | SCIC_LOG_OBJECT_COMPLETION_QUEUE,
-			      "SCIC Controller 0x%08x post request 0x%08x\n",
-			      this_controller, request
-			      ));
+	dev_dbg(scic_to_dev(this_controller),
+		"%s: SCIC Controller 0x%p post request 0x%08x\n",
+		__func__,
+		this_controller,
+		request);
 
 	SMU_PCP_WRITE(this_controller, request);
 }
@@ -2521,22 +2399,6 @@ void scic_sds_controller_release_frame(
 		SCU_UFQGP_WRITE(this_controller, this_controller->uf_control.get);
 }
 
-#ifdef SCI_LOGGING
-static void scic_sds_controller_initialize_state_logging(
-	struct scic_sds_controller *this_controller)
-{
-	sci_base_state_machine_logger_initialize(
-		&this_controller->parent.state_machine_logger,
-		&this_controller->parent.state_machine,
-		&this_controller->parent.parent,
-		scic_cb_logger_log_states,
-		"struct scic_sds_controller", "base state machine",
-		SCIC_LOG_OBJECT_CONTROLLER
-		);
-}
-
-#endif
-
 /**
  * This method sets user parameters and OEM parameters to default values.
  *    Users can override these values utilizing the scic_user_parameters_set()
@@ -2601,19 +2463,11 @@ enum sci_status scic_controller_construct(
 	my_library = (struct scic_sds_library *)library;
 	this_controller = (struct scic_sds_controller *)controller;
 
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(library),
-			       SCIC_LOG_OBJECT_CONTROLLER | SCIC_LOG_OBJECT_INITIALIZATION,
-			       "scic_controller_construct(0x%x, 0x%x) enter\n",
-			       library, controller
-			       ));
-
 	/* Just clear out the memory of the structure to be safe. */
 	memset(this_controller, 0, sizeof(struct scic_sds_controller));
 
 	sci_base_controller_construct(
 		&this_controller->parent,
-		sci_base_object_get_logger(my_library),
 		scic_sds_controller_state_table,
 		this_controller->memory_descriptors,
 		ARRAY_SIZE(this_controller->memory_descriptors),
@@ -2625,8 +2479,6 @@ enum sci_status scic_controller_construct(
 
 	this_controller->pci_revision =
 		scic_sds_library_get_pci_revision(my_library);
-
-	scic_sds_controller_initialize_state_logging(this_controller);
 
 	scic_sds_port_configuration_agent_construct(&this_controller->port_agent);
 
@@ -2680,24 +2532,16 @@ enum sci_status scic_controller_initialize(
 	state = scic->parent.state_machine.current_state_id;
 	initialize = scic_sds_controller_state_handler_table[state].base.initialize;
 
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(controller),
-			       SCIC_LOG_OBJECT_CONTROLLER,
-			       "scic_controller_initialize(0x%x, 0x%d) enter\n",
-			       controller
-			       ));
-
 	if (initialize)
 		status = initialize(&scic->parent);
-	else {
-		SCIC_LOG_WARNING((
-					 sci_base_object_get_logger(scic),
-					 SCIC_LOG_OBJECT_CONTROLLER,
-					 "SCIC Controller initialize operation requested in invalid state %n\n",
-					 sci_base_state_machine_get_state(
-						 scic_sds_controller_get_base_state_machine(scic))
-					 ));
-	}
+	else
+		dev_warn(scic_to_dev(scic),
+			 "%s: SCIC Controller initialize operation requested "
+			 "in invalid state %d\n",
+			 __func__,
+			 sci_base_state_machine_get_state(
+				 scic_sds_controller_get_base_state_machine(
+					 scic)));
 
 	return status;
 }
@@ -2745,24 +2589,16 @@ enum sci_status scic_controller_start(
 	state = scic->parent.state_machine.current_state_id;
 	start = scic_sds_controller_state_handler_table[state].base.start;
 
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(controller),
-			       SCIC_LOG_OBJECT_CONTROLLER,
-			       "scic_controller_start(0x%x, 0x%d) enter\n",
-			       controller, timeout
-			       ));
-
 	if (start)
 		status = start(&scic->parent, timeout);
-	else {
-		SCIC_LOG_WARNING((
-					 sci_base_object_get_logger(scic),
-					 SCIC_LOG_OBJECT_CONTROLLER,
-					 "SCIC Controller start operation requested in invalid state %n\n",
-					 sci_base_state_machine_get_state(
-						 scic_sds_controller_get_base_state_machine(scic))
-					 ));
-	}
+	else
+		dev_warn(scic_to_dev(scic),
+			 "%s: SCIC Controller start operation requested in "
+			 "invalid state %d\n",
+			 __func__,
+			 sci_base_state_machine_get_state(
+				 scic_sds_controller_get_base_state_machine(
+					 scic)));
 
 	return status;
 }
@@ -2782,24 +2618,16 @@ enum sci_status scic_controller_stop(
 	state = scic->parent.state_machine.current_state_id;
 	stop = scic_sds_controller_state_handler_table[state].base.stop;
 
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(controller),
-			       SCIC_LOG_OBJECT_CONTROLLER,
-			       "scic_controller_stop(0x%x, 0x%d) enter\n",
-			       controller, timeout
-			       ));
-
 	if (stop)
 		status = stop(&scic->parent, timeout);
-	else {
-		SCIC_LOG_WARNING((
-					 sci_base_object_get_logger(scic),
-					 SCIC_LOG_OBJECT_CONTROLLER,
-					 "SCIC Controller stop operation requested in invalid state %n\n",
-					 sci_base_state_machine_get_state(
-						 scic_sds_controller_get_base_state_machine(scic))
-					 ));
-	}
+	else
+		dev_warn(scic_to_dev(scic),
+			 "%s: SCIC Controller stop operation requested in "
+			 "invalid state %d\n",
+			 __func__,
+			 sci_base_state_machine_get_state(
+				 scic_sds_controller_get_base_state_machine(
+					 scic)));
 
 	return status;
 }
@@ -2818,24 +2646,16 @@ enum sci_status scic_controller_reset(
 	state = scic->parent.state_machine.current_state_id;
 	reset = scic_sds_controller_state_handler_table[state].base.reset;
 
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(controller),
-			       SCIC_LOG_OBJECT_CONTROLLER,
-			       "scic_controller_reset(0x%x) enter\n",
-			       controller
-			       ));
-
 	if (reset)
 		status = reset(&scic->parent);
-	else {
-		SCIC_LOG_WARNING((
-					 sci_base_object_get_logger(scic),
-					 SCIC_LOG_OBJECT_CONTROLLER,
-					 "SCIC Controller reset operation requested in invalid state %n\n",
-					 sci_base_state_machine_get_state(
-						 scic_sds_controller_get_base_state_machine(scic))
-					 ));
-	}
+	else
+		dev_warn(scic_to_dev(scic),
+			 "%s: SCIC Controller reset operation requested in "
+			 "invalid state %d\n",
+			 __func__,
+			 sci_base_state_machine_get_state(
+				 scic_sds_controller_get_base_state_machine(
+					 scic)));
 
 	return status;
 }
@@ -2920,13 +2740,6 @@ enum sci_io_status scic_controller_start_io(
 	state = scic->parent.state_machine.current_state_id;
 	start_io = scic_sds_controller_state_handler_table[state].base.start_io;
 
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(controller),
-			       SCIC_LOG_OBJECT_CONTROLLER,
-			       "scic_controller_start_io(0x%x, 0x%x, 0x%x, 0x%x) enter\n",
-			       controller, remote_device, io_request, io_tag
-			       ));
-
 	return start_io(&scic->parent,
 			(struct sci_base_remote_device *) remote_device,
 			(struct sci_base_request *)io_request, io_tag);
@@ -2947,13 +2760,6 @@ enum sci_status scic_controller_terminate_request(
 	state = scic->parent.state_machine.current_state_id;
 	terminate_request = scic_sds_controller_state_handler_table[state].terminate_request;
 
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(controller),
-			       SCIC_LOG_OBJECT_CONTROLLER,
-			       "scic_controller_terminate_request(0x%x, 0x%x, 0x%x) enter\n",
-			       controller, remote_device, request
-			       ));
-
 	return terminate_request(&scic->parent,
 				 (struct sci_base_remote_device *)remote_device,
 				 (struct sci_base_request *)request);
@@ -2973,13 +2779,6 @@ enum sci_status scic_controller_complete_io(
 	scic = (struct scic_sds_controller *)controller;
 	state = scic->parent.state_machine.current_state_id;
 	complete_io = scic_sds_controller_state_handler_table[state].base.complete_io;
-
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(controller),
-			       SCIC_LOG_OBJECT_CONTROLLER,
-			       "scic_controller_complete_io(0x%x, 0x%x, 0x%x) enter\n",
-			       controller, remote_device, io_request
-			       ));
 
 	return complete_io(&scic->parent,
 			   (struct sci_base_remote_device *)remote_device,
@@ -3004,25 +2803,16 @@ enum sci_task_status scic_controller_start_task(
 	state = scic->parent.state_machine.current_state_id;
 	start_task = scic_sds_controller_state_handler_table[state].base.start_task;
 
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(controller),
-			       SCIC_LOG_OBJECT_CONTROLLER,
-			       "scic_controller_start_task(0x%x, 0x%x, 0x%x, 0x%x) enter\n",
-			       controller, remote_device, task_request, task_tag
-			       ));
-
 	if (start_task)
 		status = start_task(&scic->parent,
 				    (struct sci_base_remote_device *)remote_device,
 				    (struct sci_base_request *)task_request,
 				    task_tag);
-	else {
-		SCIC_LOG_INFO((
-				      sci_base_object_get_logger(controller),
-				      SCIC_LOG_OBJECT_CONTROLLER,
-				      "SCIC Controller starting task from invalid state\n"
-				      ));
-	}
+	else
+		dev_warn(scic_to_dev(scic),
+			 "%s: SCIC Controller starting task from invalid "
+			 "state\n",
+			 __func__);
 
 	return status;
 }
@@ -3045,24 +2835,15 @@ enum sci_status scic_controller_complete_task(
 
 	scic = (struct scic_sds_controller *)controller;
 
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(controller),
-			       SCIC_LOG_OBJECT_CONTROLLER,
-			       "scic_controller_complete_task(0x%x, 0x%x, 0x%x) enter\n",
-			       controller, remote_device, task_request
-			       ));
-
 	if (complete_task)
 		status = complete_task(&scic->parent,
 				       (struct sci_base_remote_device *)remote_device,
 				       (struct sci_base_request *)task_request);
-	else {
-		SCIC_LOG_INFO((
-				      sci_base_object_get_logger(controller),
-				      SCIC_LOG_OBJECT_CONTROLLER,
-				      "SCIC Controller completing task from invalid state\n"
-				      ));
-	}
+	else
+		dev_warn(scic_to_dev(scic),
+			 "%s: SCIC Controller completing task from invalid "
+			 "state\n",
+			 __func__);
 
 	return status;
 }
@@ -3078,13 +2859,6 @@ enum sci_status scic_controller_get_port_handle(
 	struct scic_sds_controller *this_controller;
 
 	this_controller = (struct scic_sds_controller *)controller;
-
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(controller),
-			       SCIC_LOG_OBJECT_CONTROLLER,
-			       "scic_controller_get_port_handle(0x%x, 0x%x, 0x%x) enter\n",
-			       controller, port_index, port_handle
-			       ));
 
 	if (port_index < this_controller->logical_port_entries) {
 		*port_handle = &this_controller->port_table[port_index];
@@ -3106,25 +2880,15 @@ enum sci_status scic_controller_get_phy_handle(
 
 	this_controller = (struct scic_sds_controller *)controller;
 
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(controller),
-			       SCIC_LOG_OBJECT_CONTROLLER,
-			       "scic_controller_get_phy_handle(0x%x, 0x%x, 0x%x) enter\n",
-			       controller, phy_index, phy_handle
-			       ));
-
 	if (phy_index < ARRAY_SIZE(this_controller->phy_table)) {
 		*phy_handle = &this_controller->phy_table[phy_index];
 
 		return SCI_SUCCESS;
 	}
 
-	SCIC_LOG_ERROR((
-			       sci_base_object_get_logger(this_controller),
-			       SCIC_LOG_OBJECT_PORT | SCIC_LOG_OBJECT_CONTROLLER,
-			       "Controller:0x%x PhyId:0x%x invalid phy index\n",
-			       this_controller, phy_index
-			       ));
+	dev_err(scic_to_dev(this_controller),
+		"%s: Controller:0x%p PhyId:0x%x invalid phy index\n",
+		__func__, this_controller, phy_index);
 
 	return SCI_FAILURE_INVALID_PHY;
 }
@@ -3139,13 +2903,6 @@ u16 scic_controller_allocate_io_tag(
 	struct scic_sds_controller *this_controller;
 
 	this_controller = (struct scic_sds_controller *)controller;
-
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(controller),
-			       SCIC_LOG_OBJECT_CONTROLLER,
-			       "scic_controller_allocate_io_tag(0x%x) enter\n",
-			       controller
-			       ));
 
 	if (!sci_pool_empty(this_controller->tci_pool)) {
 		sci_pool_get(this_controller->tci_pool, task_context);
@@ -3172,13 +2929,6 @@ enum sci_status scic_controller_free_io_tag(
 	this_controller = (struct scic_sds_controller *)controller;
 
 	ASSERT(io_tag != SCI_CONTROLLER_INVALID_IO_TAG);
-
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(controller),
-			       SCIC_LOG_OBJECT_CONTROLLER,
-			       "scic_controller_free_io_tag(0x%x, 0x%x) enter\n",
-			       controller, io_tag
-			       ));
 
 	sequence = scic_sds_io_tag_get_sequence(io_tag);
 	index    = scic_sds_io_tag_get_index(io_tag);
@@ -3234,19 +2984,10 @@ enum sci_status scic_controller_set_mode(
 	struct scic_sds_controller *this_controller = (struct scic_sds_controller *)controller;
 	enum sci_status status          = SCI_SUCCESS;
 
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(controller),
-			       SCIC_LOG_OBJECT_CONTROLLER,
-			       "scic_controller_set_mode(0x%x, 0x%x) enter\n",
-			       controller, operating_mode
-			       ));
-
-	if (
-		(this_controller->parent.state_machine.current_state_id
-		 == SCI_BASE_CONTROLLER_STATE_INITIALIZING)
-		|| (this_controller->parent.state_machine.current_state_id
-		    == SCI_BASE_CONTROLLER_STATE_INITIALIZED)
-		) {
+	if ((this_controller->parent.state_machine.current_state_id ==
+				SCI_BASE_CONTROLLER_STATE_INITIALIZING) ||
+	    (this_controller->parent.state_machine.current_state_id ==
+				SCI_BASE_CONTROLLER_STATE_INITIALIZED)) {
 		switch (operating_mode) {
 		case SCI_MODE_SPEED:
 			this_controller->remote_node_entries      = SCI_MAX_REMOTE_DEVICES;

@@ -60,9 +60,9 @@
  *
  */
 
+#include "sci_environment.h"
 #include "scic_user_callback.h"
 #include "scic_controller.h"
-#include "scic_sds_logger.h"
 #include "scic_sds_remote_device.h"
 #include "scic_sds_controller.h"
 #include "scic_sds_port.h"
@@ -201,14 +201,6 @@ static enum sci_status scic_sds_remote_device_terminate_requests(
 	u32 index;
 	u32 request_count    = this_device->started_request_count;
 
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_device),
-			       SCIC_LOG_OBJECT_SMP_REMOTE_TARGET | SCIC_LOG_OBJECT_SSP_REMOTE_TARGET |
-			       SCIC_LOG_OBJECT_STP_REMOTE_TARGET,
-			       "scic_sds_remote_device_terminate_requests(0x%x) enter\n",
-			       this_device
-			       ));
-
 	for (index = 0;
 	     (index < SCI_MAX_IO_REQUESTS) && (request_count > 0);
 	     index++) {
@@ -247,15 +239,16 @@ static enum sci_status scic_sds_remote_device_terminate_requests(
 enum sci_status scic_sds_remote_device_default_start_handler(
 	struct sci_base_remote_device *device)
 {
-	SCIC_LOG_WARNING((
-				 sci_base_object_get_logger((struct scic_sds_remote_device *)device),
-				 SCIC_LOG_OBJECT_SSP_REMOTE_TARGET |
-				 SCIC_LOG_OBJECT_SMP_REMOTE_TARGET |
-				 SCIC_LOG_OBJECT_STP_REMOTE_TARGET,
-				 "SCIC Remote Device requested to start while in wrong state %d\n",
-				 sci_base_state_machine_get_state(
-					 scic_sds_remote_device_get_base_state_machine((struct scic_sds_remote_device *)device))
-				 ));
+	struct scic_sds_remote_device *sds_device =
+		(struct scic_sds_remote_device *)device;
+
+	dev_warn(scirdev_to_dev(sds_device),
+		 "%s: SCIC Remote Device requested to start while in wrong "
+		 "state %d\n",
+		 __func__,
+		 sci_base_state_machine_get_state(
+			 scic_sds_remote_device_get_base_state_machine(
+				 sds_device)));
 
 	return SCI_FAILURE_INVALID_STATE;
 }
@@ -271,15 +264,16 @@ enum sci_status scic_sds_remote_device_default_start_handler(
 static enum sci_status scic_sds_remote_device_default_stop_handler(
 	struct sci_base_remote_device *device)
 {
-	SCIC_LOG_WARNING((
-				 sci_base_object_get_logger((struct scic_sds_remote_device *)device),
-				 SCIC_LOG_OBJECT_SSP_REMOTE_TARGET |
-				 SCIC_LOG_OBJECT_SMP_REMOTE_TARGET |
-				 SCIC_LOG_OBJECT_STP_REMOTE_TARGET,
-				 "SCIC Remote Device requested to stop while in wrong state %d\n",
-				 sci_base_state_machine_get_state(
-					 scic_sds_remote_device_get_base_state_machine((struct scic_sds_remote_device *)device))
-				 ));
+	struct scic_sds_remote_device *sds_device =
+		(struct scic_sds_remote_device *)device;
+
+	dev_warn(scirdev_to_dev(sds_device),
+		 "%s: SCIC Remote Device requested to stop while in wrong "
+		 "state %d\n",
+		 __func__,
+		 sci_base_state_machine_get_state(
+			 scic_sds_remote_device_get_base_state_machine(
+				 sds_device)));
 
 	return SCI_FAILURE_INVALID_STATE;
 }
@@ -295,15 +289,16 @@ static enum sci_status scic_sds_remote_device_default_stop_handler(
 enum sci_status scic_sds_remote_device_default_fail_handler(
 	struct sci_base_remote_device *device)
 {
-	SCIC_LOG_WARNING((
-				 sci_base_object_get_logger((struct scic_sds_remote_device *)device),
-				 SCIC_LOG_OBJECT_SSP_REMOTE_TARGET |
-				 SCIC_LOG_OBJECT_SMP_REMOTE_TARGET |
-				 SCIC_LOG_OBJECT_STP_REMOTE_TARGET,
-				 "SCIC Remote Device requested to fail while in wrong state %d\n",
-				 sci_base_state_machine_get_state(
-					 scic_sds_remote_device_get_base_state_machine((struct scic_sds_remote_device *)device))
-				 ));
+	struct scic_sds_remote_device *sds_device =
+		(struct scic_sds_remote_device *)device;
+
+	dev_warn(scirdev_to_dev(sds_device),
+		 "%s: SCIC Remote Device requested to fail while in wrong "
+		 "state %d\n",
+		 __func__,
+		 sci_base_state_machine_get_state(
+			 scic_sds_remote_device_get_base_state_machine(
+				 sds_device)));
 
 	return SCI_FAILURE_INVALID_STATE;
 }
@@ -319,15 +314,16 @@ enum sci_status scic_sds_remote_device_default_fail_handler(
 enum sci_status scic_sds_remote_device_default_destruct_handler(
 	struct sci_base_remote_device *device)
 {
-	SCIC_LOG_WARNING((
-				 sci_base_object_get_logger((struct scic_sds_remote_device *)device),
-				 SCIC_LOG_OBJECT_SSP_REMOTE_TARGET |
-				 SCIC_LOG_OBJECT_SMP_REMOTE_TARGET |
-				 SCIC_LOG_OBJECT_STP_REMOTE_TARGET,
-				 "SCIC Remote Device requested to destroy while in wrong state %d\n",
-				 sci_base_state_machine_get_state(
-					 scic_sds_remote_device_get_base_state_machine((struct scic_sds_remote_device *)device))
-				 ));
+	struct scic_sds_remote_device *sds_device =
+		(struct scic_sds_remote_device *)device;
+
+	dev_warn(scirdev_to_dev(sds_device),
+		 "%s: SCIC Remote Device requested to destroy while in "
+		 "wrong state %d\n",
+		 __func__,
+		 sci_base_state_machine_get_state(
+			 scic_sds_remote_device_get_base_state_machine(
+				 sds_device)));
 
 	return SCI_FAILURE_INVALID_STATE;
 }
@@ -343,15 +339,16 @@ enum sci_status scic_sds_remote_device_default_destruct_handler(
 enum sci_status scic_sds_remote_device_default_reset_handler(
 	struct sci_base_remote_device *device)
 {
-	SCIC_LOG_WARNING((
-				 sci_base_object_get_logger((struct scic_sds_remote_device *)device),
-				 SCIC_LOG_OBJECT_SSP_REMOTE_TARGET |
-				 SCIC_LOG_OBJECT_SMP_REMOTE_TARGET |
-				 SCIC_LOG_OBJECT_STP_REMOTE_TARGET,
-				 "SCIC Remote Device requested to reset while in wrong state %d\n",
-				 sci_base_state_machine_get_state(
-					 scic_sds_remote_device_get_base_state_machine((struct scic_sds_remote_device *)device))
-				 ));
+	struct scic_sds_remote_device *sds_device =
+		(struct scic_sds_remote_device *)device;
+
+	dev_warn(scirdev_to_dev(sds_device),
+		 "%s: SCIC Remote Device requested to reset while in wrong "
+		 "state %d\n",
+		 __func__,
+		 sci_base_state_machine_get_state(
+			 scic_sds_remote_device_get_base_state_machine(
+				 sds_device)));
 
 	return SCI_FAILURE_INVALID_STATE;
 }
@@ -367,15 +364,16 @@ enum sci_status scic_sds_remote_device_default_reset_handler(
 enum sci_status scic_sds_remote_device_default_reset_complete_handler(
 	struct sci_base_remote_device *device)
 {
-	SCIC_LOG_WARNING((
-				 sci_base_object_get_logger((struct scic_sds_remote_device *)device),
-				 SCIC_LOG_OBJECT_SSP_REMOTE_TARGET |
-				 SCIC_LOG_OBJECT_SMP_REMOTE_TARGET |
-				 SCIC_LOG_OBJECT_STP_REMOTE_TARGET,
-				 "SCIC Remote Device requested to complete reset while in wrong state %d\n",
-				 sci_base_state_machine_get_state(
-					 scic_sds_remote_device_get_base_state_machine((struct scic_sds_remote_device *)device))
-				 ));
+	struct scic_sds_remote_device *sds_device =
+		(struct scic_sds_remote_device *)device;
+
+	dev_warn(scirdev_to_dev(sds_device),
+		 "%s: SCIC Remote Device requested to complete reset while "
+		 "in wrong state %d\n",
+		 __func__,
+		 sci_base_state_machine_get_state(
+			 scic_sds_remote_device_get_base_state_machine(
+				 sds_device)));
 
 	return SCI_FAILURE_INVALID_STATE;
 }
@@ -392,16 +390,15 @@ enum sci_status scic_sds_remote_device_default_suspend_handler(
 	struct scic_sds_remote_device *this_device,
 	u32 suspend_type)
 {
-	SCIC_LOG_WARNING((
-				 sci_base_object_get_logger(this_device),
-				 SCIC_LOG_OBJECT_SSP_REMOTE_TARGET |
-				 SCIC_LOG_OBJECT_SMP_REMOTE_TARGET |
-				 SCIC_LOG_OBJECT_STP_REMOTE_TARGET,
-				 "SCIC Remote Device 0x%x requested to suspend %d while in wrong state %d\n",
-				 this_device, suspend_type,
-				 sci_base_state_machine_get_state(
-					 scic_sds_remote_device_get_base_state_machine(this_device))
-				 ));
+	dev_warn(scirdev_to_dev(this_device),
+		 "%s: SCIC Remote Device 0x%p requested to suspend %d while "
+		 "in wrong state %d\n",
+		 __func__,
+		 this_device,
+		 suspend_type,
+		 sci_base_state_machine_get_state(
+			 scic_sds_remote_device_get_base_state_machine(
+				 this_device)));
 
 	return SCI_FAILURE_INVALID_STATE;
 }
@@ -417,58 +414,16 @@ enum sci_status scic_sds_remote_device_default_suspend_handler(
 enum sci_status scic_sds_remote_device_default_resume_handler(
 	struct scic_sds_remote_device *this_device)
 {
-	SCIC_LOG_WARNING((
-				 sci_base_object_get_logger(this_device),
-				 SCIC_LOG_OBJECT_SSP_REMOTE_TARGET |
-				 SCIC_LOG_OBJECT_SMP_REMOTE_TARGET |
-				 SCIC_LOG_OBJECT_STP_REMOTE_TARGET,
-				 "SCIC Remote Device requested to resume while in wrong state %d\n",
-				 sci_base_state_machine_get_state(
-					 scic_sds_remote_device_get_base_state_machine(this_device))
-				 ));
+	dev_warn(scirdev_to_dev(this_device),
+		 "%s: SCIC Remote Device requested to resume while in "
+		 "wrong state %d\n",
+		 __func__,
+		 sci_base_state_machine_get_state(
+			 scic_sds_remote_device_get_base_state_machine(
+				 this_device)));
 
 	return SCI_FAILURE_INVALID_STATE;
 }
-
-#if defined(SCI_LOGGING)
-/**
- *
- * @[in]: this_device This is the device object that is receiving the event.
- * @[in]: event_code The event code to process.
- *
- * This is a private method for emitting log messages related to events
- * reported to the remote device from the controller object. None
- */
-static void scic_sds_emit_event_log_message(
-	struct scic_sds_remote_device *this_device,
-	u32 event_code,
-	char *message_guts,
-	bool ready_state)
-{
-	SCIC_LOG_WARNING((
-				 sci_base_object_get_logger(this_device),
-				 SCIC_LOG_OBJECT_SSP_REMOTE_TARGET |
-				 SCIC_LOG_OBJECT_SMP_REMOTE_TARGET |
-				 SCIC_LOG_OBJECT_STP_REMOTE_TARGET,
-				 "SCIC Remote device 0x%x (state %d) received %s %x while in the %sready %s%d\n",
-				 this_device,
-				 sci_base_state_machine_get_state(
-					 scic_sds_remote_device_get_base_state_machine(this_device)),
-				 message_guts, event_code,
-				 (ready_state)
-				 ? ""
-				 : "not ",
-				 (this_device->has_ready_substate_machine)
-				 ? "substate "
-				 : "",
-				 (this_device->has_ready_substate_machine)
-				 ? sci_base_state_machine_get_state(&this_device->ready_substate_machine)
-				 : 0
-				 ));
-}
-#else /* defined(SCI_LOGGING) */
-#define scic_sds_emit_event_log_message(device, event_code, message, state)
-#endif /* defined(SCI_LOGGING) */
 
 /**
  *
@@ -504,23 +459,24 @@ static enum sci_status  scic_sds_remote_device_core_event_handler(
 							      SCI_SOFTWARE_SUSPENSION,
 							      NULL, NULL);
 
-			scic_sds_emit_event_log_message(
-				this_device, event_code,
+			dev_dbg(scirdev_to_dev(this_device),
+				"%s: device: %p event code: %x: %s\n",
+				__func__, this_device, event_code,
 				(is_ready_state)
 				? "I_T_Nexus_Timeout event"
-				: "I_T_Nexus_Timeout event in wrong state",
-				is_ready_state);
+				: "I_T_Nexus_Timeout event in wrong state");
 
 			break;
 		}
 	/* Else, fall through and treat as unhandled... */
 
 	default:
-		scic_sds_emit_event_log_message(this_device, event_code,
-						 (is_ready_state)
-						 ? "unexpected event"
-						 : "unexpected event in wrong state",
-						 is_ready_state);
+		dev_dbg(scirdev_to_dev(this_device),
+			"%s: device: %p event code: %x: %s\n",
+			__func__, this_device, event_code,
+			(is_ready_state)
+			? "unexpected event"
+			: "unexpected event in wrong state");
 		status = SCI_FAILURE_INVALID_STATE;
 		break;
 	}
@@ -562,15 +518,13 @@ enum sci_status scic_sds_remote_device_default_frame_handler(
 	struct scic_sds_remote_device *this_device,
 	u32 frame_index)
 {
-	SCIC_LOG_WARNING((
-				 sci_base_object_get_logger(this_device),
-				 SCIC_LOG_OBJECT_SSP_REMOTE_TARGET |
-				 SCIC_LOG_OBJECT_SMP_REMOTE_TARGET |
-				 SCIC_LOG_OBJECT_STP_REMOTE_TARGET,
-				 "SCIC Remote Device requested to handle frame %x while in wrong state %d\n",
-				 frame_index,
-				 sci_base_state_machine_get_state(&this_device->parent.state_machine)
-				 ));
+	dev_warn(scirdev_to_dev(this_device),
+		 "%s: SCIC Remote Device requested to handle frame %x "
+		 "while in wrong state %d\n",
+		 __func__,
+		 frame_index,
+		 sci_base_state_machine_get_state(
+			 &this_device->parent.state_machine));
 
 	/* Return the frame back to the controller */
 	scic_sds_controller_release_frame(
@@ -594,16 +548,17 @@ enum sci_status scic_sds_remote_device_default_start_request_handler(
 	struct sci_base_remote_device *device,
 	struct sci_base_request *request)
 {
-	SCIC_LOG_WARNING((
-				 sci_base_object_get_logger((struct scic_sds_remote_device *)device),
-				 SCIC_LOG_OBJECT_SSP_REMOTE_TARGET |
-				 SCIC_LOG_OBJECT_SMP_REMOTE_TARGET |
-				 SCIC_LOG_OBJECT_STP_REMOTE_TARGET,
-				 "SCIC Remote Device requested to start io request %x while in wrong state %d\n",
-				 request,
-				 sci_base_state_machine_get_state(
-					 scic_sds_remote_device_get_base_state_machine((struct scic_sds_remote_device *)device))
-				 ));
+	struct scic_sds_remote_device *sds_device =
+		(struct scic_sds_remote_device *)device;
+
+	dev_warn(scirdev_to_dev(sds_device),
+		 "%s: SCIC Remote Device requested to start io request %p "
+		 "while in wrong state %d\n",
+		 __func__,
+		 request,
+		 sci_base_state_machine_get_state(
+			 scic_sds_remote_device_get_base_state_machine(
+				 (struct scic_sds_remote_device *)device)));
 
 	return SCI_FAILURE_INVALID_STATE;
 }
@@ -622,16 +577,17 @@ enum sci_status scic_sds_remote_device_default_complete_request_handler(
 	struct sci_base_remote_device *device,
 	struct sci_base_request *request)
 {
-	SCIC_LOG_WARNING((
-				 sci_base_object_get_logger((struct scic_sds_remote_device *)device),
-				 SCIC_LOG_OBJECT_SSP_REMOTE_TARGET |
-				 SCIC_LOG_OBJECT_SMP_REMOTE_TARGET |
-				 SCIC_LOG_OBJECT_STP_REMOTE_TARGET,
-				 "SCIC Remote Device requested to complete io_request %x while in wrong state %d\n",
-				 request,
-				 sci_base_state_machine_get_state(
-					 scic_sds_remote_device_get_base_state_machine((struct scic_sds_remote_device *)device))
-				 ));
+	struct scic_sds_remote_device *sds_device =
+		(struct scic_sds_remote_device *)device;
+
+	dev_warn(scirdev_to_dev(sds_device),
+		 "%s: SCIC Remote Device requested to complete io_request %p "
+		 "while in wrong state %d\n",
+		 __func__,
+		 request,
+		 sci_base_state_machine_get_state(
+			 scic_sds_remote_device_get_base_state_machine(
+				 sds_device)));
 
 	return SCI_FAILURE_INVALID_STATE;
 }
@@ -650,16 +606,17 @@ enum sci_status scic_sds_remote_device_default_continue_request_handler(
 	struct sci_base_remote_device *device,
 	struct sci_base_request *request)
 {
-	SCIC_LOG_WARNING((
-				 sci_base_object_get_logger((struct scic_sds_remote_device *)device),
-				 SCIC_LOG_OBJECT_SSP_REMOTE_TARGET |
-				 SCIC_LOG_OBJECT_SMP_REMOTE_TARGET |
-				 SCIC_LOG_OBJECT_STP_REMOTE_TARGET,
-				 "SCIC Remote Device requested to continue io request %x while in wrong state %d\n",
-				 request,
-				 sci_base_state_machine_get_state(
-					 scic_sds_remote_device_get_base_state_machine((struct scic_sds_remote_device *)device))
-				 ));
+	struct scic_sds_remote_device *sds_device =
+		(struct scic_sds_remote_device *)device;
+
+	dev_warn(scirdev_to_dev(sds_device),
+		 "%s: SCIC Remote Device requested to continue io request %p "
+		 "while in wrong state %d\n",
+		 __func__,
+		 request,
+		 sci_base_state_machine_get_state(
+			 scic_sds_remote_device_get_base_state_machine(
+			 sds_device)));
 
 	return SCI_FAILURE_INVALID_STATE;
 }
@@ -835,8 +792,6 @@ static enum sci_status scic_sds_remote_device_stopped_state_destruct_handler(
 		scic_sds_remote_device_get_base_state_machine(this_device),
 		SCI_BASE_REMOTE_DEVICE_STATE_FINAL
 		);
-
-	scic_sds_remote_device_deinitialize_state_logging(this_device);
 
 	return SCI_SUCCESS;
 }

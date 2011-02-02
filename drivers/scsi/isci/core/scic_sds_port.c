@@ -60,6 +60,7 @@
  *
  */
 
+#include "sci_environment.h"
 #include "scic_phy.h"
 #include "scic_port.h"
 #include "scic_controller.h"
@@ -71,7 +72,6 @@
 #include "scic_sds_remote_device.h"
 #include "scic_sds_request.h"
 #include "scic_sds_port_registers.h"
-#include "scic_sds_logger.h"
 #include "scic_sds_phy_registers.h"
 
 static void scic_sds_port_invalid_link_up(
@@ -154,18 +154,10 @@ bool scic_sds_port_is_valid_phy_assignment(
  * Return a bit mask indicating which phys are a part of this port. Each bit
  * corresponds to a phy identifier (e.g. bit 0 = phy id 0).
  */
-u32 scic_sds_port_get_phys(
-	struct scic_sds_port *this_port)
+u32 scic_sds_port_get_phys(struct scic_sds_port *this_port)
 {
 	u32 index;
 	u32 mask;
-
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_port),
-			       SCIC_LOG_OBJECT_PORT,
-			       "scic_sds_port_get_phys(0x%x) enter\n",
-			       this_port
-			       ));
 
 	mask = 0;
 
@@ -371,13 +363,6 @@ void scic_sds_port_get_sas_address(
 {
 	u32 index;
 
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_port),
-			       SCIC_LOG_OBJECT_PORT,
-			       "scic_sds_port_get_sas_address(0x%x, 0x%x) enter\n",
-			       this_port, sas_address
-			       ));
-
 	sas_address->high = 0;
 	sas_address->low  = 0;
 
@@ -404,13 +389,6 @@ static void scic_sds_port_get_protocols(
 {
 	u8 index;
 
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_port),
-			       SCIC_LOG_OBJECT_PORT,
-			       "scic_sds_port_get_protocols(0x%x, 0x%x) enter\n",
-			       this_port, protocols
-			       ));
-
 	protocols->u.all = 0;
 
 	for (index = 0; index < SCI_MAX_PHYS; index++) {
@@ -436,13 +414,6 @@ void scic_sds_port_get_attached_sas_address(
 {
 	struct sci_sas_identify_address_frame_protocols protocols;
 	struct scic_sds_phy *phy;
-
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_port),
-			       SCIC_LOG_OBJECT_PORT,
-			       "scic_sds_port_get_attached_sas_address(0x%x, 0x%x) enter\n",
-			       this_port, sas_address
-			       ));
 
 	/*
 	 * Ensure that the phy is both part of the port and currently
@@ -480,13 +451,6 @@ void scic_sds_port_get_attached_protocols(
 {
 	struct scic_sds_phy *phy;
 
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_port),
-			       SCIC_LOG_OBJECT_PORT,
-			       "scic_sds_port_get_attached_protocols(0x%x, 0x%x) enter\n",
-			       this_port, protocols
-			       ));
-
 	/*
 	 * Ensure that the phy is both part of the port and currently
 	 * connected to the remote end-point. */
@@ -517,30 +481,6 @@ void scic_sds_port_get_attached_protocols(
  * u32
  */
 
-#ifdef SCI_LOGGING
-static void scic_sds_port_initialize_state_logging(
-	struct scic_sds_port *this_port)
-{
-	sci_base_state_machine_logger_initialize(
-		&this_port->parent.state_machine_logger,
-		&this_port->parent.state_machine,
-		&this_port->parent.parent,
-		scic_cb_logger_log_states,
-		"struct scic_sds_port", "base state machine",
-		SCIC_LOG_OBJECT_PORT
-		);
-
-	sci_base_state_machine_logger_initialize(
-		&this_port->ready_substate_machine_logger,
-		&this_port->ready_substate_machine,
-		&this_port->parent.parent,
-		scic_cb_logger_log_states,
-		"struct scic_sds_port", "ready substate machine",
-		SCIC_LOG_OBJECT_PORT
-		);
-}
-#endif
-
 /**
  *
  * @this_port:
@@ -557,7 +497,6 @@ void scic_sds_port_construct(
 
 	sci_base_port_construct(
 		&this_port->parent,
-		sci_base_object_get_logger(owning_controller),
 		scic_sds_port_state_table
 		);
 
@@ -567,8 +506,6 @@ void scic_sds_port_construct(
 		scic_sds_port_ready_substate_table,
 		SCIC_SDS_PORT_READY_SUBSTATE_WAITING
 		);
-
-	scic_sds_port_initialize_state_logging(this_port);
 
 	this_port->logical_port_index  = SCIC_SDS_DUMMY_PORT;
 	this_port->physical_port_index = port_index;
@@ -710,34 +647,18 @@ void scic_sds_port_general_link_up_handler(
 
 /* --------------------------------------------------------------------------- */
 
-enum sci_status scic_port_start(
-	SCI_PORT_HANDLE_T handle)
+enum sci_status scic_port_start(SCI_PORT_HANDLE_T handle)
 {
 	struct scic_sds_port *this_port = (struct scic_sds_port *)handle;
-
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_port),
-			       SCIC_LOG_OBJECT_PORT,
-			       "scic_port_start(0x%x) enter\n",
-			       handle
-			       ));
 
 	return this_port->state_handlers->parent.start_handler(&this_port->parent);
 }
 
 /* --------------------------------------------------------------------------- */
 
-enum sci_status scic_port_stop(
-	SCI_PORT_HANDLE_T handle)
+enum sci_status scic_port_stop(SCI_PORT_HANDLE_T handle)
 {
 	struct scic_sds_port *this_port = (struct scic_sds_port *)handle;
-
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_port),
-			       SCIC_LOG_OBJECT_PORT,
-			       "scic_port_stop(0x%x) enter\n",
-			       handle
-			       ));
 
 	return this_port->state_handlers->parent.stop_handler(&this_port->parent);
 }
@@ -750,19 +671,9 @@ enum sci_status scic_port_get_properties(
 {
 	struct scic_sds_port *this_port = (struct scic_sds_port *)port;
 
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_port),
-			       SCIC_LOG_OBJECT_PORT,
-			       "scic_port_get_properties(0x%x, 0x%x) enter\n",
-			       port, properties
-			       ));
-
-	if (
-		(port == SCI_INVALID_HANDLE)
-		|| (this_port->logical_port_index == SCIC_SDS_DUMMY_PORT)
-		) {
+	if ((port == SCI_INVALID_HANDLE) ||
+	    (this_port->logical_port_index == SCIC_SDS_DUMMY_PORT))
 		return SCI_FAILURE_INVALID_PORT;
-	}
 
 	properties->index    = this_port->logical_port_index;
 	properties->phy_mask = scic_sds_port_get_phys(this_port);
@@ -781,13 +692,6 @@ enum sci_status scic_port_hard_reset(
 	u32 reset_timeout)
 {
 	struct scic_sds_port *this_port = (struct scic_sds_port *)handle;
-
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_port),
-			       SCIC_LOG_OBJECT_PORT,
-			       "scic_port_hard_reset(0x%x, 0x%x) enter\n",
-			       handle, reset_timeout
-			       ));
 
 	return this_port->state_handlers->parent.reset_handler(
 		       &this_port->parent,
@@ -838,13 +742,6 @@ void scic_sds_port_activate_phy(
 	struct scic_sds_controller *controller;
 	struct sci_sas_identify_address_frame_protocols protocols;
 
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_port),
-			       SCIC_LOG_OBJECT_PORT,
-			       "scic_sds_port_activate_phy(0x%x,0x%x,0x%x) enter\n",
-			       this_port, the_phy, do_notify_user
-			       ));
-
 	controller = scic_sds_port_get_controller(this_port);
 	scic_sds_phy_get_attached_phy_protocols(the_phy, &protocols);
 
@@ -875,13 +772,6 @@ void scic_sds_port_deactivate_phy(
 	struct scic_sds_phy *the_phy,
 	bool do_notify_user)
 {
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_port),
-			       SCIC_LOG_OBJECT_PORT,
-			       "scic_sds_port_deactivate_phy(0x%x,0x%x,0x%x) enter\n",
-			       this_port, the_phy, do_notify_user
-			       ));
-
 	this_port->active_phy_mask &= ~(1 << the_phy->phy_index);
 
 	the_phy->max_negotiated_speed = SCI_SAS_NO_LINK_RATE;
@@ -926,8 +816,7 @@ static void scic_sds_port_invalid_link_up(
  * bool true Is returned if this is a wide ported port. false Is returned if
  * this is a narrow port.
  */
-static bool scic_sds_port_is_wide(
-	struct scic_sds_port *this_port)
+static bool scic_sds_port_is_wide(struct scic_sds_port *this_port)
 {
 	u32 index;
 	u32 phy_count = 0;
@@ -1046,13 +935,11 @@ enum sci_status scic_sds_port_complete_io(
  *
  *
  */
-static void scic_sds_port_timeout_handler(
-	void *port)
+static void scic_sds_port_timeout_handler(void *port)
 {
+	struct scic_sds_port *this_port = port;
 	u32 current_state;
-	struct scic_sds_port *this_port;
 
-	this_port = (struct scic_sds_port *)port;
 	current_state = sci_base_state_machine_get_state(
 		&this_port->parent.state_machine);
 
@@ -1068,12 +955,10 @@ static void scic_sds_port_timeout_handler(
 		/*
 		 * if the port is stopped then the start request failed
 		 * In this case stay in the stopped state. */
-		SCIC_LOG_ERROR((
-				       sci_base_object_get_logger(this_port),
-				       SCIC_LOG_OBJECT_PORT,
-				       "SCIC Port 0x%x failed to stop before tiemout.\n",
-				       this_port
-				       ));
+		dev_err(sciport_to_dev(this_port),
+			"%s: SCIC Port 0x%p failed to stop before tiemout.\n",
+			__func__,
+			this_port);
 	} else if (current_state == SCI_BASE_PORT_STATE_STOPPING) {
 		/* if the port is still stopping then the stop has not completed */
 		scic_cb_port_stop_complete(
@@ -1085,30 +970,27 @@ static void scic_sds_port_timeout_handler(
 		/*
 		 * The port is in the ready state and we have a timer reporting a timeout
 		 * this should not happen. */
-		SCIC_LOG_ERROR((
-				       sci_base_object_get_logger(this_port),
-				       SCIC_LOG_OBJECT_PORT,
-				       "SCIC Port 0x%x is processing a timeout operation in state %d.\n",
-				       this_port, current_state
-				       ));
+		dev_err(sciport_to_dev(this_port),
+			"%s: SCIC Port 0x%p is processing a timeout operation "
+			"in state %d.\n",
+			__func__,
+			this_port,
+			current_state);
 	}
 }
 
 /* --------------------------------------------------------------------------- */
 
 #ifdef SCIC_DEBUG_ENABLED
-void scic_sds_port_decrement_request_count(
-	struct scic_sds_port *this_port)
+void scic_sds_port_decrement_request_count(struct scic_sds_port *this_port)
 {
-	if (this_port->started_request_count == 0) {
-		SCIC_LOG_WARNING((
-					 sci_base_object_get_logger(this_port),
-					 SCIC_LOG_OBJECT_PORT,
-					 "SCIC Port object requested to decrement started io count past zero.\n"
-					 ));
-	} else {
+	if (this_port->started_request_count == 0)
+		dev_warn(sciport_to_dev(this_port),
+			 __func__,
+			 "%s: SCIC Port object requested to decrement started "
+			 "io count past zero.\n");
+	else
 		this_port->started_request_count--;
-	}
 }
 #endif
 
@@ -1117,8 +999,7 @@ void scic_sds_port_decrement_request_count(
  *
  *
  */
-void scic_sds_port_update_viit_entry(
-	struct scic_sds_port *this_port)
+void scic_sds_port_update_viit_entry(struct scic_sds_port *this_port)
 {
 	struct sci_sas_address sas_address;
 

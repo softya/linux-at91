@@ -67,7 +67,6 @@
 #include "sci_types.h"
 #include "sci_base_state.h"
 #include "sci_base_state_machine.h"
-#include "sci_base_state_machine_logger.h"
 
 /* --------------------------------------------------------------------------- */
 
@@ -238,9 +237,8 @@ enum SCIC_SDS_REMOTE_NODE_CONTEXT_DESTINATION_STATE {
  *
  */
 struct scic_sds_remote_node_context {
-	/**
-	 * This contains the information used to maintain the loggers for the base
-	 * state machine.
+	/*
+	 * parent object
 	 */
 	struct sci_base_object parent;
 
@@ -290,15 +288,6 @@ struct scic_sds_remote_node_context {
 	struct sci_base_state_machine state_machine;
 
 	struct scic_sds_remote_node_context_handlers *state_handlers;
-
-   #ifdef SCI_LOGGING
-	/**
-	 * This field conatins the ready substate machine logger.  The logger will
-	 * emit a message each time the ready substate machine changes state.
-	 */
-	struct sci_base_state_machine_logger state_machine_logger;
-   #endif
-
 };
 
 /* --------------------------------------------------------------------------- */
@@ -348,17 +337,6 @@ bool scic_sds_remote_node_context_is_ready(
 	((rnc)->state_handlers->start_task_handler(rnc, task))
 
 /* --------------------------------------------------------------------------- */
-
-#ifdef SCI_LOGGING
-void scic_sds_remote_node_context_initialize_state_logging(
-	struct scic_sds_remote_node_context *this_rnc);
-
-void scic_sds_remote_node_context_deinitialize_state_logging(
-	struct scic_sds_remote_node_context *this_rnc);
-#else /* SCI_LOGGING */
-#define scic_sds_remote_node_context_initialize_state_logging(x)
-#define scic_sds_remote_node_context_deinitialize_state_logging(x)
-#endif  /* SCI_LOGGING */
 
 #endif  /* _SCIC_SDS_REMOTE_NODE_CONTEXT_H_ */
 

@@ -324,7 +324,7 @@ static inline void isci_request_unmap_sgl(
 
 	if ((task->data_dir != PCI_DMA_NONE) &&
 	    !sas_protocol_ata(task->task_proto)) {
-		if (task->num_scatter == 0) {
+		if (task->num_scatter == 0)
 			/* 0 indicates a single dma address */
 			pci_unmap_single(
 				pdev,
@@ -333,7 +333,7 @@ static inline void isci_request_unmap_sgl(
 				task->data_dir
 				);
 
-		} else  /* unmap the sgl dma addresses */
+		else  /* unmap the sgl dma addresses */
 			pci_unmap_sg(
 				pdev,
 				task->scatter,

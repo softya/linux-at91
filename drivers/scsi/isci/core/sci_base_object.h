@@ -66,9 +66,6 @@
 
 #include "sci_object.h"
 
-/* Forward declare the logger object */
-struct sci_base_logger;
-
 /**
  * struct sci_base_object - The SCI_BASE_OBJECT object represents the data and
  *    functionality that is common to all SCI objects.  It is the base class.
@@ -82,13 +79,6 @@ struct sci_base_object {
 	 * it as a cookie.
 	 */
 	void *associated_object;
-
-	/**
-	 * This field simply contains a handle to the logger object to be
-	 * utilized when utilizing the logger interface.
-	 */
-	struct sci_base_logger *logger;
-
 };
 
 
@@ -96,34 +86,9 @@ struct sci_base_object {
  * sci_base_object_construct() - This method constructs the sci base object.
  * @base_object: This parameter specifies the SCI base object which we whish to
  *    construct.
- * @logger: This parameter specifies the logger object to be saved and utilized
- *    for this base object.
  *
  */
-void sci_base_object_construct(
-	struct sci_base_object *base_object,
-	struct sci_base_logger *logger);
-
-#if defined(SCI_LOGGING)
-/**
- * sci_base_object_get_logger() - This method returns the logger to which a
- *    previous association was created.
- * @base_object: This parameter specifies the SCI base object for which to
- *    retrieve the logger.
- *
- * This method returns a pointer to the logger that was previously associated
- * to the supplied base_object parameter. NULL This value is returned when
- * there is no logger association for the supplied base_object instance.
- */
-#define sci_base_object_get_logger(this_object)	\
-	(((struct sci_base_object *)(this_object))->logger)
-
-#else /* defined(SCI_LOGGING) */
-
-#define sci_base_object_get_logger(this_object) NULL
-
-#endif /* defined(SCI_LOGGING) */
-
+void sci_base_object_construct(struct sci_base_object *base_object);
 
 #endif /* _SCI_BASE_OBJECT_H_ */
 

@@ -270,10 +270,6 @@ struct scic_sds_phy {
 
 	struct sci_base_state_machine starting_substate_machine;
 
-   #ifdef SCI_LOGGING
-	struct sci_base_state_machine_logger starting_substate_machine_logger;
-   #endif
-
    #ifdef SCIC_DEBUG_ENABLED
 	struct scic_sds_phy_state_record state_record;
    #endif /* SCIC_DEBUG_ENABLED */

@@ -69,10 +69,9 @@
 
 void sci_base_port_construct(
 	struct sci_base_port *this_port,
-	struct sci_base_logger *logger,
 	const struct sci_base_state *state_table)
 {
-	sci_base_object_construct(&this_port->parent, logger);
+	sci_base_object_construct(&this_port->parent);
 
 	sci_base_state_machine_construct(
 		&this_port->state_machine,

@@ -61,9 +61,9 @@
 
 #include "intel_sas.h"
 #include "sci_util.h"
+#include "sci_environment.h"
 #include "scic_sds_request.h"
 #include "scic_controller.h"
-#include "scic_sds_logger.h"
 #include "scic_sds_controller.h"
 #include "scu_completion_codes.h"
 #include "scu_task_context.h"
@@ -92,13 +92,6 @@ static enum sci_status scic_sds_smp_request_await_response_frame_handler(
 	void *frame_header;
 	struct smp_response_header *this_frame_header;
 	u8 *user_smp_buffer = this_request->response_buffer;
-
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_request),
-			       SCIC_LOG_OBJECT_SMP_IO_REQUEST,
-			       "scic_sds_smp_request_await_response_frame_handler(0x%x, 0x%x) enter\n",
-			       this_request, frame_index
-			       ));
 
 	status = scic_sds_unsolicited_frame_control_get_header(
 		&(scic_sds_request_get_controller(this_request)->uf_control),
@@ -142,12 +135,9 @@ static enum sci_status scic_sds_smp_request_await_response_frame_handler(
 			    && !this_smp_response->response.discover.protocols.u.bits.attached_stp_target) {
 				this_smp_response->response.discover.protocols.u.bits.attached_stp_target = 1;
 
-				SCIC_LOG_TRACE((
-						       sci_base_object_get_logger(this_request),
-						       SCIC_LOG_OBJECT_SMP_IO_REQUEST,
-						       "scic_sds_smp_request_await_response_frame_handler(0x%x) Found SATA dev, setting STP bit.\n",
-						       this_request
-						       ));
+				dev_dbg(scic_to_dev(this_request->owning_controller),
+					"%s: scic_sds_smp_request_await_response_frame_handler(0x%p) Found SATA dev, setting STP bit.\n",
+					__func__, this_request);
 			}
 		}
 
@@ -169,12 +159,13 @@ static enum sci_status scic_sds_smp_request_await_response_frame_handler(
 			);
 	} else {
 		/* This was not a response frame why did it get forwarded? */
-		SCIC_LOG_ERROR((
-				       sci_base_object_get_logger(this_request),
-				       SCIC_LOG_OBJECT_SMP_IO_REQUEST,
-				       "SCIC SMP Request 0x%08x received unexpected frame %d type 0x%02x\n",
-				       this_request, frame_index, this_frame_header->smp_frame_type
-				       ));
+		dev_err(scic_to_dev(this_request->owning_controller),
+			"%s: SCIC SMP Request 0x%p received unexpected frame "
+			"%d type 0x%02x\n",
+			__func__,
+			this_request,
+			frame_index,
+			this_frame_header->smp_frame_type);
 
 		scic_sds_request_set_status(
 			this_request,
@@ -212,13 +203,6 @@ static enum sci_status scic_sds_smp_request_await_response_tc_completion_handler
 	struct scic_sds_request *this_request,
 	u32 completion_code)
 {
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_request),
-			       SCIC_LOG_OBJECT_SMP_IO_REQUEST,
-			       "scic_sds_smp_request_await_response_tc_completion_handler(0x%x, 0x%x) enter\n",
-			       this_request, completion_code
-			       ));
-
 	switch (SCU_GET_COMPLETION_TL_STATUS(completion_code)) {
 	case SCU_MAKE_COMPLETION_STATUS(SCU_TASK_DONE_GOOD):
 		/*
@@ -291,13 +275,6 @@ static enum sci_status scic_sds_smp_request_await_tc_completion_tc_completion_ha
 	struct scic_sds_request *this_request,
 	u32 completion_code)
 {
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_request),
-			       SCIC_LOG_OBJECT_SMP_IO_REQUEST,
-			       "scic_sds_smp_request_await_tc_completion_tc_completion_handler(0x%x, 0x%x) enter\n",
-			       this_request, completion_code
-			       ));
-
 	switch (SCU_GET_COMPLETION_TL_STATUS(completion_code)) {
 	case SCU_MAKE_COMPLETION_STATUS(SCU_TASK_DONE_GOOD):
 		scic_sds_request_set_status(

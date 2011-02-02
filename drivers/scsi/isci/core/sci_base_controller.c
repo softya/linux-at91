@@ -83,13 +83,12 @@ SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T sci_controller_get_memory_descriptor_list_ha
 
 void sci_base_controller_construct(
 	struct sci_base_controller *this_controller,
-	struct sci_base_logger *logger,
 	const struct sci_base_state *state_table,
 	struct sci_physical_memory_descriptor *mdes,
 	u32 mde_count,
 	SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T next_mdl)
 {
-	sci_base_object_construct((struct sci_base_object *)this_controller, logger);
+	sci_base_object_construct((struct sci_base_object *)this_controller);
 
 	sci_base_state_machine_construct(
 		&this_controller->state_machine,

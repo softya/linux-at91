@@ -1,6 +1,6 @@
-#TODO kill these options SCI_LOGGING is "debug only" SCIC_SDS_4_ENABLED
-#is always true for this generation of silicon
-EXTRA_CFLAGS += -DSCI_LOGGING -DSCIC_SDS_4_ENABLED
+#TODO kill SCIC_SDS_4_ENABLED it is always true for this
+#generation of silicon
+EXTRA_CFLAGS += -DSCIC_SDS_4_ENABLED
 
 #temporary until atapi support ready
 EXTRA_CFLAGS += -DDISABLE_ATAPI
@@ -62,16 +62,11 @@ isci-objs := isci_module_init.o isci_phy.o isci_request.o isci_sata.o \
 	     core/sci_base_controller.o \
 	     core/sci_base_domain.o \
 	     core/sci_base_library.o \
-	     core/sci_base_logger.o \
 	     core/sci_base_memory_descriptor_list.o \
 	     core/sci_base_object.o \
-	     core/sci_base_observer.o \
 	     core/sci_base_phy.o \
 	     core/sci_base_port.o \
 	     core/sci_base_remote_device.o \
 	     core/sci_base_request.o \
 	     core/sci_base_state_machine.o \
-	     core/sci_base_state_machine_observer.o \
-	     core/sci_base_subject.o \
-	     core/sci_base_state_machine_logger.o \
 	     core/sci_util.o

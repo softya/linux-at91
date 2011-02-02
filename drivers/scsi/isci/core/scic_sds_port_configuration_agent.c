@@ -60,8 +60,8 @@
  *
  */
 
+#include "sci_environment.h"
 #include "scic_controller.h"
-#include "scic_sds_logger.h"
 #include "scic_sds_controller.h"
 #include "scic_sds_port_configuration_agent.h"
 
@@ -133,13 +133,6 @@ static struct scic_sds_port *scic_sds_port_configuration_agent_find_port(
 	struct sci_sas_address phy_sas_address;
 	struct sci_sas_address phy_attached_device_address;
 
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(controller),
-			       SCIC_LOG_OBJECT_CONTROLLER | SCIC_LOG_OBJECT_PORT | SCIC_LOG_OBJECT_PHY,
-			       "scic_sds_port_confgiruation_agent_find_port(0x%08x, 0x%08x) enter\n",
-			       controller, phy
-			       ));
-
 	/*
 	 * Since this phy can be a member of a wide port check to see if one or
 	 * more phys match the sent and received SAS address as this phy in which
@@ -184,13 +177,6 @@ static enum sci_status scic_sds_port_configuration_agent_validate_ports(
 {
 	struct sci_sas_address first_address;
 	struct sci_sas_address second_address;
-
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(controller),
-			       SCIC_LOG_OBJECT_CONTROLLER | SCIC_LOG_OBJECT_PORT,
-			       "scic_sds_port_configuration_agent_validate_ports(0x%08x, 0x%08x) enter\n",
-			       controller, port_agent
-			       ));
 
 	/*
 	 * Sanity check the max ranges for all the phys the max index
@@ -297,13 +283,6 @@ static enum sci_status scic_sds_mpc_agent_validate_phy_configuration(
 	sas_address.high = 0;
 	sas_address.low = 0;
 
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(controller),
-			       SCIC_LOG_OBJECT_CONTROLLER | SCIC_LOG_OBJECT_PORT,
-			       "scic_sds_mpc_agent_validate_phy_configuration(0x%08x, 0x%08x) enter\n",
-			       controller, port_agent
-			       ));
-
 	for (port_index = 0; port_index < SCI_MAX_PORTS; port_index++) {
 		phy_mask = controller->oem_parameters.sds1.ports[port_index].phy_mask;
 
@@ -389,13 +368,6 @@ static void scic_sds_mpc_agent_timeout_handler(
 	struct scic_sds_port_configuration_agent *port_agent = &controller->port_agent;
 	u16 configure_phy_mask;
 
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(controller),
-			       SCIC_LOG_OBJECT_CONTROLLER | SCIC_LOG_OBJECT_PORT,
-			       "scic_sds_mpc_agent_timeout_handler(0x%08x) enter\n",
-			       controller
-			       ));
-
 	port_agent->timer_pending = false;
 
 	/* Find the mask of phys that are reported read but as yet unconfigured into a port */
@@ -433,13 +405,6 @@ static void scic_sds_mpc_agent_link_up(
 	struct scic_sds_port *port,
 	struct scic_sds_phy *phy)
 {
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(controller),
-			       SCIC_LOG_OBJECT_CONTROLLER | SCIC_LOG_OBJECT_PORT | SCIC_LOG_OBJECT_PHY,
-			       "scic_sds_mpc_agent_link_up(0x%08x, 0x%08x, 0x%08x, 0x%08x) enter\n",
-			       controller, port_agent, port, phy
-			       ));
-
 	/*
 	 * If the port has an invalid handle then the phy was not assigned to
 	 * a port.  This is because the phy was not given the same SAS Address
@@ -478,13 +443,6 @@ static void scic_sds_mpc_agent_link_down(
 	struct scic_sds_port *port,
 	struct scic_sds_phy *phy)
 {
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(controller),
-			       SCIC_LOG_OBJECT_CONTROLLER | SCIC_LOG_OBJECT_PORT | SCIC_LOG_OBJECT_PHY,
-			       "scic_sds_mpc_agent_link_down(0x%08x, 0x%08x, 0x%08x, 0x%08x) enter\n",
-			       controller, port_agent, port, phy
-			       ));
-
 	if (port != SCI_INVALID_HANDLE) {
 		/*
 		 * If we can form a new port from the remainder of the phys then we want
@@ -536,13 +494,6 @@ static enum sci_status scic_sds_apc_agent_validate_phy_configuration(
 	struct sci_sas_address sas_address;
 	struct sci_sas_address phy_assigned_address;
 
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(controller),
-			       SCIC_LOG_OBJECT_CONTROLLER | SCIC_LOG_OBJECT_PORT,
-			       "scic_sds_apc_agent_validate_phy_configuration(0x%08x, 0x%08x) enter\n",
-			       controller, port_agent
-			       ));
-
 	phy_index = 0;
 
 	while (phy_index < SCI_MAX_PHYS) {
@@ -590,13 +541,6 @@ static void scic_sds_apc_agent_start_timer(
 	struct scic_sds_phy *phy,
 	u32 timeout)
 {
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(controller),
-			       SCIC_LOG_OBJECT_CONTROLLER | SCIC_LOG_OBJECT_PORT | SCIC_LOG_OBJECT_PHY,
-			       "scic_sds_apc_agent_start_timer(0x%08x, 0x%08x, 0x%08x, 0x%08x) enter\n",
-			       controller, port_agent, phy, timeout
-			       ));
-
 	if (port_agent->timer_pending) {
 		scic_cb_timer_stop(controller, port_agent->timer);
 	}
@@ -626,13 +570,6 @@ static void scic_sds_apc_agent_configure_ports(
 	struct scic_sds_port *port;
 	SCI_PORT_HANDLE_T port_handle;
 	enum SCIC_SDS_APC_ACTIVITY apc_activity = SCIC_SDS_APC_SKIP_PHY;
-
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(controller),
-			       SCIC_LOG_OBJECT_CONTROLLER | SCIC_LOG_OBJECT_PORT | SCIC_LOG_OBJECT_PHY,
-			       "scic_sds_apc_agent_configure_ports(0x%08x, 0x%08x, 0x%08x, %d) enter\n",
-			       controller, port_agent, phy, start_timer
-			       ));
 
 	port = scic_sds_port_configuration_agent_find_port(controller, phy);
 
@@ -758,13 +695,6 @@ static void scic_sds_apc_agent_link_up(
 {
 	ASSERT(port == SCI_INVALID_HANDLE);
 
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(controller),
-			       SCIC_LOG_OBJECT_CONTROLLER | SCIC_LOG_OBJECT_PORT | SCIC_LOG_OBJECT_PHY,
-			       "scic_sds_apc_agent_link_up(0x%08x, 0x%08x, 0x%08x, 0x%08x) enter\n",
-			       controller, port_agent, port, phy
-			       ));
-
 	port_agent->phy_ready_mask |= (1 << scic_sds_phy_get_index(phy));
 
 	scic_sds_apc_agent_configure_ports(controller, port_agent, phy, true);
@@ -789,13 +719,6 @@ static void scic_sds_apc_agent_link_down(
 	struct scic_sds_port *port,
 	struct scic_sds_phy *phy)
 {
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(controller),
-			       SCIC_LOG_OBJECT_CONTROLLER | SCIC_LOG_OBJECT_PORT | SCIC_LOG_OBJECT_PHY,
-			       "scic_sds_apc_agent_link_down(0x%08x, 0x%08x, 0x%08x, 0x%08x) enter\n",
-			       controller, port_agent, port, phy
-			       ));
-
 	port_agent->phy_ready_mask &= ~(1 << scic_sds_phy_get_index(phy));
 
 	if (port != SCI_INVALID_HANDLE) {
@@ -825,13 +748,6 @@ static void scic_sds_apc_agent_timeout_handler(
 	u16 configure_phy_mask;
 
 	port_agent = scic_sds_controller_get_port_configuration_agent(controller);
-
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(controller),
-			       SCIC_LOG_OBJECT_CONTROLLER | SCIC_LOG_OBJECT_PORT,
-			       "scic_sds_apc_agent_timeout_handler(0x%08x) enter\n",
-			       controller
-			       ));
 
 	port_agent->timer_pending = false;
 
@@ -894,13 +810,6 @@ enum sci_status scic_sds_port_configuration_agent_initialize(
 	enum sci_status status = SCI_SUCCESS;
 	enum SCIC_PORT_CONFIGURATION_MODE mode;
 
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(controller),
-			       SCIC_LOG_OBJECT_CONTROLLER | SCIC_LOG_OBJECT_PORT,
-			       "scic_sds_port_configuration_agent_initialize(0x%08x, 0x%08x) enter\n",
-			       controller, port_agent
-			       ));
-
 	mode = scic_sds_controller_get_port_configuration_mode(controller);
 
 	if (mode == SCIC_PORT_MANUAL_CONFIGURATION_MODE) {
@@ -928,13 +837,12 @@ enum sci_status scic_sds_port_configuration_agent_initialize(
 	}
 
 	/* Make sure we have actually gotten a timer */
-	if (status == SCI_SUCCESS && port_agent->timer == NULL) {
-		SCIC_LOG_ERROR((
-				       sci_base_object_get_logger(controller),
-				       SCIC_LOG_OBJECT_CONTROLLER,
-				       "Controller 0x%x automatic port configuration agent could not get timer.\n",
-				       controller
-				       ));
+	if ((status == SCI_SUCCESS) && (port_agent->timer == NULL)) {
+		dev_err(scic_to_dev(controller),
+			"%s: Controller 0x%p automatic port configuration "
+			"agent could not get timer.\n",
+			__func__,
+			controller);
 
 		status = SCI_FAILURE;
 	}

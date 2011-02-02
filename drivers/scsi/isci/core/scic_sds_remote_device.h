@@ -66,7 +66,6 @@
 #include "intel_sas.h"
 #include "sci_base_remote_device.h"
 #include "sci_base_request.h"
-#include "sci_base_state_machine_logger.h"
 #include "scu_remote_node_context.h"
 #include "scic_sds_remote_node_context.h"
 
@@ -286,15 +285,6 @@ struct scic_sds_remote_device {
 	 * object.  These are changed each time the remote device enters a new state.
 	 */
 	struct scic_sds_remote_device_state_handler *state_handlers;
-
-   #ifdef SCI_LOGGING
-	/**
-	 * This field conatins the ready substate machine logger.  The logger will
-	 * emit a message each time the ready substate machine changes state.
-	 */
-	struct sci_base_state_machine_logger ready_substate_machine_logger;
-   #endif
-
 };
 
 
@@ -536,15 +526,6 @@ bool scic_sds_remote_device_is_atapi(
 #endif /* !defined(DISABLE_ATAPI) */
 
 /* --------------------------------------------------------------------------- */
-
-#ifdef SCI_LOGGING
-
-void scic_sds_remote_device_deinitialize_state_logging(
-	struct scic_sds_remote_device *this_device);
-#else /* SCI_LOGGING */
-#define scic_sds_remote_device_initialize_state_logging(x)
-#define scic_sds_remote_device_deinitialize_state_logging(x)
-#endif /* SCI_LOGGING */
 
 /* --------------------------------------------------------------------------- */
 

@@ -60,7 +60,7 @@
  *
  */
 
-#include "scic_sds_logger.h"
+#include "sci_environment.h"
 #include "scic_sds_controller.h"
 #include "scic_sds_port.h"
 #include "scic_sds_phy_registers.h"
@@ -86,13 +86,13 @@ enum sci_status scic_sds_phy_default_start_handler(
 
 	this_phy = (struct scic_sds_phy *)phy;
 
-	SCIC_LOG_WARNING((
-				 sci_base_object_get_logger(this_phy),
-				 SCIC_LOG_OBJECT_PHY,
-				 "SCIC Phy 0x%08x requested to start from invalid state %d\n",
-				 this_phy,
-				 sci_base_state_machine_get_state(&this_phy->parent.state_machine)
-				 ));
+	dev_warn(sciphy_to_dev(this_phy),
+		 "%s: SCIC Phy 0x%p requested to start from invalid "
+		 "state %d\n",
+		 __func__,
+		 this_phy,
+		 sci_base_state_machine_get_state(
+			 &this_phy->parent.state_machine));
 
 	return SCI_FAILURE_INVALID_STATE;
 
@@ -113,13 +113,13 @@ enum sci_status scic_sds_phy_default_stop_handler(
 
 	this_phy = (struct scic_sds_phy *)phy;
 
-	SCIC_LOG_WARNING((
-				 sci_base_object_get_logger(this_phy),
-				 SCIC_LOG_OBJECT_PHY,
-				 "SCIC Phy 0x%08x requested to stop from invalid state %d\n",
-				 this_phy,
-				 sci_base_state_machine_get_state(&this_phy->parent.state_machine)
-				 ));
+	dev_warn(sciphy_to_dev(this_phy),
+		 "%s: SCIC Phy 0x%p requested to stop from invalid "
+		 "state %d\n",
+		 __func__,
+		 this_phy,
+		 sci_base_state_machine_get_state(
+			 &this_phy->parent.state_machine));
 
 	return SCI_FAILURE_INVALID_STATE;
 }
@@ -139,13 +139,13 @@ enum sci_status scic_sds_phy_default_reset_handler(
 
 	this_phy = (struct scic_sds_phy *)phy;
 
-	SCIC_LOG_WARNING((
-				 sci_base_object_get_logger(this_phy),
-				 SCIC_LOG_OBJECT_PHY,
-				 "SCIC Phy 0x%08x requested to reset from invalid state %d\n",
-				 this_phy,
-				 sci_base_state_machine_get_state(&this_phy->parent.state_machine)
-				 ));
+	dev_warn(sciphy_to_dev(this_phy),
+		 "%s: SCIC Phy 0x%p requested to reset from invalid state "
+		 "%d\n",
+		 __func__,
+		 this_phy,
+		 sci_base_state_machine_get_state(
+			 &this_phy->parent.state_machine));
 
 	return SCI_FAILURE_INVALID_STATE;
 }
@@ -166,13 +166,13 @@ enum sci_status scic_sds_phy_default_destroy_handler(
 	this_phy = (struct scic_sds_phy *)phy;
 
 	/* / @todo Implement something for the default */
-	SCIC_LOG_WARNING((
-				 sci_base_object_get_logger(this_phy),
-				 SCIC_LOG_OBJECT_PHY,
-				 "SCIC Phy 0x%08x requested to destroy from invalid state %d\n",
-				 this_phy,
-				 sci_base_state_machine_get_state(&this_phy->parent.state_machine)
-				 ));
+	dev_warn(sciphy_to_dev(this_phy),
+		 "%s: SCIC Phy 0x%p requested to destroy from invalid "
+		 "state %d\n",
+		 __func__,
+		 this_phy,
+		 sci_base_state_machine_get_state(
+			 &this_phy->parent.state_machine));
 
 	return SCI_FAILURE_INVALID_STATE;
 }
@@ -191,13 +191,14 @@ enum sci_status scic_sds_phy_default_frame_handler(
 	struct scic_sds_phy *this_phy,
 	u32 frame_index)
 {
-	SCIC_LOG_WARNING((
-				 sci_base_object_get_logger(this_phy),
-				 SCIC_LOG_OBJECT_PHY,
-				 "SCIC Phy 0x%08x recieved unexpected frame data %d while in state %d\n",
-				 this_phy, frame_index,
-				 sci_base_state_machine_get_state(&this_phy->parent.state_machine)
-				 ));
+	dev_warn(sciphy_to_dev(this_phy),
+		 "%s: SCIC Phy 0x%p recieved unexpected frame data %d "
+		 "while in state %d\n",
+		 __func__,
+		 this_phy,
+		 frame_index,
+		 sci_base_state_machine_get_state(
+			 &this_phy->parent.state_machine));
 
 	scic_sds_controller_release_frame(
 		scic_sds_phy_get_controller(this_phy), frame_index);
@@ -218,13 +219,14 @@ enum sci_status scic_sds_phy_default_event_handler(
 	struct scic_sds_phy *this_phy,
 	u32 event_code)
 {
-	SCIC_LOG_WARNING((
-				 sci_base_object_get_logger(this_phy),
-				 SCIC_LOG_OBJECT_PHY,
-				 "SCIC Phy 0x%08x received unexpected event status %x while in state %d\n",
-				 this_phy, event_code,
-				 sci_base_state_machine_get_state(&this_phy->parent.state_machine)
-				 ));
+	dev_warn(sciphy_to_dev(this_phy),
+		"%s: SCIC Phy 0x%p received unexpected event status %x "
+		"while in state %d\n",
+		__func__,
+		this_phy,
+		event_code,
+		sci_base_state_machine_get_state(
+			&this_phy->parent.state_machine));
 
 	return SCI_FAILURE_INVALID_STATE;
 }
@@ -240,13 +242,13 @@ enum sci_status scic_sds_phy_default_event_handler(
 enum sci_status scic_sds_phy_default_consume_power_handler(
 	struct scic_sds_phy *this_phy)
 {
-	SCIC_LOG_WARNING((
-				 sci_base_object_get_logger(this_phy),
-				 SCIC_LOG_OBJECT_PHY,
-				 "SCIC Phy 0x%08x given unexpected permission to consume power while in state %d\n",
-				 this_phy,
-				 sci_base_state_machine_get_state(&this_phy->parent.state_machine)
-				 ));
+	dev_warn(sciphy_to_dev(this_phy),
+		 "%s: SCIC Phy 0x%p given unexpected permission to consume "
+		 "power while in state %d\n",
+		 __func__,
+		 this_phy,
+		 sci_base_state_machine_get_state(
+			 &this_phy->parent.state_machine));
 
 	return SCI_FAILURE_INVALID_STATE;
 }
@@ -398,12 +400,12 @@ static enum sci_status scic_sds_phy_ready_state_event_handler(
 		break;
 
 	default:
-		SCIC_LOG_WARNING((
-					 sci_base_object_get_logger(this_phy),
-					 SCIC_LOG_OBJECT_PHY | SCIC_LOG_OBJECT_RECEIVED_EVENTS,
-					 "SCIC PHY 0x%x ready state machine recieved unexpected event_code %x\n",
-					 this_phy, event_code
-					 ));
+		dev_warn(sciphy_to_dev(this_phy),
+			 "%sP SCIC PHY 0x%p ready state machine recieved "
+			 "unexpected event_code %x\n",
+			 __func__,
+			 this_phy,
+			 event_code);
 
 		result = SCI_FAILURE_INVALID_STATE;
 		break;
@@ -440,12 +442,12 @@ static enum sci_status scic_sds_phy_resetting_state_event_handler(
 		break;
 
 	default:
-		SCIC_LOG_WARNING((
-					 sci_base_object_get_logger(this_phy),
-					 SCIC_LOG_OBJECT_PHY | SCIC_LOG_OBJECT_RECEIVED_EVENTS,
-					 "SCIC PHY 0x%x resetting state machine recieved unexpected event_code %x\n",
-					 this_phy, event_code
-					 ));
+		dev_warn(sciphy_to_dev(this_phy),
+			 "%s: SCIC PHY 0x%p resetting state machine recieved "
+			 "unexpected event_code %x\n",
+			 __func__,
+			 this_phy,
+			 event_code);
 
 		result = SCI_FAILURE_INVALID_STATE;
 		break;

@@ -104,10 +104,6 @@ void sci_base_state_machine_construct(struct sci_base_state_machine *sm,
 				      const struct sci_base_state *state_table,
 				      u32 initial_state)
 {
-#if defined(SCI_LOGGING)
-	sci_base_subject_construct(&sm->parent);
-#endif  /* defined(SCI_LOGGING) */
-
 	sm->state_machine_owner = owner;
 	sm->initial_state_id    = initial_state;
 	sm->previous_state_id   = initial_state;

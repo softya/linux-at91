@@ -63,9 +63,7 @@
  *
  */
 
-#include "sci_base_logger.h"
 #include "sci_base_state_machine.h"
-#include "sci_base_state_machine_logger.h"
 
 /**
  * enum sci_base_request_states - This enumeration depicts all the states for
@@ -129,11 +127,6 @@ struct sci_base_request {
 	 * This field contains the information for the base request state machine.
 	 */
 	struct sci_base_state_machine state_machine;
-
-   #ifdef SCI_LOGGING
-	struct sci_base_state_machine_logger state_machine_logger;
-   #endif /* SCI_LOGGING */
-
 };
 
 typedef enum sci_status (*SCI_BASE_REQUEST_HANDLER_T)(
@@ -178,15 +171,12 @@ struct sci_base_request_state_handler {
 /**
  * sci_base_request_construct() - Construct the base request.
  * @this_request: This parameter specifies the base request to be constructed.
- * @logger: This parameter specifies the logger associated with this base
- *    request object.
  * @state_table: This parameter specifies the table of state definitions to be
  *    utilized for the request state machine.
  *
  */
 void sci_base_request_construct(
 	struct sci_base_request *this_request,
-	struct sci_base_logger *logger,
 	const struct sci_base_state *state_table);
 
 #endif /* _SCI_BASE_REQUST_H_ */

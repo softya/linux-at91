@@ -63,8 +63,8 @@
 
 #include "intel_sas.h"
 #include "sci_util.h"
+#include "sci_environment.h"
 #include "scic_controller.h"
-#include "scic_sds_logger.h"
 #include "scic_sds_controller.h"
 #include "scic_sds_request.h"
 #include "scu_completion_codes.h"
@@ -89,17 +89,15 @@
 enum sci_status scic_sds_request_default_start_handler(
 	struct sci_base_request *request)
 {
-	SCIC_LOG_WARNING((
-				 sci_base_object_get_logger((struct scic_sds_request *)request),
-				 (
-					 SCIC_LOG_OBJECT_SSP_IO_REQUEST
-					 | SCIC_LOG_OBJECT_STP_IO_REQUEST
-					 | SCIC_LOG_OBJECT_SMP_IO_REQUEST
-				 ),
-				 "SCIC IO Request requested to start while in wrong state %d\n",
-				 sci_base_state_machine_get_state(
-					 &((struct scic_sds_request *)request)->parent.state_machine)
-				 ));
+	struct scic_sds_request *scic_request =
+		(struct scic_sds_request *)request;
+
+	dev_warn(scic_to_dev(scic_request->owning_controller),
+		 "%s: SCIC IO Request requested to start while in wrong "
+		 "state %d\n",
+		 __func__,
+		 sci_base_state_machine_get_state(
+			 &((struct scic_sds_request *)request)->parent.state_machine));
 
 	return SCI_FAILURE_INVALID_STATE;
 }
@@ -107,17 +105,15 @@ enum sci_status scic_sds_request_default_start_handler(
 static enum sci_status scic_sds_request_default_abort_handler(
 	struct sci_base_request *request)
 {
-	SCIC_LOG_WARNING((
-				 sci_base_object_get_logger((struct scic_sds_request *)request),
-				 (
-					 SCIC_LOG_OBJECT_SSP_IO_REQUEST
-					 | SCIC_LOG_OBJECT_STP_IO_REQUEST
-					 | SCIC_LOG_OBJECT_SMP_IO_REQUEST
-				 ),
-				 "SCIC IO Request requested to abort while in wrong state %d\n",
-				 sci_base_state_machine_get_state(
-					 &((struct scic_sds_request *)request)->parent.state_machine)
-				 ));
+	struct scic_sds_request *scic_request =
+		(struct scic_sds_request *)request;
+
+	dev_warn(scic_to_dev(scic_request->owning_controller),
+		"%s: SCIC IO Request requested to abort while in wrong "
+		"state %d\n",
+		__func__,
+		sci_base_state_machine_get_state(
+			&((struct scic_sds_request *)request)->parent.state_machine));
 
 	return SCI_FAILURE_INVALID_STATE;
 }
@@ -135,17 +131,15 @@ static enum sci_status scic_sds_request_default_abort_handler(
 enum sci_status scic_sds_request_default_complete_handler(
 	struct sci_base_request *request)
 {
-	SCIC_LOG_WARNING((
-				 sci_base_object_get_logger((struct scic_sds_request *)request),
-				 (
-					 SCIC_LOG_OBJECT_SSP_IO_REQUEST
-					 | SCIC_LOG_OBJECT_STP_IO_REQUEST
-					 | SCIC_LOG_OBJECT_SMP_IO_REQUEST
-				 ),
-				 "SCIC IO Request requested to complete while in wrong state %d\n",
-				 sci_base_state_machine_get_state(
-					 &((struct scic_sds_request *)request)->parent.state_machine)
-				 ));
+	struct scic_sds_request *scic_request =
+		(struct scic_sds_request *)request;
+
+	dev_warn(scic_to_dev(scic_request->owning_controller),
+		"%s: SCIC IO Request requested to complete while in wrong "
+		"state %d\n",
+		__func__,
+		sci_base_state_machine_get_state(
+			&((struct scic_sds_request *)request)->parent.state_machine));
 
 	return SCI_FAILURE_INVALID_STATE;
 }
@@ -163,17 +157,15 @@ enum sci_status scic_sds_request_default_complete_handler(
 enum sci_status scic_sds_request_default_destruct_handler(
 	struct sci_base_request *request)
 {
-	SCIC_LOG_WARNING((
-				 sci_base_object_get_logger((struct scic_sds_request *)request),
-				 (
-					 SCIC_LOG_OBJECT_SSP_IO_REQUEST
-					 | SCIC_LOG_OBJECT_STP_IO_REQUEST
-					 | SCIC_LOG_OBJECT_SMP_IO_REQUEST
-				 ),
-				 "SCIC IO Request requested to destroy while in wrong state %d\n",
-				 sci_base_state_machine_get_state(
-					 &((struct scic_sds_request *)request)->parent.state_machine)
-				 ));
+	struct scic_sds_request *scic_request =
+		(struct scic_sds_request *)request;
+
+	dev_warn(scic_to_dev(scic_request->owning_controller),
+		 "%s: SCIC IO Request requested to destroy while in wrong "
+		 "state %d\n",
+		 __func__,
+		 sci_base_state_machine_get_state(
+			 &((struct scic_sds_request *)request)->parent.state_machine));
 
 	return SCI_FAILURE_INVALID_STATE;
 }
@@ -192,17 +184,13 @@ enum sci_status scic_sds_request_default_tc_completion_handler(
 	struct scic_sds_request *this_request,
 	u32 completion_code)
 {
-	SCIC_LOG_WARNING((
-				 sci_base_object_get_logger(this_request),
-				 (
-					 SCIC_LOG_OBJECT_SSP_IO_REQUEST
-					 | SCIC_LOG_OBJECT_STP_IO_REQUEST
-					 | SCIC_LOG_OBJECT_SMP_IO_REQUEST
-				 ),
-				 "SCIC IO Request given task completion notification %x while in wrong state %d\n",
-				 completion_code,
-				 sci_base_state_machine_get_state(&this_request->parent.state_machine)
-				 ));
+	dev_warn(scic_to_dev(this_request->owning_controller),
+		"%s: SCIC IO Request given task completion notification %x "
+		"while in wrong state %d\n",
+		__func__,
+		completion_code,
+		sci_base_state_machine_get_state(
+			&this_request->parent.state_machine));
 
 	return SCI_FAILURE_INVALID_STATE;
 
@@ -222,17 +210,13 @@ enum sci_status scic_sds_request_default_event_handler(
 	struct scic_sds_request *this_request,
 	u32 event_code)
 {
-	SCIC_LOG_WARNING((
-				 sci_base_object_get_logger(this_request),
-				 (
-					 SCIC_LOG_OBJECT_SSP_IO_REQUEST
-					 | SCIC_LOG_OBJECT_STP_IO_REQUEST
-					 | SCIC_LOG_OBJECT_SMP_IO_REQUEST
-				 ),
-				 "SCIC IO Request given event code notification %x while in wrong state %d\n",
-				 event_code,
-				 sci_base_state_machine_get_state(&this_request->parent.state_machine)
-				 ));
+	dev_warn(scic_to_dev(this_request->owning_controller),
+		 "%s: SCIC IO Request given event code notification %x while "
+		 "in wrong state %d\n",
+		 __func__,
+		 event_code,
+		 sci_base_state_machine_get_state(
+			 &this_request->parent.state_machine));
 
 	return SCI_FAILURE_INVALID_STATE;
 }
@@ -251,17 +235,13 @@ enum sci_status scic_sds_request_default_frame_handler(
 	struct scic_sds_request *this_request,
 	u32 frame_index)
 {
-	SCIC_LOG_WARNING((
-				 sci_base_object_get_logger(this_request),
-				 (
-					 SCIC_LOG_OBJECT_SSP_IO_REQUEST
-					 | SCIC_LOG_OBJECT_STP_IO_REQUEST
-					 | SCIC_LOG_OBJECT_SMP_IO_REQUEST
-				 ),
-				 "SCIC IO Request given unexpected frame %x while in state %d\n",
-				 frame_index,
-				 sci_base_state_machine_get_state(&this_request->parent.state_machine)
-				 ));
+	dev_warn(scic_to_dev(this_request->owning_controller),
+		 "%s: SCIC IO Request given unexpected frame %x while in "
+		 "state %d\n",
+		 __func__,
+		 frame_index,
+		 sci_base_state_machine_get_state(
+			 &this_request->parent.state_machine));
 
 	scic_sds_controller_release_frame(
 		this_request->owning_controller, frame_index);
@@ -637,30 +617,26 @@ static enum sci_status scic_sds_request_started_state_frame_handler(
 
 		response_buffer = (struct sci_ssp_response_iu *)this_request->response_buffer;
 
-		if (
-			(response_buffer->data_present == 0x01)
-			|| (response_buffer->data_present == 0x02)
-			) {
+		if ((response_buffer->data_present == 0x01) ||
+		    (response_buffer->data_present == 0x02)) {
 			scic_sds_request_set_status(
 				this_request,
 				SCU_TASK_DONE_CHECK_RESPONSE,
 				SCI_FAILURE_CONTROLLER_SPECIFIC_IO_ERR
 				);
-		} else {
+		} else
 			scic_sds_request_set_status(
 				this_request, SCU_TASK_DONE_GOOD, SCI_SUCCESS
 				);
-		}
-
-	} else {
+	} else
 		/* This was not a response frame why did it get forwarded? */
-		SCIC_LOG_ERROR((
-				       sci_base_object_get_logger(this_request),
-				       SCIC_LOG_OBJECT_SSP_IO_REQUEST,
-				       "SCIC IO Request 0x%x received unexpected frame %d type 0x%02x\n",
-				       this_request, frame_index, frame_header->frame_type
-				       ));
-	}
+		dev_err(scic_to_dev(this_request->owning_controller),
+			"%s: SCIC IO Request 0x%p received unexpected "
+			"frame %d type 0x%02x\n",
+			__func__,
+			this_request,
+			frame_index,
+			frame_header->frame_type);
 
 	/*
 	 * In any case we are done with this frame buffer return it to the
@@ -710,8 +686,6 @@ static enum sci_status scic_sds_request_completed_state_complete_handler(
 		SCI_BASE_REQUEST_STATE_FINAL
 		);
 
-	scic_sds_request_deinitialize_state_logging(this_request);
-
 	return SCI_SUCCESS;
 }
 
@@ -759,13 +733,6 @@ static enum sci_status scic_sds_request_aborting_state_tc_completion_handler(
 	struct scic_sds_request *this_request,
 	u32 completion_code)
 {
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_request),
-			       SCIC_LOG_OBJECT_TASK_MANAGEMENT,
-			       "scic_sds_request_aborting_state_tc_completion_handler(0x%x,0x%x) enter\n",
-			       this_request, completion_code
-			       ));
-
 	switch (SCU_GET_COMPLETION_TL_STATUS(completion_code)) {
 	case (SCU_TASK_DONE_GOOD << SCU_COMPLETION_TL_STATUS_SHIFT):
 	case (SCU_TASK_DONE_TASK_ABORT << SCU_COMPLETION_TL_STATUS_SHIFT):

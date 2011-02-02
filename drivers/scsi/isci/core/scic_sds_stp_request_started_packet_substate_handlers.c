@@ -65,7 +65,6 @@
 #include "sci_util.h"
 #include "scic_sds_request.h"
 #include "scic_controller.h"
-#include "scic_sds_logger.h"
 #include "scic_sds_controller.h"
 #include "scu_completion_codes.h"
 #include "scu_task_context.h"
@@ -91,13 +90,6 @@ enum sci_status scic_sds_stp_packet_request_packet_phase_await_tc_completion_tc_
 	u32 completion_code)
 {
 	enum sci_status status = SCI_SUCCESS;
-
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_request),
-			       SCIC_LOG_OBJECT_STP_IO_REQUEST,
-			       "scic_sds_stp_packet_request_packet_phase_await_tc_completion_tc_completion_handler(0x%x, 0x%x) enter\n",
-			       this_request, completion_code
-			       ));
 
 	switch (SCU_GET_COMPLETION_TL_STATUS(completion_code)) {
 	case SCU_MAKE_COMPLETION_STATUS(SCU_TASK_DONE_GOOD):
@@ -157,13 +149,6 @@ enum sci_status scic_sds_stp_packet_request_packet_phase_await_pio_setup_frame_h
 
 	this_request = (struct scic_sds_stp_request *)request;
 
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_request),
-			       SCIC_LOG_OBJECT_STP_IO_REQUEST,
-			       "scic_sds_stp_packet_request_packet_phase_await_pio_setup_frame_handler(0x%x, 0x%x) enter\n",
-			       this_request, frame_index
-			       ));
-
 	status = scic_sds_unsolicited_frame_control_get_header(
 		&(this_request->parent.owning_controller->uf_control),
 		frame_index,
@@ -198,14 +183,11 @@ enum sci_status scic_sds_stp_packet_request_packet_phase_await_pio_setup_frame_h
 			&this_request->parent.started_substate_machine,
 			SCIC_SDS_STP_PACKET_REQUEST_STARTED_COMMAND_PHASE_AWAIT_TC_COMPLETION_SUBSTATE
 			);
-	} else {
-		SCIC_LOG_ERROR((
-				       sci_base_object_get_logger(this_request),
-				       SCIC_LOG_OBJECT_STP_IO_REQUEST,
-				       "SCIC IO Request 0x%x could not get frame header for frame index %d, status %x\n",
-				       this_request, frame_index, status
-				       ));
-	}
+	} else
+		dev_err(scic_to_dev(request->owning_controller),
+			"%s: SCIC IO Request 0x%p could not get frame header "
+			"for frame index %d, status %x\n",
+			__func__, this_request, frame_index, status);
 
 	return status;
 }
@@ -232,13 +214,6 @@ enum sci_status scic_sds_stp_packet_request_command_phase_await_tc_completion_tc
 	enum sci_status status = SCI_SUCCESS;
 	u8 sat_packet_protocol =
 		scic_cb_request_get_sat_protocol(this_request->user_request);
-
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_request),
-			       SCIC_LOG_OBJECT_STP_IO_REQUEST,
-			       "scic_sds_stp_packet_request_command_phase_await_tc_completion_tc_completion_handler(0x%x, 0x%x) enter\n",
-			       this_request, completion_code
-			       ));
 
 	switch (SCU_GET_COMPLETION_TL_STATUS(completion_code)) {
 	case (SCU_TASK_DONE_GOOD << SCU_COMPLETION_TL_STATUS_SHIFT):
@@ -351,13 +326,6 @@ enum sci_status scic_sds_stp_packet_request_command_phase_common_frame_handler(
 	struct scic_sds_stp_request *this_request;
 
 	this_request = (struct scic_sds_stp_request *)request;
-
-	SCIC_LOG_TRACE((
-			       sci_base_object_get_logger(this_request),
-			       SCIC_LOG_OBJECT_STP_IO_REQUEST,
-			       "scic_sds_stp_packet_request_command_phase_await_d2h_frame_handler(0x%x, 0x%x) enter\n",
-			       this_request, frame_index
-			       ));
 
 	status = scic_sds_unsolicited_frame_control_get_header(
 		&(this_request->parent.owning_controller->uf_control),

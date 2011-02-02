@@ -178,14 +178,6 @@ struct scic_sds_port {
 	 */
 	struct sci_base_state_machine ready_substate_machine;
 
-   #ifdef SCI_LOGGING
-	/**
-	 * This field is the ready substate machine logger.  It logs each state
-	 * transition request in the ready substate machine.
-	 */
-	struct sci_base_state_machine_logger ready_substate_machine_logger;
-   #endif
-
 	/* / Memory mapped hardware register space */
 	/**
 	 * This field is the pointer to the transport layer register for the SCU
@@ -361,11 +353,6 @@ void scic_sds_port_decrement_request_count(
 
 
 /* --------------------------------------------------------------------------- */
-
-#ifdef SCI_LOGGING
-#else
-#define scic_sds_port_initialize_state_logging(x)
-#endif
 
 /* --------------------------------------------------------------------------- */
 
