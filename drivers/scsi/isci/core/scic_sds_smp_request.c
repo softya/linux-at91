@@ -59,7 +59,6 @@
 #include "scic_sds_remote_device.h"
 #include "scic_remote_device.h"
 #include "sci_util.h"
-#include "sci_environment.h"
 
 static void scu_smp_request_construct_task_context(
 	struct scic_sds_request *this_request,

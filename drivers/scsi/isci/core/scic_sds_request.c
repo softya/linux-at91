@@ -80,7 +80,6 @@
 #include "scu_constants.h"
 #include "scu_task_context.h"
 #include "scic_sds_smp_request.h"
-#include "sci_environment.h"
 #include "scic_sds_unsolicited_frame_control.h"
 #include "sci_types.h"
 

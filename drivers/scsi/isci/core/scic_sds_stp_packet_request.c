@@ -65,7 +65,6 @@
 #include "intel_sata.h"
 #include "scic_user_callback.h"
 #include "sati_translator_sequence.h"
-#include "sci_environment.h"
 
 
 /**

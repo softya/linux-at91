@@ -62,7 +62,6 @@
 #include "scic_sds_remote_device.h"
 #include "scic_sds_stp_request.h"
 #include "scic_sds_stp_pio_request.h"
-#include "sci_environment.h"
 
 /**
  * scic_sds_stp_request_get_h2d_reg_buffer() -
