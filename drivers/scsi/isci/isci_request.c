@@ -202,8 +202,8 @@ static enum sci_status isci_io_request_build(
 	    !sas_protocol_ata(task->task_proto) &&
 	    !(SAS_PROTOCOL_SMP & task->task_proto)) {
 
-		request->num_sg_entries = pci_map_sg(
-			isci_host->pdev,
+		request->num_sg_entries = dma_map_sg(
+			&isci_host->pdev->dev,
 			task->scatter,
 			task->num_scatter,
 			task->data_dir
@@ -1313,8 +1313,8 @@ dma_addr_t isci_request_sge_get_address_field(
 	 */
 	if ((task->num_scatter == 0) &&
 	    !sas_protocol_ata(task->task_proto)) {
-		ret = pci_map_single(
-			isci_host->pdev,
+		ret = dma_map_single(
+			&isci_host->pdev->dev,
 			task->scatter,
 			task->total_xfer_len,
 			task->data_dir

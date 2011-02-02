@@ -326,16 +326,16 @@ static inline void isci_request_unmap_sgl(
 	    !sas_protocol_ata(task->task_proto)) {
 		if (task->num_scatter == 0)
 			/* 0 indicates a single dma address */
-			pci_unmap_single(
-				pdev,
+			dma_unmap_single(
+				&pdev->dev,
 				request->zero_scatter_daddr,
 				task->total_xfer_len,
 				task->data_dir
 				);
 
 		else  /* unmap the sgl dma addresses */
-			pci_unmap_sg(
-				pdev,
+			dma_unmap_sg(
+				&pdev->dev,
 				task->scatter,
 				request->num_sg_entries,
 				task->data_dir
