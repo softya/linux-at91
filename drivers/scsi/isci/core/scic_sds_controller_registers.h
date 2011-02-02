@@ -96,6 +96,13 @@
 		(value)	\
 		)
 
+#define scu_afe_txreg_write(controller, phy, reg, value) \
+	scu_register_write(\
+		(controller), \
+		(controller)->scu_registers->afe.scu_afe_xcvr[phy].reg,\
+		(value) \
+		)
+
 #define scu_afe_register_read(controller, reg) \
 	scu_register_read(\
 		(controller), \

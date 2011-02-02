@@ -1507,17 +1507,12 @@ struct scu_port_task_scheduler_group_registers {
  * ***************************************************************************** */
 #define SCU_AFE_MMR_BASE                  0xE000
 
-/**
- * struct SCU_AFE_TRANSCEIVER - AFE Transceiver Registers
- *
- *
- */
 /*
  * AFE 0 is at offset 0x0800
  * AFE 1 is at offset 0x0900
  * AFE 2 is at offset 0x0a00
  * AFE 3 is at offset 0x0b00 */
-struct SCU_AFE_TRANSCEIVER {
+struct scu_afe_transceiver {
 	/* 0x0000 AFE_XCVR_CTRL0 */
 	u32 afe_xcvr_control0;
 	/* 0x0004 AFE_XCVR_CTRL1 */
@@ -1677,7 +1672,7 @@ struct scu_afe_registers {
 	u32 reserved_032c_07fc[0x135];
 
 	/* 0x0800-0x0bfc */
-	struct SCU_AFE_TRANSCEIVER scu_afe_xcvr[4];
+	struct scu_afe_transceiver scu_afe_xcvr[4];
 
 	/* 0x0c00-0x0ffc */
 	u32 reserved_0c00_0ffc[0x0100];

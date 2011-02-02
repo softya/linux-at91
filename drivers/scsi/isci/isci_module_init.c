@@ -67,7 +67,7 @@
 #include "isci_task.h"
 #include "sci_controller_constants.h"
 #include "scic_remote_device.h"
-
+#include "sci_environment.h"
 
 static struct scsi_transport_template *isci_transport_template;
 struct kmem_cache *isci_kmem_cache;
@@ -106,6 +106,16 @@ static struct pci_driver isci_pci_driver = {
 /* linux isci specific settings */
 int loglevel = 3;
 module_param(loglevel, int, S_IRUGO | S_IWUSR);
+
+#if defined(CONFIG_PBG_HBA_A0)
+int isci_si_rev = ISCI_SI_REVA0;
+#elif defined(CONFIG_PBG_HBA_A2)
+int isci_si_rev = ISCI_SI_REVA2;
+#else
+int isci_si_rev = ISCI_SI_REVB0;
+#endif
+module_param(isci_si_rev, int, S_IRUGO | S_IWUSR);
+MODULE_PARM_DESC(isci_si_rev, "override default si rev (0: A0 1: A2 2: B0)");
 
 static struct scsi_host_template isci_sht = {
 
@@ -485,12 +495,39 @@ static struct isci_host *isci_host_alloc(struct pci_dev *pdev, int id)
 	return NULL;
 }
 
+static void check_si_rev(struct pci_dev *pdev)
+{
+	if (num_controllers(pdev) > 1)
+		isci_si_rev = ISCI_SI_REVB0;
+	else {
+		switch (pdev->revision) {
+		case 0:
+		case 1:
+			/* if the id is ambiguous don't update isci_si_rev */
+			break;
+		case 3:
+			isci_si_rev = ISCI_SI_REVA2;
+			break;
+		default:
+		case 4:
+			isci_si_rev = ISCI_SI_REVB0;
+			break;
+		}
+	}
+
+	dev_info(&pdev->dev, "driver configured for %s silicon (rev: %d)\n",
+		 isci_si_rev == ISCI_SI_REVA0 ? "A0" :
+		 isci_si_rev == ISCI_SI_REVA2 ? "A2" : "B0", pdev->revision);
+		
+}
 
 static int __devinit isci_module_pci_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 {
 	struct isci_pci_info *pci_info;
 	int err, i;
 	struct isci_host *isci_host;
+
+	check_si_rev(pdev);
 
 	pci_info = devm_kzalloc(&pdev->dev, sizeof(*pci_info), GFP_KERNEL);
 	if (!pci_info)
@@ -542,6 +579,8 @@ static void __devexit isci_module_pci_remove(struct pci_dev *pdev)
 static __init int isci_module_init(void)
 {
 	int err = -ENOMEM;
+
+	pr_info("%s: Intel(R) C600 SAS Controller Driver\n", DRV_NAME);
 
 	isci_kmem_cache = kmem_cache_create(DRV_NAME,
 					    sizeof(struct isci_remote_device) +

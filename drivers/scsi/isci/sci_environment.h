@@ -100,4 +100,13 @@ static inline struct device *scirdev_to_dev(struct scic_sds_remote_device *sci_d
 	return &idev->isci_port->isci_host->pdev->dev;
 }
 
+enum {
+	ISCI_SI_REVA0,
+	ISCI_SI_REVA2,
+	ISCI_SI_REVB0,
+};
+
+extern int isci_si_rev;
+
+
 #endif

@@ -845,7 +845,7 @@ config SCSI_ISCI
 	  The experimental tag will be removed after the driver exits alpha
 
 choice
-	prompt "Silicon Revision"
+	prompt "Default Silicon Revision"
 	depends on SCSI_ISCI
 	default PBG_HBA_A2
 	# temporary A-step silicon is pre-production
