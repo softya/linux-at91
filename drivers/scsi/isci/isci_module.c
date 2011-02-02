@@ -89,21 +89,18 @@ void *scic_cb_timer_create(
 	struct isci_host *isci_host;
 	struct isci_timer *timer = NULL;
 
-	isci_host =
-		(struct isci_host *)sci_object_get_association(controller);
+	isci_host = (struct isci_host *)sci_object_get_association(controller);
 
-	scic_cb_logger_log_trace(0, 0, "%s: isci_host = %p",
-				 __func__, isci_host);
+	dev_dbg(&isci_host->pdev->dev,
+		"%s: isci_host = %p",
+		__func__, isci_host);
 
-	timer =
-		isci_timer_create(
-			&isci_host->timer_list_struct,
-			isci_host,
-			cookie,
-			(void (*)(void *))timer_callback
-			);
+	timer = isci_timer_create(&isci_host->timer_list_struct,
+				  isci_host,
+				  cookie,
+				  timer_callback);
 
-	scic_cb_logger_log_trace(0, 0, " timer = %p\n", timer);
+	dev_dbg(&isci_host->pdev->dev, "%s: timer = %p\n", __func__, timer);
 
 	return (void *)timer;
 }
@@ -131,10 +128,9 @@ void scic_cb_timer_start(
 	isci_host =
 		(struct isci_host *)sci_object_get_association(controller);
 
-	scic_cb_logger_log_trace(0, 0,
-				 "%s: isci_host = %p, timer = %p, milliseconds = %d\n",
-				 __func__, isci_host, timer, milliseconds
-				 );
+	dev_dbg(&isci_host->pdev->dev,
+		"%s: isci_host = %p, timer = %p, milliseconds = %d\n",
+		__func__, isci_host, timer, milliseconds);
 
 	isci_timer_start((struct isci_timer *)timer, milliseconds);
 
@@ -158,8 +154,9 @@ void scic_cb_timer_stop(
 	isci_host =
 		(struct isci_host *)sci_object_get_association(controller);
 
-	scic_cb_logger_log_trace(0, 0, "%s: isci_host = %p, timer = %p\n",
-				 __func__, isci_host, timer);
+	dev_dbg(&isci_host->pdev->dev,
+		"%s: isci_host = %p, timer = %p\n",
+		__func__, isci_host, timer);
 
 	isci_timer_stop((struct isci_timer *)timer);
 }
@@ -177,7 +174,6 @@ void scic_cb_timer_stop(
 void scic_cb_stall_execution(
 	u32 microseconds)
 {
-	scic_cb_logger_log_trace(0, 0, "%s:\n", __func__);
 	udelay(microseconds);
 }
 
@@ -197,8 +193,8 @@ void scic_cb_controller_start_complete(
 	struct isci_host *isci_host =
 		(struct isci_host *)sci_object_get_association(controller);
 
-	scic_cb_logger_log_trace(0, 0, "%s: isci_host = %p\n",
-				 __func__, isci_host);
+	dev_dbg(&isci_host->pdev->dev,
+		"%s: isci_host = %p\n", __func__, isci_host);
 
 	isci_host_start_complete(isci_host, completion_status);
 }
@@ -219,8 +215,8 @@ void scic_cb_controller_stop_complete(
 	struct isci_host *isci_host =
 		(struct isci_host *)sci_object_get_association(controller);
 
-	scic_cb_logger_log_trace(0, 0, "%s: status = 0x%x\n",
-				 __func__, completion_status);
+	dev_dbg(&isci_host->pdev->dev,
+		"%s: status = 0x%x\n", __func__, completion_status);
 	isci_host_stop_complete(isci_host, completion_status);
 }
 
@@ -244,8 +240,6 @@ void scic_cb_io_request_complete(
 {
 	struct isci_request *request;
 	struct isci_host *isci_host;
-
-	scic_cb_logger_log_trace(0, 0, "%s:\n", __func__);
 
 	isci_host =
 		(struct isci_host *)sci_object_get_association(controller);
@@ -289,8 +283,6 @@ void scic_cb_task_request_complete(
 		(struct isci_request *)sci_object_get_association(
 			scic_task_request);
 
-	scic_cb_logger_log_trace(0, 0, "%s:\n", __func__);
-
 	isci_task_request_complete(isci_host, request, completion_status);
 }
 
@@ -320,8 +312,10 @@ void scic_cb_io_request_get_physical_address(
 	char *requested_address = (char *)virtual_address;
 	char *base_address = (char *)request;
 
-	scic_cb_logger_log_info(0, 0, "%s: isci_host = %p\n",
-				__func__, isci_host);
+	dev_dbg(&isci_host->pdev->dev,
+		"%s: isci_host = %p\n",
+		__func__,
+		isci_host);
 
 	/*
 	 * First check to see if the requested address was allocated as part
@@ -392,7 +386,6 @@ void scic_cb_io_request_get_physical_address(
 u32 scic_cb_io_request_get_transfer_length(
 	void *scic_user_io_request)
 {
-	scic_cb_logger_log_info(0, 0, "%s:\n", __func__);
 	return isci_request_io_request_get_transfer_length(
 		       scic_user_io_request
 		       );
@@ -412,7 +405,6 @@ u32 scic_cb_io_request_get_transfer_length(
 SCI_IO_REQUEST_DATA_DIRECTION scic_cb_io_request_get_data_direction(
 	void *scic_user_io_request)
 {
-	scic_cb_logger_log_info(0, 0, "%s:\n", __func__);
 	return isci_request_io_request_get_data_direction(
 		       scic_user_io_request
 		       );
@@ -437,7 +429,6 @@ void scic_cb_io_request_get_next_sge(
 	void *current_sge_address,
 	void **next_sge)
 {
-	scic_cb_logger_log_info(0, 0, "%s:\n", __func__);
 	*next_sge = isci_request_io_request_get_next_sge(
 		scic_user_io_request,
 		current_sge_address
@@ -460,7 +451,6 @@ dma_addr_t scic_cb_sge_get_address_field(
 	void *scic_user_io_request,
 	void *sge_address)
 {
-	scic_cb_logger_log_info(0, 0, "%s:\n", __func__);
 	return isci_request_sge_get_address_field(
 		       scic_user_io_request,
 		       sge_address
@@ -483,7 +473,6 @@ u32 scic_cb_sge_get_length_field(
 	void *scic_user_io_request,
 	void *sge_address)
 {
-	scic_cb_logger_log_info(0, 0, "%s:\n", __func__);
 	return isci_request_sge_get_length_field(
 		       scic_user_io_request,
 		       sge_address
@@ -503,7 +492,6 @@ u32 scic_cb_sge_get_length_field(
 void *scic_cb_ssp_io_request_get_cdb_address(
 	void *scic_user_io_request)
 {
-	scic_cb_logger_log_info(0, 0, "%s:\n", __func__);
 	return isci_request_ssp_io_request_get_cdb_address(
 		       scic_user_io_request
 		       );
@@ -522,7 +510,6 @@ void *scic_cb_ssp_io_request_get_cdb_address(
 u32 scic_cb_ssp_io_request_get_cdb_length(
 	void *scic_user_io_request)
 {
-	scic_cb_logger_log_info(0, 0, "%s:\n", __func__);
 	return isci_request_ssp_io_request_get_cdb_length(
 		       scic_user_io_request
 		       );
@@ -540,9 +527,6 @@ u32 scic_cb_ssp_io_request_get_cdb_length(
 u32 scic_cb_ssp_io_request_get_lun(
 	void *scic_user_io_request)
 {
-	scic_cb_logger_log_info(0, 0,
-/*	printk(*/
-				"%s:\n", __func__);
 	return isci_request_ssp_io_request_get_lun(scic_user_io_request);
 }
 
@@ -558,7 +542,6 @@ u32 scic_cb_ssp_io_request_get_lun(
 u32 scic_cb_ssp_io_request_get_task_attribute(
 	void *scic_user_io_request)
 {
-	scic_cb_logger_log_info(0, 0, "%s:\n", __func__);
 	return isci_request_ssp_io_request_get_task_attribute(
 		       scic_user_io_request
 		       );
@@ -576,7 +559,6 @@ u32 scic_cb_ssp_io_request_get_task_attribute(
 u32 scic_cb_ssp_io_request_get_command_priority(
 	void *scic_user_io_request)
 {
-	scic_cb_logger_log_info(0, 0, "%s:\n", __func__);
 	return isci_request_ssp_io_request_get_command_priority(
 		       scic_user_io_request
 		       );
@@ -685,7 +667,6 @@ u32 scic_cb_ssp_task_request_get_response_data_length(
 void *scic_cb_stp_packet_io_request_get_cdb_address(
 	void *scic_user_io_request)
 {
-	scic_cb_logger_log_info(0, 0, "%s:\n", __func__);
 	return isci_request_stp_packet_io_request_get_cdb_address(
 		       scic_user_io_request
 		       );
@@ -702,7 +683,6 @@ void *scic_cb_stp_packet_io_request_get_cdb_address(
 u32 scic_cb_stp_packet_io_request_get_cdb_length(
 	void *scic_user_io_request)
 {
-	scic_cb_logger_log_info(0, 0, "%s:\n", __func__);
 	return isci_request_stp_packet_io_request_get_cdb_length(
 		       scic_user_io_request
 		       );
@@ -858,7 +838,6 @@ u32 scic_cb_pci_read_dword(
 	u32 ret;
 
 	ret = readl(address);
-/*	printk("%s: address = %p ret = 0x%x\n", __func__, address, ret);*/
 
 	return ret;
 }
@@ -877,12 +856,7 @@ void scic_cb_pci_write_dword(
 	void *address,
 	u32 write_value)
 {
-/*	printk("%s: address = %p, write_value = 0x%x\n",
- *             __func__, address, write_value);*/
-
 	writel(write_value, address);
-
-	return;
 }
 
 /**
@@ -901,9 +875,8 @@ void scic_cb_port_stop_complete(
 	SCI_PORT_HANDLE_T port,
 	enum sci_status completion_status)
 {
-	printk(KERN_WARNING
-	       "%s:************************************************\n",
-	       __func__);
+	pr_warn("%s:************************************************\n",
+		__func__);
 }
 
 /**
@@ -951,14 +924,10 @@ void scic_cb_port_ready(
 	isci_port =
 		(struct isci_port *)sci_object_get_association(port);
 
-	scic_cb_logger_log_trace(0, 0,
-				 "%s: isci_port = %p\n",
-				 __func__,
-				 isci_port
-				 );
+	dev_dbg(&isci_host->pdev->dev,
+		"%s: isci_port = %p\n", __func__, isci_port);
 
 	isci_port_ready(isci_host, isci_port);
-
 }
 
 /**
@@ -984,14 +953,10 @@ void scic_cb_port_not_ready(
 	isci_port =
 		(struct isci_port *)sci_object_get_association(port);
 
-	scic_cb_logger_log_trace(0, 0,
-				 "%s: isci_port = %p\n",
-				 __func__,
-				 isci_port
-				 );
+	dev_dbg(&isci_host->pdev->dev,
+		"%s: isci_port = %p\n", __func__, isci_port);
 
 	isci_port_not_ready(isci_host, isci_port);
-
 }
 
 /**
@@ -1012,9 +977,8 @@ void scic_cb_port_invalid_link_up(
 	SCI_PORT_HANDLE_T port,
 	SCI_PHY_HANDLE_T phy)
 {
-	printk(KERN_WARNING
-	       "%s:************************************************\n",
-	       __func__);
+	pr_warn("%s:************************************************\n",
+		__func__);
 }
 
 /**
@@ -1039,7 +1003,8 @@ void scic_cb_port_bc_change_primitive_recieved(
 	isci_host =
 		(struct isci_host *)sci_object_get_association(controller);
 
-	isci_logger(trace, "port = %p, phy = %p\n", port, phy);
+	dev_dbg(&isci_host->pdev->dev,
+		"%s: port = %p, phy = %p\n", __func__, port, phy);
 	isci_port_bc_change_recieved(isci_host, port, phy);
 }
 
@@ -1070,11 +1035,8 @@ void scic_cb_port_link_up(
 	isci_host =
 		(struct isci_host *)sci_object_get_association(controller);
 
-	scic_cb_logger_log_trace(0, 0,
-				 "%s: phy = %p\n",
-				 __func__,
-				 phy
-				 );
+	dev_dbg(&isci_host->pdev->dev,
+		"%s: phy = %p\n", __func__, phy);
 
 	isci_port_link_up(isci_host, port, phy);
 }
@@ -1111,11 +1073,8 @@ void scic_cb_port_link_down(
 	isci_port =
 		(struct isci_port *)sci_object_get_association(port);
 
-	scic_cb_logger_log_trace(0, 0,
-				 "%s: isci_port = %p\n",
-				 __func__,
-				 isci_port
-				 );
+	dev_dbg(&isci_host->pdev->dev,
+		"%s: isci_port = %p\n", __func__, isci_port);
 
 	isci_port_link_down(isci_host, isci_phy, isci_port);
 }
@@ -1147,11 +1106,8 @@ void scic_cb_remote_device_start_complete(
 			remote_device
 			);
 
-	scic_cb_logger_log_trace(0, 0,
-				 "%s: isci_device = %p\n",
-				 __func__,
-				 isci_device
-				 );
+	dev_dbg(&isci_host->pdev->dev,
+		"%s: isci_device = %p\n", __func__, isci_device);
 
 	isci_remote_device_start_complete(
 		isci_host, isci_device, completion_status);
@@ -1185,11 +1141,8 @@ void scic_cb_remote_device_stop_complete(
 			remote_device
 			);
 
-	scic_cb_logger_log_trace(0, 0,
-				 "%s: isci_device = %p\n",
-				 __func__,
-				 isci_device
-				 );
+	dev_dbg(&isci_host->pdev->dev,
+		"%s: isci_device = %p\n", __func__, isci_device);
 
 	isci_remote_device_stop_complete(
 		isci_host, isci_device, completion_status);
@@ -1213,11 +1166,8 @@ void scic_cb_remote_device_ready(
 		(struct isci_remote_device *)
 		sci_object_get_association(remote_device);
 
-	scic_cb_logger_log_trace(0, 0,
-				 "%s: isci_device = %p\n",
-				 __func__,
-				 isci_device
-				 );
+	dev_dbg(&isci_device->isci_port->isci_host->pdev->dev,
+		"%s: isci_device = %p\n", __func__, isci_device);
 
 	isci_remote_device_ready(isci_device);
 }
@@ -1248,18 +1198,12 @@ void scic_cb_remote_device_not_ready(
 	isci_host =
 		(struct isci_host *)sci_object_get_association(controller);
 
-	scic_cb_logger_log_trace(0, 0,
-				 "%s: isci_device = %p, reason_code = %x\n",
-				 __func__, isci_device, reason_code
-				 );
+	dev_dbg(&isci_host->pdev->dev,
+		"%s: isci_device = %p, reason_code = %x\n",
+		__func__, isci_device, reason_code);
 
 	isci_remote_device_not_ready(isci_device, reason_code);
-
 }
-
-
-
-
 
 /**
  * scic_cb_io_request_do_copy_rx_frames() - This callback method asks the user
@@ -1277,21 +1221,13 @@ void scic_cb_remote_device_not_ready(
 bool scic_cb_io_request_do_copy_rx_frames(
 	void *scic_user_io_request)
 {
-
 	struct sas_task *task
 		= isci_request_access_task(
 		(struct isci_request *)scic_user_io_request
 		);
 
-/*	printk("%s:\n", __func__); */
-
-	if (DMA_NONE == task->data_dir)
-		return false;
-	else
-		return true;
+	return (task->data_dir == DMA_NONE) ? false : true;
 }
-
-
 
 /**
  * scic_cb_get_virtual_address() - This callback method asks the user to
@@ -1307,8 +1243,6 @@ void *scic_cb_get_virtual_address(
 	dma_addr_t physical_address)
 {
 	void *virt_addr = (void *)phys_to_virt(physical_address);
-
-/*	printk("%s: %p -> %p\n", __func__, physical_address, virt_addr); */
 
 	return virt_addr;
 }
@@ -1327,17 +1261,7 @@ void *scic_cb_get_virtual_address(
 u8 scic_cb_request_get_sat_protocol(
 	void *scic_user_io_request)
 {
-
-/*   printk("%s:\n", __func__); */
-
 	return isci_sata_get_sat_protocol(
 		       (struct isci_request *)scic_user_io_request
 		       );
-
 }
-
-
-
-
-
-

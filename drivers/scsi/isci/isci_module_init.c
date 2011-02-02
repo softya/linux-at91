@@ -172,9 +172,14 @@ static int isci_target_alloc(struct scsi_target *starget)
 
 	if (ret == 0) {
 		struct domain_device *dev = starget->hostdata;
-		isci_logger(trace, "found device, domain_device = %p\n", dev);
+		dev_dbg(&starget->dev,
+			"%s: found device, domain_device = %p\n",
+			__func__, dev);
+
 		if (dev_is_sata(dev))
-			isci_logger(trace, "device %p is sata\n", dev);
+			dev_dbg(&starget->dev,
+				"%s: device %p is sata\n",
+				__func__, dev);
 	}
 	return ret;
 }
@@ -182,10 +187,14 @@ static int isci_target_alloc(struct scsi_target *starget)
 static int isci_slave_alloc(struct scsi_device *scsi_dev)
 {
 	sas_slave_alloc(scsi_dev);
-	isci_logger(trace, "id = %d, lun = %d, channel = %d, "
-		    "domain_device = %p\n ",
-		    scsi_dev->id, scsi_dev->lun, scsi_dev->channel,
-		    sdev_to_domain_dev(scsi_dev));
+	dev_dbg(&scsi_dev->sdev_gendev,
+		"%s: id = %d, lun = %d, channel = %d, "
+		"domain_device = %p\n ",
+		__func__,
+		scsi_dev->id,
+		scsi_dev->lun,
+		scsi_dev->channel,
+		sdev_to_domain_dev(scsi_dev));
 	return 0;
 }
 
@@ -341,10 +350,9 @@ static int __devinit isci_module_pci_init(
 
 	err = pcim_enable_device(pdev);
 	if (err) {
-		isci_logger(error,
-			    "failed enable PCI device %s!\n",
-			    pci_name(pdev)
-			    );
+		dev_err(&pdev->dev,
+			"failed enable PCI device %s!\n",
+			pci_name(pdev));
 		return err;
 	}
 
@@ -397,11 +405,11 @@ static int isci_module_enable_interrupts(struct isci_pci_func *isci_pci)
 			u32 ctl_idx =
 				(isci_pci->msix_entries[i].entry < 2) ? 0 : 1;
 
-			isci_logger(trace,
-				    "msix entry = %d, vector = %d\n",
-				    isci_pci->msix_entries[i].entry,
-				    isci_pci->msix_entries[i].vector
-				    );
+			dev_dbg(&pdev->dev,
+				"%s: msix entry = %d, vector = %d\n",
+				__func__,
+				isci_pci->msix_entries[i].entry,
+				isci_pci->msix_entries[i].vector);
 
 			/* @todo: need to handle error case. */
 			err = devm_request_irq(&pdev->dev,
@@ -411,10 +419,9 @@ static int isci_module_enable_interrupts(struct isci_pci_func *isci_pci)
 					       "isci-msix",
 					       &(isci_pci->ctrl[ctl_idx]));
 			if (err) {
-				isci_logger(error,
-					    "request_irq failed - err = 0x%x\n",
-					    err
-					    );
+				dev_err(&pdev->dev,
+					"request_irq failed - err = 0x%x\n",
+					err);
 				for (j = 0; j < i; j++) {
 					msix = &isci_pci->msix_entries[j];
 					devm_free_irq(&pdev->dev,
@@ -432,8 +439,9 @@ intx:
 		err = devm_request_irq(&pdev->dev, pdev->irq, isci_legacy_isr,
 				       IRQF_SHARED, "isci-intx", isci_pci);
 		if (err)
-			isci_logger(error, "request_irq failed - err = 0x%x\n",
-				    err);
+			dev_err(&pdev->dev,
+				"request_irq failed - err = 0x%x\n",
+				err);
 
 	}
 
@@ -529,8 +537,6 @@ static int __devinit isci_module_pci_probe(struct pci_dev *pdev, const struct pc
 	struct sci_pci_common_header pci_header;
 	void *scil_memory;
 
-	isci_logger(trace, "\n", 0);
-
 	/*
 	 *  First make sure there is room in the module for an SCI Core Library.
 	 *  If so, get the core library size, allocate memory for core library,
@@ -554,9 +560,9 @@ static int __devinit isci_module_pci_probe(struct pci_dev *pdev, const struct pc
 	}
 
 	if (found == false) {
-		isci_logger(
-			error,
-			" exceeded max core lib count of %d\n",
+		dev_err(&pdev->dev,
+			"%s: exceeded max core lib count of %d\n",
+			__func__,
 			SCI_MAX_PCI_DEVICES);
 		err = -ENOMEM;
 		goto out;
@@ -569,7 +575,9 @@ static int __devinit isci_module_pci_probe(struct pci_dev *pdev, const struct pc
 					     SCI_MAX_CONTROLLERS),
 				     GFP_KERNEL);
 	if (!scil_memory) {
-		isci_logger(error, " kmalloc failed for library memory\n", 0);
+		dev_err(&pdev->dev,
+			"%s: kmalloc failed for library memory\n",
+			__func__);
 		return -ENOMEM;
 	}
 
@@ -658,7 +666,9 @@ static int __devinit isci_module_pci_probe(struct pci_dev *pdev, const struct pc
 	if (err) {
 		err = pci_set_dma_mask(pdev, DMA_BIT_MASK(32));
 		if (err) {
-			isci_logger(error, "set DMA mask failed!\n", 0);
+			dev_err(&pdev->dev,
+				"%s: set DMA mask failed!\n",
+				__func__);
 			goto lib_out;
 		}
 	}
@@ -667,8 +677,9 @@ static int __devinit isci_module_pci_probe(struct pci_dev *pdev, const struct pc
 	if (err) {
 		err = pci_set_consistent_dma_mask(pdev, DMA_BIT_MASK(32));
 		if (err) {
-			isci_logger(error,
-				    "set consistent DMA mask failed!\n", 0);
+			dev_err(&pdev->dev,
+				"%s: set consistent DMA mask failed!\n",
+				__func__);
 			goto lib_out;
 
 		}
@@ -678,7 +689,10 @@ static int __devinit isci_module_pci_probe(struct pci_dev *pdev, const struct pc
 		struct isci_host *isci_host = &(isci_pci->ctrl[count]);
 		err = isci_host_init(pdev, isci_host);
 		if (err) {
-			isci_logger(error, "isci_host_init failed - err = %d\n", err);
+			dev_err(&pdev->dev,
+				"%s: isci_host_init failed - err = %d\n",
+				__func__,
+				err);
 			scsi_host_put(shost[count]);
 			goto lib_out;
 		}
@@ -732,8 +746,6 @@ static void __devexit isci_module_pci_remove(struct pci_dev *pdev)
 	struct isci_pci_func *isci_pci =
 		(struct isci_pci_func *)pci_get_drvdata(pdev);
 	struct isci_host *isci_host;
-
-	isci_logger(trace, "\n", 0);
 
 	for (i = 0; i < isci_pci->controller_count; i++) {
 		isci_host = &(isci_pci->ctrl[i]);

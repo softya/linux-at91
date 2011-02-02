@@ -77,45 +77,6 @@ struct isci_host;
 #define ISCI_IS_PROTO_SMP(task_proto_value) \
 	(SAS_PROTOCOL_SMP == (task_proto_value))
 
-
-#define PRINT_MAX_QDEPTH(name)						\
-	{								\
-		static int name;					\
-		int loops = 0;						\
-		if (++loops > name)					\
-			isci_logger(trace, "new " # name " = %d\n",	 \
-				    __func__, name = loops);		\
-				    }
-
-#define RETURN_HERE_ONCE()					\
-	do {								\
-		static int once;					\
-		if (0 == once++) {					\
-								\
-			isci_logger(warning,				\
-				    "returning at line %d\n",	    \
-				    __LINE__			    \
-				    );						    \
-			return 0;					\
-		}							\
-	} while (0);
-
-/* #define FORCE_LUN_RESET
- * #define FORCE_TASK_ABORT
- */
-
-#if defined(FORCE_LUN_RESET)
-#define LU_RESET_RETURN_HERE_ONCE() RETURN_HERE_ONCE()
-#else
-#define LU_RESET_RETURN_HERE_ONCE()
-#endif
-
-#if defined(FORCE_TASK_ABORT)
-#define TASK_ABORT_RETURN_HERE_ONCE() RETURN_HERE_ONCE()
-#else
-#define TASK_ABORT_RETURN_HERE_ONCE()
-#endif
-
 /**
  * enum isci_tmf_cb_state - This enum defines the possible states in which the
  *    TMF callback function is invoked during the TMF execution process.
@@ -178,39 +139,37 @@ struct isci_tmf {
 static inline void isci_print_tmf(
 	struct isci_tmf *tmf)
 {
-	if (SAS_PROTOCOL_SATA == tmf->proto) {
-
-		isci_logger(trace, "status = %x\n"
-			    "tmf->resp.d2h_fis.status = %x\n"
-			    "tmf->resp.d2h_fis.error = %x\n",
-			    tmf->status,
-			    tmf->resp.d2h_fis.status,
-			    tmf->resp.d2h_fis.error
-			    );
-
-	} else {
-
-		isci_logger(trace, "status = %x\n"
-			    "tmf->resp.resp_iu.data_present = %x\n"
-			    "tmf->resp.resp_iu.status = %x\n"
-			    "tmf->resp.resp_iu.data_length = %x\n"
-			    "tmf->resp.resp_iu.data[0] = %x\n"
-			    "tmf->resp.resp_iu.data[1] = %x\n"
-			    "tmf->resp.resp_iu.data[2] = %x\n"
-			    "tmf->resp.resp_iu.data[3] = %x\n",
-			    tmf->status,
-			    tmf->resp.resp_iu.data_present,
-			    tmf->resp.resp_iu.status,
-			    (tmf->resp.resp_iu.response_data_length[0] << 24) +
-			    (tmf->resp.resp_iu.response_data_length[1] << 16) +
-			    (tmf->resp.resp_iu.response_data_length[2] << 8) +
-			    tmf->resp.resp_iu.response_data_length[3],
-			    tmf->resp.resp_iu.data[0],
-			    tmf->resp.resp_iu.data[1],
-			    tmf->resp.resp_iu.data[2],
-			    tmf->resp.resp_iu.data[3]
-			    );
-	}
+	if (SAS_PROTOCOL_SATA == tmf->proto)
+		dev_dbg(&tmf->device->isci_port->isci_host->pdev->dev,
+			"%s: status = %x\n"
+			"tmf->resp.d2h_fis.status = %x\n"
+			"tmf->resp.d2h_fis.error = %x\n",
+			__func__,
+			tmf->status,
+			tmf->resp.d2h_fis.status,
+			tmf->resp.d2h_fis.error);
+	else
+		dev_dbg(&tmf->device->isci_port->isci_host->pdev->dev,
+			"%s: status = %x\n"
+			"tmf->resp.resp_iu.data_present = %x\n"
+			"tmf->resp.resp_iu.status = %x\n"
+			"tmf->resp.resp_iu.data_length = %x\n"
+			"tmf->resp.resp_iu.data[0] = %x\n"
+			"tmf->resp.resp_iu.data[1] = %x\n"
+			"tmf->resp.resp_iu.data[2] = %x\n"
+			"tmf->resp.resp_iu.data[3] = %x\n",
+			__func__,
+			tmf->status,
+			tmf->resp.resp_iu.data_present,
+			tmf->resp.resp_iu.status,
+			(tmf->resp.resp_iu.response_data_length[0] << 24) +
+			(tmf->resp.resp_iu.response_data_length[1] << 16) +
+			(tmf->resp.resp_iu.response_data_length[2] << 8) +
+			tmf->resp.resp_iu.response_data_length[3],
+			tmf->resp.resp_iu.data[0],
+			tmf->resp.resp_iu.data[1],
+			tmf->resp.resp_iu.data[2],
+			tmf->resp.resp_iu.data[3]);
 }
 
 
@@ -359,10 +318,9 @@ static inline void isci_task_set_completion_status(
 	 * Also don't take action if there is a reset pending.
 	 */
 	if ((task_notification_selection != isci_perform_error_io_completion)
-	    && !(task->task_state_flags & SAS_TASK_NEED_DEV_RESET)) {
-
+	    && !(task->task_state_flags & SAS_TASK_NEED_DEV_RESET))
 		isci_set_task_doneflags(task);
-	}
+
 	spin_unlock_irqrestore(&task->task_state_lock, flags);
 }
 /**
@@ -390,42 +348,39 @@ static inline void isci_task_complete_for_upper_layer(
 	 * function should not be completed to the host in the regular path.
 	 */
 	switch (task_notification_selection) {
-
 	case isci_perform_normal_io_completion:
-
 		/* Normal notification (task_done) */
-		isci_logger(trace,
-			    "Normal - task = %p, response=%d, status=%d\n",
-			    task, response, status
-			    );
+		dev_dbg(task->dev->port->ha->dev,
+			"%s: Normal - task = %p, response=%d, status=%d\n",
+			__func__, task, response, status);
 		task->task_done(task);
 		task->lldd_task = NULL;
 		break;
 
 	case isci_perform_aborted_io_completion:
-		/* No notification because this request is already in the abort path. */
-		isci_logger(warning,
-			    "Aborted - task = %p, response=%d, status=%d\n",
-			    task, response, status
-			    );
+		/* No notification because this request is already in the
+		 * abort path.
+		 */
+		dev_warn(task->dev->port->ha->dev,
+			 "%s: Aborted - task = %p, response=%d, status=%d\n",
+			 __func__, task, response, status);
 		break;
 
 	case isci_perform_error_io_completion:
 		/* Use sas_task_abort */
-		isci_logger(warning,
-			    "Error - task = %p, response=%d, status=%d\n",
-			    task, response, status
-			    );
+		dev_warn(task->dev->port->ha->dev,
+			 "%s: Error - task = %p, response=%d, status=%d\n",
+			 __func__, task, response, status);
 		sas_task_abort(task);
 		break;
 
 	default:
-		WARN_ON(false);
-
+		dev_warn(task->dev->port->ha->dev,
+			 "%s: isci task notification default case!",
+			 __func__);
 		sas_task_abort(task);
 		break;
 	}
 }
 
 #endif /* !defined(_SCI_TASK_H_) */
-

@@ -104,32 +104,6 @@ enum isci_status isci_remote_device_get_state(
 
 
 /**
- * isci_remote_device_change_state() - This function gets the status of the
- *    remote_device object.
- * @isci_device: This parameter points to the isci_remote_device object
- *
- * status of the object as a isci_status enum.
- */
-static inline void isci_remote_device_change_state(
-	struct isci_remote_device *isci_device,
-	enum isci_status status)
-{
-	unsigned long flags;
-
-	scic_cb_logger_log_states(0, 0,
-				  "%s: isci_device = %p, state = 0x%x",
-				  __func__,
-				  isci_device,
-				  status
-				  );
-
-	spin_lock_irqsave(&isci_device->state_lock, flags);
-	isci_device->status = status;
-	spin_unlock_irqrestore(&isci_device->state_lock, flags);
-
-}
-
-/**
  * isci_dev_from_domain_dev() - This accessor retrieves the remote_device
  *    object reference from the Linux domain_device reference.
  * @domdev,: This parameter points to the Linux domain_device object .
@@ -178,6 +152,10 @@ void isci_device_clear_reset_pending(
 void isci_device_set_host_quiesce_lock_state(
 	struct isci_remote_device *isci_device,
 	bool lock_state);
+
+void isci_remote_device_change_state(
+	struct isci_remote_device *isci_device,
+	enum isci_status status);
 
 #endif /* !defined(_ISCI_REMOTE_DEVICE_H_) */
 

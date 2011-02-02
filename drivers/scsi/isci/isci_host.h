@@ -183,10 +183,11 @@ static inline void isci_host_change_state(
 {
 	unsigned long flags;
 
-	scic_cb_logger_log_states(
-		0, 0, "%s: isci_host = %p, state = 0x%x",
-		__func__, isci_host, status
-		);
+	dev_dbg(&isci_host->pdev->dev,
+		"%s: isci_host = %p, state = 0x%x",
+		__func__,
+		isci_host,
+		status);
 	spin_lock_irqsave(&isci_host->state_lock, flags);
 	isci_host->status = status;
 	spin_unlock_irqrestore(&isci_host->state_lock, flags);
@@ -202,10 +203,10 @@ static inline int isci_host_can_queue(
 
 	spin_lock_irqsave(&isci_host->queue_lock, flags);
 	if ((isci_host->can_queue - num) < 0) {
-		scic_cb_logger_log_trace(
-			0, 0, "%s: isci_host->can_queue = %d\n",
-			__func__, isci_host->can_queue
-			);
+		dev_dbg(&isci_host->pdev->dev,
+			"%s: isci_host->can_queue = %d\n",
+			__func__,
+			isci_host->can_queue);
 		ret = -SAS_QUEUE_FULL;
 
 	} else

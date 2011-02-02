@@ -135,8 +135,6 @@ int isci_timer_list_destroy(
 {
 	struct isci_timer *timer, *tmp;
 
-	isci_logger(trace, "\n", 0);
-
 	list_for_each_entry_safe(timer, tmp, &isci_timer_list->timers, node) {
 		isci_timer_free(isci_timer_list, timer);
 		list_del(&timer->node);
@@ -147,14 +145,15 @@ int isci_timer_list_destroy(
 
 
 
-static void isci_timer_restart(
-	struct isci_timer *isci_timer)
+static void isci_timer_restart(struct isci_timer *isci_timer)
 {
 	struct timer_list *timer =
 		&isci_timer->timer;
 	unsigned long timeout;
 
-	isci_logger(trace, "isci_timer = %p\n", isci_timer);
+	dev_dbg(&isci_timer->isci_host->pdev->dev,
+		"%s: isci_timer = %p\n", __func__, isci_timer);
+
 	isci_timer->restart = 0;
 	isci_timer->stopped = 0;
 	timeout = isci_timer->timeout_value;
@@ -188,9 +187,10 @@ static void timer_function(unsigned long data)
 	struct isci_host *isci_host = timer->isci_host;
 	unsigned long flags;
 
-	isci_logger(trace, "isci_timer = %p\n", timer);
-	if (isci_stopped == isci_host_get_state(isci_host)) {
+	dev_dbg(&isci_host->pdev->dev,
+		"%s: isci_timer = %p\n", __func__, timer);
 
+	if (isci_stopped == isci_host_get_state(isci_host)) {
 		timer->stopped = 1;
 		return;
 	}
@@ -198,14 +198,14 @@ static void timer_function(unsigned long data)
 	spin_lock_irqsave(&isci_host->scic_lock, flags);
 
 	if (!timer->stopped) {
-
 		timer->stopped = 1;
 		timer->timer_callback(timer->cookie);
+
 		if (timer->restart)
 			isci_timer_restart(timer);
 	}
-	spin_unlock_irqrestore(&isci_host->scic_lock, flags);
 
+	spin_unlock_irqrestore(&isci_host->scic_lock, flags);
 }
 
 
@@ -222,7 +222,6 @@ struct isci_timer *isci_timer_create(
 		&isci_timer_list->timers;
 	unsigned long flags;
 
-	isci_logger(trace, "\n", 0);
 	spin_lock_irqsave(&isci_host->scic_lock, flags);
 
 	if (list_empty(timer_list)) {
@@ -248,7 +247,10 @@ struct isci_timer *isci_timer_create(
 	isci_timer->cookie = cookie;
 	isci_timer->timer_callback = timer_callback;
 	isci_timer->isci_host = isci_host;
-	isci_logger(trace, "isci_timer = %p\n", isci_timer);
+
+	dev_dbg(&isci_host->pdev->dev,
+		"%s: isci_timer = %p\n", __func__, isci_timer);
+
 	return isci_timer;
 }
 
@@ -267,7 +269,8 @@ void isci_timer_free(
 {
 	struct list_head *timer_list = &isci_timer_list->timers;
 
-	isci_logger(trace, "isci_timer = %p\n", isci_timer);
+	dev_dbg(&isci_timer->isci_host->pdev->dev,
+		"%s: isci_timer = %p\n", __func__, isci_timer);
 
 	if (list_empty(timer_list))
 		return;
@@ -276,7 +279,6 @@ void isci_timer_free(
 	list_move(&isci_timer->node, timer_list);
 
 	if (!isci_timer->stopped) {
-
 		del_timer(&isci_timer->timer);
 		isci_timer->stopped = 1;
 	}
@@ -296,7 +298,9 @@ void isci_timer_start(
 {
 	struct timer_list *timer = &isci_timer->timer;
 
-	isci_logger(trace, "isci_timer = %p\n", isci_timer);
+	dev_dbg(&isci_timer->isci_host->pdev->dev,
+		"%s: isci_timer = %p\n", __func__, isci_timer);
+
 	isci_timer->timeout_value = timeout;
 	init_timer(timer);
 	timeout = (timeout * HZ) / 1000;
@@ -315,10 +319,11 @@ void isci_timer_start(
  * @isci_timer: This parameter specifies the isci_timer to be stopped.
  *
  */
-void isci_timer_stop(
-	struct isci_timer *isci_timer)
+void isci_timer_stop(struct isci_timer *isci_timer)
 {
-	isci_logger(trace, "isci_timer = %p\n", isci_timer);
+	dev_dbg(&isci_timer->isci_host->pdev->dev,
+		"%s: isci_timer = %p\n", __func__, isci_timer);
+
 	if (isci_timer->stopped)
 		return;
 
@@ -326,4 +331,3 @@ void isci_timer_stop(
 
 	del_timer(&isci_timer->timer);
 }
-

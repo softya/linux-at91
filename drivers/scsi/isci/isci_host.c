@@ -77,16 +77,13 @@
  *
  * IRQ_HANDLED if out interrupt otherwise, IRQ_NONE
  */
-irqreturn_t isci_isr(
-	int vec,
-	void *data)
+irqreturn_t isci_isr(int vec, void *data)
 {
 	struct isci_host *isci_host
 		= (struct isci_host *)data;
 	struct scic_controller_handler_methods *handlers
 		= &isci_host->scic_irq_handlers[SCI_MSIX_NORMAL_VECTOR];
-	irqreturn_t ret
-		= IRQ_NONE;
+	irqreturn_t ret = IRQ_NONE;
 
 	if (isci_host_get_state(isci_host) != isci_starting
 	    && handlers->interrupt_handler) {
@@ -95,17 +92,18 @@ irqreturn_t isci_isr(
 			if (isci_host_get_state(isci_host) != isci_stopped) {
 				tasklet_schedule(
 					&isci_host->completion_tasklet);
-			} else {
-				isci_logger(trace, "controller stopped\n", 0);
-			}
+			} else
+				dev_dbg(&isci_host->pdev->dev,
+					"%s: controller stopped\n",
+					__func__);
 			ret = IRQ_HANDLED;
 		}
 	} else
-		isci_logger(warning,
-			    "get_handler_methods failed, "
-			    "isci_host->status = 0x%x\n",
-			    isci_host_get_state(isci_host)
-			    );
+		dev_warn(&isci_host->pdev->dev,
+			 "%s: get_handler_methods failed, "
+			 "isci_host->status = 0x%x\n",
+			 __func__,
+			 isci_host_get_state(isci_host));
 
 	return ret;
 }
@@ -147,17 +145,18 @@ irqreturn_t isci_legacy_isr(
 				if (isci_host_get_state(isci_host) != isci_stopped) {
 					tasklet_schedule(
 						&isci_host->completion_tasklet);
-				} else {
-					isci_logger(trace, "controller stopped\n", 0);
-				}
+				} else
+					dev_dbg(&isci_host->pdev->dev,
+						"%s: controller stopped\n",
+						__func__);
 				ret = IRQ_HANDLED;
 			}
 		} else
-			isci_logger(warning,
-				    "get_handler_methods failed, "
-				    "isci_host->status = 0x%x\n",
-				    isci_host_get_state(isci_host)
-				    );
+			dev_warn(&isci_host->pdev->dev,
+				 "%s: get_handler_methods failed, "
+				 "isci_host->status = 0x%x\n",
+				 __func__,
+				 isci_host_get_state(isci_host));
 	}
 	return ret;
 }
@@ -175,18 +174,16 @@ void isci_host_start_complete(
 	struct isci_host *isci_host,
 	enum sci_status completion_status)
 {
-	isci_logger(trace, "\n", 0);
-
 	if (completion_status == SCI_SUCCESS) {
-		isci_logger(trace, "completion_status == SCI_SUCCESS\n", 0);
+		dev_dbg(&isci_host->pdev->dev,
+			"%s: completion_status: SCI_SUCCESS\n", __func__);
 		isci_host_change_state(isci_host, isci_ready);
 		complete_all(&isci_host->start_complete);
 	} else
-		isci_logger(error,
-			    "controller start failed with "
-			    "completion_status = 0x%x;",
-			    completion_status
-			    );
+		dev_err(&isci_host->pdev->dev,
+			"controller start failed with "
+			"completion_status = 0x%x;",
+			completion_status);
 
 }
 
@@ -212,11 +209,10 @@ int isci_host_scan_finished(
 	struct scic_controller_handler_methods *handlers
 		= &isci_host->scic_irq_handlers[SCI_MSIX_NORMAL_VECTOR];
 
-	isci_logger(trace, "\n", 0);
-
 	if (handlers->interrupt_handler == NULL) {
-		isci_logger(error,
-			    "scic_controller_get_handler_methods failed\n", 0);
+		dev_err(&isci_host->pdev->dev,
+			"%s: scic_controller_get_handler_methods failed\n",
+			__func__);
 		return 1;
 	}
 
@@ -234,18 +230,16 @@ int isci_host_scan_finished(
 
 	if (isci_starting == isci_host_get_state(isci_host)
 	    && time < (HZ * 10)) {
-		isci_logger(trace,
-			    "isci_host->status = %d, time = %ld\n",
-			    isci_host_get_state(isci_host), time
-			    );
+		dev_dbg(&isci_host->pdev->dev,
+			"%s: isci_host->status = %d, time = %ld\n",
+			     __func__, isci_host_get_state(isci_host), time);
 		return 0;
 	}
 
 
-	isci_logger(trace,
-		    "isci_host->status = %d, time = %ld\n",
-		    isci_host_get_state(isci_host), time
-		    );
+	dev_dbg(&isci_host->pdev->dev,
+		"%s: isci_host->status = %d, time = %ld\n",
+		 __func__, isci_host_get_state(isci_host), time);
 
 	scic_controller_enable_interrupts(isci_host->core_controller);
 
@@ -275,10 +269,7 @@ void isci_host_scan_start(struct Scsi_Host *shost)
 		scic_controller_get_suggested_start_timeout(
 			isci_host->core_controller)
 		);
-
 }
-
-
 
 void isci_host_stop_complete(
 	struct isci_host *isci_host,
@@ -396,18 +387,18 @@ void *isci_host_pci_get_bar(
 {
 	void *address = NULL;
 
-	isci_logger(trace,
-		    "isci_host = %p, bar_num = %d\n",
-		    isci_host,
-		    bar_num
-		    );
+	dev_dbg(&isci_host->pdev->dev,
+		"%s: isci_host = %p, bar_num = %d\n",
+		__func__,
+		isci_host,
+		bar_num);
 
 	BUG_ON(bar_num >= SCI_PCI_BAR_COUNT);
 
 	if (SCI_PCI_BAR_COUNT > bar_num)
 		address = (void *)isci_host->parent_pci_function->pci_bar[bar_num].virt_addr;
 
-	isci_logger(trace, "address = %p\n", address);
+	dev_dbg(&isci_host->pdev->dev, "%s: address = %p\n", __func__, address);
 
 	return address;
 }
@@ -461,8 +452,11 @@ static void isci_host_completion_routine(unsigned long data)
 		task = isci_request_access_task(request);
 
 		/* Normal notification (task_done) */
-		isci_logger(trace, "Normal - request/task = %p/%p\n",
-			    request, task);
+		dev_dbg(&isci_host->pdev->dev,
+			"%s: Normal - request/task = %p/%p\n",
+			__func__,
+			request,
+			task);
 
 		task->task_done(task);
 		task->lldd_task = NULL;
@@ -476,8 +470,11 @@ static void isci_host_completion_routine(unsigned long data)
 		task = isci_request_access_task(request);
 
 		/* Use sas_task_abort */
-		isci_logger(warning, "Error - request/task = %p/%p\n",
-			    request, task);
+		dev_warn(&isci_host->pdev->dev,
+			 "%s: Error - request/task = %p/%p\n",
+			 __func__,
+			 request,
+			 task);
 
 		/* Put the task into the abort path. */
 		sas_task_abort(task);
@@ -490,7 +487,6 @@ void isci_host_deinit(
 {
 	int i;
 
-	isci_logger(trace, "\n", 0);
 	isci_host_change_state(isci_host, isci_stopping);
 	for (i = 0; i < SCI_MAX_PORTS; i++) {
 		struct isci_port *port = &isci_host->isci_ports[i];
@@ -563,13 +559,12 @@ static int isci_verify_firmware(const struct firmware *fw,
 			break;
 
 		default:
-			isci_logger(error,
-				    "bad field in firmware binary blob\n", 0);
+			pr_err("bad field in firmware binary blob\n");
 			return -EINVAL;
 		}
 	}
 
-	printk(KERN_INFO "isci firmware v%u.%u loaded.\n",
+	pr_info("isci firmware v%u.%u loaded.\n",
 	       isci_fw->version, isci_fw->subversion);
 
 	return SCI_SUCCESS;
@@ -619,11 +614,11 @@ int isci_host_init(
 		);
 
 	if (status != SCI_SUCCESS) {
-		isci_logger(error,
-			    "scic_library_allocate_controller failed -"
-			    " status = %x\n",
-			    status
-			    );
+		dev_err(&isci_host->pdev->dev,
+			"%s: scic_library_allocate_controller failed -"
+			" status = %x\n",
+			__func__,
+			status);
 		err = -ENODEV;
 		goto out;
 	}
@@ -642,14 +637,13 @@ int isci_host_init(
 		);
 
 	if (status != SCI_SUCCESS) {
-		isci_logger(error,
-			    "scic_controller_construct failed - status = %x\n",
-			    status
-			    );
+		dev_err(&isci_host->pdev->dev,
+			"%s: scic_controller_construct failed - status = %x\n",
+			__func__,
+			status);
 		err = -ENODEV;
 		goto out;
 	}
-
 
 	isci_host->sas_ha.dev = &isci_host->pdev->dev;
 	isci_host->sas_ha.lldd_ha = isci_host;
@@ -670,32 +664,32 @@ int isci_host_init(
 			       sizeof(struct isci_firmware),
 			       GFP_KERNEL);
 	if (!isci_fw) {
-		dev_printk(KERN_WARNING, &isci_host->pdev->dev,
-			   "allocating firmware struct failed\n");
-		dev_printk(KERN_WARNING, &isci_host->pdev->dev,
-			   "Default OEM configuration being used:"
-			   " 4 narrow ports, and default SAS Addresses\n");
+		dev_warn(&isci_host->pdev->dev,
+			 "allocating firmware struct failed\n");
+		dev_warn(&isci_host->pdev->dev,
+			 "Default OEM configuration being used:"
+			 " 4 narrow ports, and default SAS Addresses\n");
 		goto set_default_params;
 	}
 
 	status = request_firmware(&fw, ISCI_FW_NAME, &isci_host->pdev->dev);
 	if (status) {
-		dev_printk(KERN_WARNING, &isci_host->pdev->dev,
-			   "Loading firmware failed, using default values\n");
-		dev_printk(KERN_WARNING, &isci_host->pdev->dev,
-			   "Default OEM configuration being used:"
-			   " 4 narrow ports, and default SAS Addresses\n");
+		dev_warn(&isci_host->pdev->dev,
+			 "Loading firmware failed, using default values\n");
+		dev_warn(&isci_host->pdev->dev,
+			 "Default OEM configuration being used:"
+			 " 4 narrow ports, and default SAS Addresses\n");
 		goto set_default_params;
 	}
 	else {
 		status = isci_verify_firmware(fw, isci_fw);
 		if (status != SCI_SUCCESS) {
-			dev_printk(KERN_WARNING, &isci_host->pdev->dev,
-				   "firmware verification failed\n");
-			dev_printk(KERN_WARNING, &isci_host->pdev->dev,
-				   "Default OEM configuration being used:"
-				   " 4 narrow ports, and default SAS "
-				   "Addresses\n");
+			dev_warn(&isci_host->pdev->dev,
+				 "firmware verification failed\n");
+			dev_warn(&isci_host->pdev->dev,
+				 "Default OEM configuration being used:"
+				 " 4 narrow ports, and default SAS "
+				 "Addresses\n");
 			goto set_default_params;
 		}
 
@@ -704,8 +698,8 @@ int isci_host_init(
 						  isci_host->controller_id,
 						  isci_fw);
 		if (status != SCI_SUCCESS) {
-			dev_printk(KERN_WARNING, &isci_host->pdev->dev,
-				   "parsing firmware oem parameters failed\n");
+			dev_warn(&isci_host->pdev->dev,
+				 "parsing firmware oem parameters failed\n");
 			err = -EINVAL;
 			goto out;
 		}
@@ -715,9 +709,9 @@ int isci_host_init(
 					isci_host->controller_id,
 					isci_fw);
 		if (status != SCI_SUCCESS) {
-			dev_printk(KERN_WARNING, &isci_host->pdev->dev, 
-			       "%s: isci_module_parse_user_parameters"
-			       " failed\n", __func__);
+			dev_warn(&isci_host->pdev->dev,
+				 "%s: isci_module_parse_user_parameters"
+				 " failed\n", __func__);
 			err = -EINVAL;
 			goto out;
 		}
@@ -730,9 +724,9 @@ int isci_host_init(
 					 );
 
 	if (status != SCI_SUCCESS) {
-		printk(KERN_WARNING "%s: scic_oem_parameters_set failed\n",
-		       __func__
-		       );
+		dev_warn(&pci_device->dev,
+			 "%s: scic_oem_parameters_set failed\n",
+			 __func__);
 		err = -ENODEV;
 		goto out;
 	}
@@ -743,19 +737,19 @@ int isci_host_init(
 					  );
 
 	if (status != SCI_SUCCESS) {
-		printk(KERN_WARNING "%s: scic_user_parameters_set failed\n",
-		       __func__
-		       );
+		dev_warn(&pci_device->dev,
+			 "%s: scic_user_parameters_set failed\n",
+			 __func__);
 		err = -ENODEV;
 		goto out;
 	}
 
 	status = scic_controller_initialize(isci_host->core_controller);
 	if (status != SCI_SUCCESS) {
-		printk(KERN_WARNING "%s: scic_controller_initialize failed -"
-		       " status = 0x%x\n",
-		       __func__, status
-		       );
+		dev_warn(&pci_device->dev,
+			 "%s: scic_controller_initialize failed -"
+			 " status = 0x%x\n",
+			 __func__, status);
 		err = -ENODEV;
 		goto out;
 	}
@@ -776,11 +770,13 @@ int isci_host_init(
 			handlers
 			);
 	}
+
 	if (status != SCI_SUCCESS) {
 		handlers->interrupt_handler = NULL;
 		handlers->completion_handler = NULL;
-		isci_logger(error,
-			    "scic_controller_get_handler_methods failed\n", 0);
+		dev_err(&isci_host->pdev->dev,
+			"%s: scic_controller_get_handler_methods failed\n",
+			__func__);
 	}
 
 	tasklet_init(&isci_host->completion_tasklet,

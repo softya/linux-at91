@@ -115,13 +115,6 @@ void isci_port_init(
 enum isci_status isci_port_get_state(
 	struct isci_port *isci_port)
 {
-	if (NULL == isci_port) {
-
-		/*probably a bad sign...	*/
-		isci_logger(warning, "isci_port == NULL\n", 0);
-		BUG();
-	}
-
 	return isci_port->status;
 }
 
@@ -131,12 +124,13 @@ static void isci_port_change_state(
 {
 	unsigned long flags;
 
-	isci_logger(states, " isci_port = %p, state = 0x%x\n",
-		    isci_port, status);
+	dev_dbg(&isci_port->isci_host->pdev->dev,
+		"%s: isci_port = %p, state = 0x%x\n",
+		__func__, isci_port, status);
+
 	spin_lock_irqsave(&isci_port->state_lock, flags);
 	isci_port->status = status;
 	spin_unlock_irqrestore(&isci_port->state_lock, flags);
-
 }
 
 void isci_port_bc_change_recieved(
@@ -147,20 +141,18 @@ void isci_port_bc_change_recieved(
 	struct isci_phy *isci_phy =
 		(struct isci_phy *)sci_object_get_association(phy);
 
-	isci_logger(trace,
-		    "isci_phy = %p, sas_phy = %p\n",
-		    isci_phy,
-		    &isci_phy->sas_phy
-		    );
+	dev_dbg(&isci_host->pdev->dev,
+		"%s: isci_phy = %p, sas_phy = %p\n",
+		__func__,
+		isci_phy,
+		&isci_phy->sas_phy);
 
 	isci_host->sas_ha.notify_port_event(
 		&isci_phy->sas_phy,
 		PORTE_BROADCAST_RCVD
 		);
 
-	scic_port_enable_broadcast_change_notification(
-		port
-		);
+	scic_port_enable_broadcast_change_notification(port);
 }
 
 /**
@@ -189,7 +181,9 @@ void isci_port_link_up(
 	ASSERT(isci_phy->isci_port == NULL);
 	isci_phy->isci_port = isci_port;
 
-	isci_logger(warning, "isci_port = %p\n", isci_port);
+	dev_dbg(&isci_host->pdev->dev,
+		"%s: isci_port = %p\n",
+		__func__, isci_port);
 
 	spin_lock_irqsave(&isci_phy->sas_phy.frame_rcvd_lock, flags);
 
@@ -262,7 +256,7 @@ void isci_port_link_up(
 		       SAS_ADDR_SIZE);
 
 	} else {
-		isci_logger(error, "unkown target\n", 0);
+		dev_err(&isci_host->pdev->dev, "%s: unkown target\n", __func__);
 		success = false;
 	}
 
@@ -291,7 +285,8 @@ void isci_port_link_down(
 {
 	struct isci_remote_device *isci_device;
 
-	isci_logger(warning, "isci_port = %p\n", isci_port);
+	dev_dbg(&isci_host->pdev->dev,
+		"%s: isci_port = %p\n", __func__, isci_port);
 
 	if (isci_port) {
 
@@ -307,8 +302,9 @@ void isci_port_link_down(
 			list_for_each_entry(isci_device,
 					    &isci_port->remote_dev_list,
 					    node) {
-				isci_logger(warning, "isci_device = %p\n",
-					    isci_device);
+				dev_dbg(&isci_host->pdev->dev,
+					"%s: isci_device = %p\n",
+					__func__, isci_device);
 				isci_remote_device_change_state(isci_device,
 								isci_stopping);
 			}
@@ -325,7 +321,8 @@ void isci_port_link_down(
 
 	isci_phy->isci_port = NULL;
 
-	isci_logger(warning, "isci_port = %p - Done\n", isci_port);
+	dev_dbg(&isci_host->pdev->dev,
+		"%s: isci_port = %p - Done\n", __func__, isci_port);
 }
 
 
@@ -338,7 +335,7 @@ void isci_port_link_down(
 void isci_port_deformed(
 	struct asd_sas_phy *phy)
 {
-	isci_logger(trace, "sas_phy = %p\n", phy);
+	pr_debug("%s: sas_phy = %p\n", __func__, phy);
 }
 
 /**
@@ -350,7 +347,7 @@ void isci_port_deformed(
 void isci_port_formed(
 	struct asd_sas_phy *phy)
 {
-	isci_logger(trace, "sas_phy = %p, sas_port = %p\n", phy, phy->port);
+	pr_debug("%s: sas_phy = %p, sas_port = %p\n", __func__, phy, phy->port);
 }
 
 /**
@@ -364,7 +361,8 @@ void isci_port_ready(
 	struct isci_host *isci_host,
 	struct isci_port *isci_port)
 {
-	isci_logger(trace, "isci_port = %p\n", isci_port);
+	dev_dbg(&isci_host->pdev->dev,
+		"%s: isci_port = %p\n", __func__, isci_port);
 
 	complete_all(&isci_port->start_complete);
 	isci_port_change_state(isci_port, isci_ready);
@@ -383,7 +381,8 @@ void isci_port_not_ready(
 	struct isci_host *isci_host,
 	struct isci_port *isci_port)
 {
-	isci_logger(trace, "isci_port = %p\n", isci_port);
+	dev_dbg(&isci_host->pdev->dev,
+		"%s: isci_port = %p\n", __func__, isci_port);
 }
 
 /**
@@ -398,8 +397,9 @@ void isci_port_hard_reset_complete(
 	struct isci_port *isci_port,
 	enum sci_status completion_status)
 {
-	isci_logger(warning, "isci_port = %p, completion_status=%x\n",
-		    isci_port, completion_status);
+	dev_dbg(&isci_port->isci_host->pdev->dev,
+		"%s: isci_port = %p, completion_status=%x\n",
+		     __func__, isci_port, completion_status);
 
 	/* Save the status of the hard reset from the port. */
 	isci_port->hard_reset_status = completion_status;
@@ -409,67 +409,72 @@ void isci_port_hard_reset_complete(
 /**
  * isci_port_perform_hard_reset() - This function is one of the SAS Domain
  *    Template functions. This is a phy management function.
- * @isci_port_ptr:
- * @isci_phy_ptr:
+ * @isci_port:
+ * @isci_phy:
  *
  * status, TMF_RESP_FUNC_COMPLETE indicates success.
  */
 int isci_port_perform_hard_reset(
-	struct isci_port *isci_port_ptr,
-	struct isci_phy *isci_phy_ptr)
+	struct isci_port *isci_port,
+	struct isci_phy *isci_phy)
 {
 	enum sci_status status;
 	int ret = TMF_RESP_FUNC_COMPLETE;
 	unsigned long flags;
 
-	isci_logger(warning, "isci_port = %p\n", isci_port_ptr);
-	ASSERT(isci_port_ptr != NULL);
 
-	init_completion(&isci_port_ptr->hard_reset_complete);
+	dev_dbg(&isci_port->isci_host->pdev->dev,
+		"%s: isci_port = %p\n",
+		__func__, isci_port);
 
-	spin_lock_irqsave(&isci_port_ptr->isci_host->scic_lock, flags);
+	ASSERT(isci_port != NULL);
+
+	init_completion(&isci_port->hard_reset_complete);
+
+	spin_lock_irqsave(&isci_port->isci_host->scic_lock, flags);
 
 	#define ISCI_PORT_RESET_TIMEOUT SCIC_SDS_SIGNATURE_FIS_TIMEOUT
-	status = scic_port_hard_reset(isci_port_ptr->sci_port_handle,
+	status = scic_port_hard_reset(isci_port->sci_port_handle,
 				      ISCI_PORT_RESET_TIMEOUT);
 
-	spin_unlock_irqrestore(&isci_port_ptr->isci_host->scic_lock, flags);
+	spin_unlock_irqrestore(&isci_port->isci_host->scic_lock, flags);
 
 	if (status == SCI_SUCCESS) {
-		wait_for_completion(&isci_port_ptr->hard_reset_complete);
+		wait_for_completion(&isci_port->hard_reset_complete);
 
-		isci_logger(warning, "isci_port = %p; hard reset completion\n",
-			    isci_port_ptr);
+		dev_dbg(&isci_port->isci_host->pdev->dev,
+			"%s: isci_port = %p; hard reset completion\n",
+			__func__, isci_port);
 
-		if (isci_port_ptr->hard_reset_status != SCI_SUCCESS)
+		if (isci_port->hard_reset_status != SCI_SUCCESS)
 			ret = TMF_RESP_FUNC_FAILED;
-
-
 	} else {
 		ret = TMF_RESP_FUNC_FAILED;
 
-		isci_logger(error, "isci_port = %p; scic_port_hard_reset call"
-			    " failed 0x%x\n",
-			    isci_port_ptr, status);
+		dev_err(&isci_port->isci_host->pdev->dev,
+			"%s: isci_port = %p; scic_port_hard_reset call"
+			" failed 0x%x\n",
+			__func__, isci_port, status);
 
 	}
+
 	/* If the hard reset for the port has failed, consider this
 	 * the same as link failures on all phys in the port.
 	 */
 	if (ret != TMF_RESP_FUNC_COMPLETE) {
+		BUG_ON(isci_port->isci_host == NULL);
 
-		isci_logger(error, "isci_port = %p; hard reset failed "
-			    "(0x%x) - sending link down to libsas for phy %p\n",
-			    isci_port_ptr, isci_port_ptr->hard_reset_status,
-			    isci_phy_ptr
-			    );
+		dev_err(&isci_port->isci_host->pdev->dev,
+			"%s: isci_port = %p; hard reset failed "
+			"(0x%x) - sending link down to libsas for phy %p\n",
+			__func__,
+			isci_port,
+			isci_port->hard_reset_status,
+			isci_phy);
 
-		BUG_ON(isci_port_ptr->isci_host == NULL);
-
-		isci_port_link_down(isci_port_ptr->isci_host,
-				    isci_phy_ptr,
-				    isci_port_ptr
-				    );
+		isci_port_link_down(isci_port->isci_host,
+				    isci_phy,
+				    isci_port);
 	}
 
 	return ret;

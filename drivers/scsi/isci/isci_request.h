@@ -140,27 +140,13 @@ static inline
 enum isci_request_status isci_request_get_state(
 	struct isci_request *isci_request)
 {
-	if (NULL == isci_request) {
+	BUG_ON(isci_request == NULL);
 
-		/*probably a bad sign...	*/
-		scic_cb_logger_log_error(
-			0, 0,
-			"\n%s: isci_request == NULL\n",
-			__func__
-			);
-		BUG();
-		return unallocated;
-	}
-
-	if (unallocated == isci_request->status) {
-
-		/*probably a bad sign...	*/
-		scic_cb_logger_log_warning(
-			0, 0,
-			"\n%s: isci_request->status == unallocated\n",
-			__func__
-			);
-	}
+	/*probably a bad sign...	*/
+	if (isci_request->status == unallocated)
+		dev_warn(&isci_request->isci_host->pdev->dev,
+			 "%s: isci_request->status == unallocated\n",
+			 __func__);
 
 	return isci_request->status;
 }
@@ -180,24 +166,13 @@ static inline enum isci_request_status isci_request_change_state(
 	enum isci_request_status old_state;
 	unsigned long flags;
 
-	scic_cb_logger_log_states(0, 0,
-				  "%s: isci_request = %p, state = 0x%x\n",
-				  __func__,
-				  isci_request,
-				  status
-				  );
+	dev_dbg(&isci_request->isci_host->pdev->dev,
+		"%s: isci_request = %p, state = 0x%x\n",
+		__func__,
+		isci_request,
+		status);
 
-	if (NULL == isci_request) {
-
-		/*probably a bad sign...	*/
-		scic_cb_logger_log_error(
-			0, 0,
-			"\n%s: isci_request == NULL\n",
-			__func__
-			);
-		BUG();
-		return unallocated;
-	}
+	BUG_ON(isci_request == NULL);
 
 	spin_lock_irqsave(&isci_request->state_lock, flags);
 	old_state = isci_request->status;
@@ -223,24 +198,13 @@ static inline enum isci_request_status isci_request_change_started_to_newstate(
 	enum isci_request_status old_state;
 	unsigned long flags;
 
-	if (NULL == isci_request) {
-
-		/*probably a bad sign...	*/
-		scic_cb_logger_log_error(
-			0, 0,
-			"\n%s: isci_request == NULL\n",
-			__func__
-			);
-		BUG();
-		return unallocated;
-	}
+	BUG_ON(isci_request == NULL);
 
 	spin_lock_irqsave(&isci_request->state_lock, flags);
 
 	old_state = isci_request->status;
 
 	if (old_state == started) {
-
 		ASSERT(isci_request->io_request_completion == NULL);
 
 		isci_request->io_request_completion = completion_ptr;
@@ -248,11 +212,11 @@ static inline enum isci_request_status isci_request_change_started_to_newstate(
 	}
 	spin_unlock_irqrestore(&isci_request->state_lock, flags);
 
-	scic_cb_logger_log_states(0, 0,
-				  "%s: isci_request = %p, old_state = 0x%x\n",
-				  __func__,
-				  isci_request, old_state
-				  );
+	dev_dbg(&isci_request->isci_host->pdev->dev,
+		"%s: isci_request = %p, old_state = 0x%x\n",
+		__func__,
+		isci_request,
+		old_state);
 
 	return old_state;
 }
@@ -284,16 +248,7 @@ static inline void isci_request_free(
 	struct isci_host *isci_host,
 	struct isci_request *isci_request)
 {
-	if (NULL == isci_request) {
-		/*probably a bad sign...	*/
-		scic_cb_logger_log_error(
-			0, 0,
-			"\n%s: isci_request == NULL\n",
-			__func__
-			);
-		BUG();
-		return;
-	}
+	BUG_ON(isci_request == NULL);
 
 	/* release the dma memory if we fail. */
 	dma_pool_free(isci_host->dma_pool, isci_request,
@@ -358,21 +313,18 @@ static inline void isci_request_unmap_sgl(
 {
 	struct sas_task *task = isci_request_access_task(request);
 
-	scic_cb_logger_log_info(0, 0,
-				"%s: request = %p, task = %p,\n"
-				"task->data_dir = %d, is_sata = %d\n ",
-				__func__,
-				request,
-				task,
-				task->data_dir,
-				sas_protocol_ata(task->task_proto)
-				);
+	dev_dbg(&request->isci_host->pdev->dev,
+		"%s: request = %p, task = %p,\n"
+		"task->data_dir = %d, is_sata = %d\n ",
+		__func__,
+		request,
+		task,
+		task->data_dir,
+		sas_protocol_ata(task->task_proto));
 
-	if (task->data_dir != PCI_DMA_NONE
-	    && !sas_protocol_ata(task->task_proto)) {
-
+	if ((task->data_dir != PCI_DMA_NONE) &&
+	    !sas_protocol_ata(task->task_proto)) {
 		if (task->num_scatter == 0) {
-
 			/* 0 indicates a single dma address */
 			pci_unmap_single(
 				pdev,
@@ -419,26 +371,28 @@ static inline void *isci_request_io_request_get_next_sge(
 	struct sas_task *task = isci_request_access_task(request);
 	void *ret = NULL;
 
-	isci_logger(info,
-		    "request = %p, "
-		    "current_sge_address = %p, "
-		    "num_scatter = %d\n",
-		    request,
-		    current_sge_address,
-		    task->num_scatter
-		    );
+	dev_dbg(&request->isci_host->pdev->dev,
+		"%s: request = %p, "
+		"current_sge_address = %p, "
+		"num_scatter = %d\n",
+		__func__,
+		request,
+		current_sge_address,
+		task->num_scatter);
 
-	if (!current_sge_address)                       /* First time through.. */
-		ret = task->scatter;                    /* always task->scatter */
-	else
-	if (task->num_scatter == 0)                     /* Next element, if num_scatter == 0 */
-		ret = NULL;                             /* there is only one element. */
+	if (!current_sge_address)	/* First time through.. */
+		ret = task->scatter;    /* always task->scatter */
+	else if (task->num_scatter == 0) /* Next element, if num_scatter == 0 */
+		ret = NULL;              /* there is only one element. */
 	else
 		ret = sg_next(current_sge_address);     /* sg_next returns NULL
 							 * for the last element
 							 */
 
-	isci_logger(info, "next sge address = %p\n", ret);
+	dev_dbg(&request->isci_host->pdev->dev,
+		"%s: next sge address = %p\n",
+		__func__,
+		ret);
 
 	return ret;
 }

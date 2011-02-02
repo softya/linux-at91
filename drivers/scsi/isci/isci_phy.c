@@ -98,10 +98,9 @@ void isci_phy_init(
 	if (status == SCI_SUCCESS) {
 		sci_object_set_association(scic_phy, (void *)phy);
 		phy->sci_phy_handle = scic_phy;
-	} else {
-		isci_logger(error,
-			    "failed scic_controller_get_phy_handle\n", 0);
-	}
+	} else
+		dev_err(&isci_host->pdev->dev,
+			"failed scic_controller_get_phy_handle\n");
 
 	scic_oem_parameters_get(controller, &oem_parameters);
 
@@ -163,15 +162,14 @@ int isci_phy_control(
 		isci_port_ptr = isci_phy_ptr->isci_port;
 
 	if ((isci_phy_ptr == NULL) || (isci_port_ptr == NULL)) {
-		isci_logger(error, "asd_sas_phy %p: lldd_phy %p or isci_port %p == NULL!\n",
-			    phy, isci_phy_ptr, isci_port_ptr);
+		pr_err("%s: asd_sas_phy %p: lldd_phy %p or "
+		       "isci_port %p == NULL!\n",
+		       __func__, phy, isci_phy_ptr, isci_port_ptr);
 		return TMF_RESP_FUNC_FAILED;
 	}
 
-	isci_logger(warning, "phy %p; func %d; buf %p; "
-		    "isci phy %p, port %p\n",
-		    phy, func, buf, isci_phy_ptr, isci_port_ptr
-		    );
+	pr_debug("%s: phy %p; func %d; buf %p; isci phy %p, port %p\n",
+		 __func__, phy, func, buf, isci_phy_ptr, isci_port_ptr);
 
 	switch (func) {
 	case PHY_FUNC_HARD_RESET:
@@ -184,12 +182,10 @@ int isci_phy_control(
 
 	case PHY_FUNC_DISABLE:
 	default:
-		isci_logger(trace, "phy %p; func %d NOT IMPLEMENTED!\n",
-			    phy, func);
+		pr_debug("%s: phy %p; func %d NOT IMPLEMENTED!\n",
+			 __func__, phy, func);
 		ret = TMF_RESP_FUNC_FAILED;
 		break;
 	}
 	return ret;
 }
-
-

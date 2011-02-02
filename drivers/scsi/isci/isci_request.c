@@ -74,7 +74,10 @@ static enum sci_status isci_request_ssp_request_construct(
 {
 	enum sci_status status;
 
-	isci_logger(info, "request = %p\n", request);
+	dev_dbg(&request->isci_host->pdev->dev,
+		"%s: request = %p\n",
+		__func__,
+		request);
 	status = scic_io_request_construct_basic_ssp(
 		request->sci_request_handle
 		);
@@ -88,7 +91,10 @@ static enum sci_status isci_request_stp_request_construct(
 	enum sci_status status;
 	struct host_to_dev_fis *register_fis;
 
-	isci_logger(info, "request = %p\n", request);
+	dev_dbg(&request->isci_host->pdev->dev,
+		"%s: request = %p\n",
+		__func__,
+		request);
 
 	/* Get the host_to_dev_fis from the core and copy
 	 * the fis from the task into it.
@@ -134,9 +140,14 @@ static enum sci_status isci_smp_request_build(
 			request->sci_request_handle
 			);
 
-	isci_logger(info, "request = %p\n", request);
-	isci_logger(info, "smp_req len = %d\n",
-		    task->smp_task.smp_req.length);
+	dev_dbg(&request->isci_host->pdev->dev,
+		"%s: request = %p\n",
+		__func__,
+		request);
+	dev_dbg(&request->isci_host->pdev->dev,
+		"%s: smp_req len = %d\n",
+		__func__,
+		task->smp_task.smp_req.length);
 
 	/* copy the smp_command to the address; */
 	sg_copy_to_buffer(&task->smp_task.smp_req, 1,
@@ -145,18 +156,14 @@ static enum sci_status isci_smp_request_build(
 			  );
 
 	status = scic_io_request_construct_smp(request->sci_request_handle);
-
-	if (SCI_SUCCESS != status) {
-
-		isci_logger(warning,
-			    "scic_io_request_construct_smp failed with "
-			    "status = %d\n",
-			    status
-			    );
-	}
+	if (status != SCI_SUCCESS)
+		dev_warn(&request->isci_host->pdev->dev,
+			 "%s: scic_io_request_construct_smp failed with "
+			 "status = %d\n",
+			 __func__,
+			 status);
 
 	return status;
-
 }
 
 /**
@@ -179,17 +186,21 @@ static enum sci_status isci_io_request_build(
 	struct sas_task *task = isci_request_access_task(request);
 	SCI_REMOTE_DEVICE_HANDLE_T sci_device = isci_device->sci_device_handle;
 
-	isci_logger(info, "isci_device = 0x%x; request = %p, "
-		    "num_scatter = %d\n",
-		    isci_device, request, task->num_scatter);
+	dev_dbg(&isci_host->pdev->dev,
+		"%s: isci_device = 0x%p; request = %p, "
+		"num_scatter = %d\n",
+		__func__,
+		isci_device,
+		request,
+		task->num_scatter);
 
 	/* map the sgl addresses, if present.
 	 * libata does the mapping for sata devices
 	 * before we get the request.
 	 */
-	if (task->num_scatter
-	    && !sas_protocol_ata(task->task_proto)
-	    && !(SAS_PROTOCOL_SMP & task->task_proto)) {
+	if (task->num_scatter &&
+	    !sas_protocol_ata(task->task_proto) &&
+	    !(SAS_PROTOCOL_SMP & task->task_proto)) {
 
 		request->num_sg_entries = pci_map_sg(
 			isci_host->pdev,
@@ -215,9 +226,10 @@ static enum sci_status isci_io_request_build(
 		);
 
 	if (status != SCI_SUCCESS) {
-
-		isci_logger(warning, "failed request construct\n", 0);
-		goto out;
+		dev_warn(&isci_host->pdev->dev,
+			 "%s: failed request construct\n",
+			 __func__);
+		return SCI_FAILURE;
 	}
 
 	sci_object_set_association(request->sci_request_handle, request);
@@ -226,18 +238,17 @@ static enum sci_status isci_io_request_build(
 	scic_remote_device_get_protocols(sci_device, &dev_protocols);
 	if (dev_protocols.u.bits.attached_ssp_target)
 		status = isci_request_ssp_request_construct(request);
-	else
-	if (dev_protocols.u.bits.attached_stp_target)
+	else if (dev_protocols.u.bits.attached_stp_target)
 		status = isci_request_stp_request_construct(request);
-	else
-	if (dev_protocols.u.bits.attached_smp_target)
+	else if (dev_protocols.u.bits.attached_smp_target)
 		status = isci_smp_request_build(request);
 	else {
-		isci_logger(warning, "unknown protocol\n", 0);
-		status = SCI_FAILURE;
+		dev_warn(&isci_host->pdev->dev,
+			 "%s: unknown protocol\n", __func__);
+		return SCI_FAILURE;
 	}
- out:
-	return status;
+
+	return SCI_SUCCESS;
 }
 
 
@@ -363,7 +374,8 @@ static void isci_request_signal_device_reset(
 	unsigned long flags;
 	struct sas_task *task = isci_request_access_task(isci_request);
 
-	isci_logger(trace, "request=%p, task=%p\n", isci_request, task);
+	dev_dbg(&isci_request->isci_host->pdev->dev,
+		"%s: request=%p, task=%p\n", __func__, isci_request, task);
 
 	spin_lock_irqsave(&task->task_state_lock, flags);
 	task->task_state_flags |= SAS_TASK_NEED_DEV_RESET;
@@ -399,8 +411,6 @@ int isci_request_execute(
 	struct isci_request *request;
 	unsigned long flags;
 
-	isci_logger(info, "\n", 0);
-
 	isci_device = isci_dev_from_domain_dev(task->dev);
 	sci_device = isci_device->sci_device_handle;
 
@@ -417,17 +427,15 @@ int isci_request_execute(
 		goto out;
 
 	/* build the protocol specific request. */
-	if (ISCI_IS_PROTO_STP_OR_SATA(task->task_proto)
-	    || (task->task_proto == SAS_PROTOCOL_SSP)
-	    || (task->task_proto == SAS_PROTOCOL_SMP)) {
-
-		status = isci_io_request_build(isci_host,
-					       request, isci_device);
-
-	} else {
-
-		isci_logger(warning, "unsuported protocol (%x)\n",
-			    task->task_proto, 0);
+	if (ISCI_IS_PROTO_STP_OR_SATA(task->task_proto) ||
+	    (task->task_proto == SAS_PROTOCOL_SSP) ||
+	    (task->task_proto == SAS_PROTOCOL_SMP))
+		status = isci_io_request_build(isci_host, request, isci_device);
+	else {
+		dev_warn(&isci_host->pdev->dev,
+			 "%s: unsuported protocol (%x)\n",
+			 __func__,
+			 task->task_proto);
 		status = SCI_FAILURE_UNSUPPORTED_PROTOCOL;
 	}
 
@@ -458,9 +466,8 @@ int isci_request_execute(
 			list_add(&request->dev_node,
 				 &isci_device->reqs_in_process);
 
-			if (SCI_FAILURE_REMOTE_DEVICE_RESET_REQUIRED
-			    == status) {
-
+			if (status ==
+				SCI_FAILURE_REMOTE_DEVICE_RESET_REQUIRED) {
 				/* Signal libsas that we need the SCSI error
 				 * handler thread to work on this I/O and that
 				 * we want a device reset.
@@ -474,18 +481,19 @@ int isci_request_execute(
 				status = SCI_SUCCESS;
 			}
 		} else
-			isci_logger(warning, "failed request start\n", 0);
+			dev_warn(&isci_host->pdev->dev,
+				 "%s: failed request start\n",
+				 __func__);
 
 		spin_unlock_irqrestore(&isci_host->scic_lock, flags);
 
 	} else
-		isci_logger(warning,
-			    "request_construct failed - status = 0x%x\n", status);
-
-
+		dev_warn(&isci_host->pdev->dev,
+			 "%s: request_construct failed - status = 0x%x\n",
+			 __func__,
+			 status);
 
  out:
-
 	if (status != SCI_SUCCESS) {
 
 		/* release dma memory on failure. */
@@ -496,7 +504,6 @@ int isci_request_execute(
 
 	*isci_request = request;
 	return ret;
-
 }
 
 
@@ -515,14 +522,17 @@ static void isci_request_process_response_iu(
 	struct ssp_response_iu *resp_iu,
 	struct device *dev)
 {
-	isci_logger(info, "resp_iu = %p "
-		    "resp_iu->status = 0x%x,\nresp_iu->datapres = %d "
-		    "resp_iu->response_data_len = %x, "
-		    "resp_iu->sense_data_len = %x\nrepsonse data: ",
-		    resp_iu,
-		    resp_iu->status, resp_iu->datapres,
-		    resp_iu->response_data_len, resp_iu->sense_data_len
-		    );
+	dev_dbg(dev,
+		"%s: resp_iu = %p "
+		"resp_iu->status = 0x%x,\nresp_iu->datapres = %d "
+		"resp_iu->response_data_len = %x, "
+		"resp_iu->sense_data_len = %x\nrepsonse data: ",
+		__func__,
+		resp_iu,
+		resp_iu->status,
+		resp_iu->datapres,
+		resp_iu->response_data_len,
+		resp_iu->sense_data_len);
 
 	task->task_status.stat = resp_iu->status;
 
@@ -586,9 +596,10 @@ static void isci_request_handle_controller_specific_errors(
 		request->sci_request_handle
 		);
 
-	isci_logger(warning, "%p SCI_FAILURE_CONTROLLER_SPECIFIC_IO_ERR "
-		    "- controller status = 0x%x\n", request, cstatus
-		    );
+	dev_dbg(&request->isci_host->pdev->dev,
+		"%s: %p SCI_FAILURE_CONTROLLER_SPECIFIC_IO_ERR "
+		"- controller status = 0x%x\n",
+		__func__, request, cstatus);
 
 	/* Decode the controller-specific errors; most
 	 * important is to recognize those conditions in which
@@ -606,9 +617,7 @@ static void isci_request_handle_controller_specific_errors(
 	/* Also SCU_TASK_DONE_SMP_FRM_TYPE_ERR: */
 	case SCU_TASK_DONE_XFERCNT_ERR:
 		/* Also SCU_TASK_DONE_SMP_UFI_ERR: */
-
 		if (task->task_proto == SAS_PROTOCOL_SMP) {
-
 			/* SCU_TASK_DONE_SMP_UFI_ERR == Task Done. */
 			*response_ptr = SAS_TASK_COMPLETE;
 
@@ -616,32 +625,32 @@ static void isci_request_handle_controller_specific_errors(
 			 * that we ignore the quiesce state, since we are
 			 * concerned about the actual device state.
 			 */
-			if ((isci_device->status == isci_stopping)
-			    || (isci_device->status == isci_stopped)
-			    )
+			if ((isci_device->status == isci_stopping) ||
+			    (isci_device->status == isci_stopped))
 				*status_ptr = SAS_DEVICE_UNKNOWN;
 			else
 				*status_ptr = SAS_ABORTED_TASK;
 
 			request->complete_in_target = true;
 
-			*complete_to_host_ptr = isci_perform_normal_io_completion;
-
+			*complete_to_host_ptr =
+				isci_perform_normal_io_completion;
 		} else {
 			/* Task in the target is not done. */
 			*response_ptr = SAS_TASK_UNDELIVERED;
 
-			if ((isci_device->status == isci_stopping)
-			    || (isci_device->status == isci_stopped)
-			    )
+			if ((isci_device->status == isci_stopping) ||
+			    (isci_device->status == isci_stopped))
 				*status_ptr = SAS_DEVICE_UNKNOWN;
 			else
 				*status_ptr = SAM_STAT_TASK_ABORTED;
 
 			request->complete_in_target = false;
 
-			*complete_to_host_ptr = isci_perform_error_io_completion;
+			*complete_to_host_ptr =
+				isci_perform_error_io_completion;
 		}
+
 		break;
 
 	case SCU_TASK_DONE_CRC_ERR:
@@ -662,9 +671,8 @@ static void isci_request_handle_controller_specific_errors(
 		 * that we ignore the quiesce state, since we are
 		 * concerned about the actual device state.
 		 */
-		if ((isci_device->status == isci_stopping)
-		    || (isci_device->status == isci_stopped)
-		    )
+		if ((isci_device->status == isci_stopping) ||
+		    (isci_device->status == isci_stopped))
 			*status_ptr = SAS_DEVICE_UNKNOWN;
 		else
 			*status_ptr = SAS_ABORTED_TASK;
@@ -811,36 +819,50 @@ static void isci_task_save_for_upper_layer_completion(
 	case isci_perform_normal_io_completion:
 
 		/* Normal notification (task_done) */
-		isci_logger(info,
-			    "Normal - task = %p, response=%d, status=%d\n",
-			    task, response, status
-			    );
+		dev_dbg(&host->pdev->dev,
+			"%s: Normal - task = %p, response=%d, status=%d\n",
+			__func__,
+			task,
+			response,
+			status);
 		/* Add to the completed list. */
 		list_add(&request->completed_node,
 			 &host->requests_to_complete);
 		break;
 
 	case isci_perform_aborted_io_completion:
-		/* No notification because this request is already in the abort path. */
-		isci_logger(warning,
-			    "Aborted - task = %p, response=%d, status=%d\n",
-			    task, response, status
-			    );
+		/*
+		 * No notification because this request is already
+		 * in the abort path.
+		 */
+		dev_warn(&host->pdev->dev,
+			 "%s: Aborted - task = %p, response=%d, status=%d\n",
+			 __func__,
+			 task,
+			 response,
+			 status);
 		break;
 
 	case isci_perform_error_io_completion:
 		/* Use sas_task_abort */
-		isci_logger(warning,
-			    "Error - task = %p, response=%d, status=%d\n",
-			    task, response, status
-			    );
+		dev_warn(&host->pdev->dev,
+			 "%s: Error - task = %p, response=%d, status=%d\n",
+			 __func__,
+			 task,
+			 response,
+			 status);
 		/* Add to the aborted list. */
 		list_add(&request->completed_node,
 			 &host->requests_to_abort);
 		break;
 
 	default:
-		WARN_ON(false);
+		dev_warn(&host->pdev->dev,
+			 "%s: Unknown - task = %p, response=%d, status=%d\n",
+			 __func__,
+			 task,
+			 response,
+			 status);
 
 		/* Add to the aborted list. */
 		list_add(&request->completed_node,
@@ -877,11 +899,14 @@ void isci_request_io_request_complete(
 	enum isci_completion_selection complete_to_host
 		= isci_perform_normal_io_completion;
 
-	isci_logger(info,
-		    "\n         request = %p, task = %p,\n		"
-		    "  task->data_dir = %d completion_status = 0x%x\n",
-		    request, task, task->data_dir, completion_status
-		    );
+	dev_dbg(&isci_host->pdev->dev,
+		"%s: request = %p, task = %p,\n"
+		"task->data_dir = %d completion_status = 0x%x\n",
+		__func__,
+		request,
+		task,
+		task->data_dir,
+		completion_status);
 
 	spin_lock_irqsave(&request->state_lock, state_flags);
 	request_status = isci_request_get_state(request);
@@ -934,9 +959,8 @@ void isci_request_io_request_complete(
 		request->complete_in_target = true;
 		response = SAS_TASK_UNDELIVERED;
 
-		if ((isci_device->status == isci_stopping)
-		    || (isci_device->status == isci_stopped)
-		    )
+		if ((isci_device->status == isci_stopping) ||
+		    (isci_device->status == isci_stopped))
 			/* The device has been /is being stopped. Note that
 			 * we ignore the quiesce state, since we are
 			 * concerned about the actual device state.
@@ -944,6 +968,7 @@ void isci_request_io_request_complete(
 			status = SAS_DEVICE_UNKNOWN;
 		else
 			status = SAS_PHY_DOWN;
+
 		complete_to_host = isci_perform_aborted_io_completion;
 
 		/* This was an aborted request. */
@@ -963,9 +988,8 @@ void isci_request_io_request_complete(
 		 * that we ignore the quiesce state, since we are
 		 * concerned about the actual device state.
 		 */
-		if ((isci_device->status == isci_stopping)
-		    || (isci_device->status == isci_stopped)
-		    )
+		if ((isci_device->status == isci_stopping) ||
+		    (isci_device->status == isci_stopped))
 			status = SAS_DEVICE_UNKNOWN;
 		else
 			status = SAS_ABORTED_TASK;
@@ -981,11 +1005,11 @@ void isci_request_io_request_complete(
 		switch (completion_status) {
 
 		case SCI_IO_FAILURE_RESPONSE_VALID:
-
-			isci_logger(trace,
-				    "SCI_IO_FAILURE_RESPONSE_VALID (%p/%p)\n",
-				    request, task
-				    );
+			dev_dbg(&isci_host->pdev->dev,
+				"%s: SCI_IO_FAILURE_RESPONSE_VALID (%p/%p)\n",
+				__func__,
+				request,
+				task);
 
 			if (ISCI_IS_PROTO_STP_OR_SATA(task->task_proto)) {
 
@@ -1011,14 +1035,14 @@ void isci_request_io_request_complete(
 
 			} else if (SAS_PROTOCOL_SMP == task->task_proto) {
 
-				isci_logger(error,
-					    "SCI_IO_FAILURE_RESPONSE_VALID: "
-					    "SAS_PROTOCOL_SMP protocol\n",
-					    0
-					    );
+				dev_err(&isci_host->pdev->dev,
+					"%s: SCI_IO_FAILURE_RESPONSE_VALID: "
+					"SAS_PROTOCOL_SMP protocol\n",
+					__func__);
 
 			} else
-				isci_logger(error, "unknown protocol\n", 0);
+				dev_err(&isci_host->pdev->dev,
+					"%s: unknown protocol\n", __func__);
 
 			/* use the task status set in the task struct by the
 			 * isci_request_process_response_iu call.
@@ -1041,8 +1065,10 @@ void isci_request_io_request_complete(
 					= scic_io_request_get_command_iu_address(
 					request->sci_request_handle
 					);
-				isci_logger(info,
-					    "SMP protocol completion\n", 0);
+
+				dev_dbg(&isci_host->pdev->dev,
+					"%s: SMP protocol completion\n",
+					__func__);
 
 				sg_copy_from_buffer(
 					&task->smp_task.smp_resp, 1,
@@ -1070,21 +1096,24 @@ void isci_request_io_request_complete(
 				if (task->task_status.residual != 0)
 					status = SAS_DATA_UNDERRUN;
 
-				isci_logger(info,
-					    "SCI_IO_SUCCESS_IO_DONE_EARLY (%d)\n",
-					    status);
+				dev_dbg(&isci_host->pdev->dev,
+					"%s: SCI_IO_SUCCESS_IO_DONE_EARLY %d\n",
+					__func__,
+					status);
 
 			} else
-				isci_logger(info, "SCI_IO_SUCCESS\n", 0);
+				dev_dbg(&isci_host->pdev->dev,
+					"%s: SCI_IO_SUCCESS\n",
+					__func__);
 
 			break;
 
 		case SCI_IO_FAILURE_TERMINATED:
-
-			isci_logger(trace,
-				    "SCI_IO_FAILURE_TERMINATED (%p/%p)\n",
-				    request, task
-				    );
+			dev_dbg(&isci_host->pdev->dev,
+				"%s: SCI_IO_FAILURE_TERMINATED (%p/%p)\n",
+				__func__,
+				request,
+				task);
 
 			/* The request was terminated explicitly.  No handling
 			 * is needed in the SCSI error handler path.
@@ -1096,12 +1125,12 @@ void isci_request_io_request_complete(
 			 * that we ignore the quiesce state, since we are
 			 * concerned about the actual device state.
 			 */
-			if ((isci_device->status == isci_stopping)
-			    || (isci_device->status == isci_stopped)
-			    )
+			if ((isci_device->status == isci_stopping) ||
+			    (isci_device->status == isci_stopped))
 				status = SAS_DEVICE_UNKNOWN;
 			else
 				status = SAS_ABORTED_TASK;
+
 			complete_to_host = isci_perform_normal_io_completion;
 			break;
 
@@ -1131,9 +1160,10 @@ void isci_request_io_request_complete(
 
 		default:
 			/* Catch any otherwise unhandled error codes here. */
-			__WARN_printf("invalid completion code: 0x%x - "
-				      "isci_request = %p\n",
-				      completion_status, request);
+			dev_warn(&isci_host->pdev->dev,
+				 "%s: invalid completion code: 0x%x - "
+				 "isci_request = %p\n",
+				 __func__, completion_status, request);
 
 			response = SAS_TASK_UNDELIVERED;
 
@@ -1141,9 +1171,8 @@ void isci_request_io_request_complete(
 			 * that we ignore the quiesce state, since we are
 			 * concerned about the actual device state.
 			 */
-			if ((isci_device->status == isci_stopping)
-			    || (isci_device->status == isci_stopped)
-			    )
+			if ((isci_device->status == isci_stopping) ||
+			    (isci_device->status == isci_stopped))
 				status = SAS_DEVICE_UNKNOWN;
 			else
 				status = SAS_ABORTED_TASK;
@@ -1197,8 +1226,6 @@ void isci_request_io_request_complete(
 	}
 
 	isci_host_can_dequeue(isci_host, 1);
-
-	return;
 }
 
 /**
@@ -1208,12 +1235,14 @@ void isci_request_io_request_complete(
  *
  * length of transfer for specified request.
  */
-u32 isci_request_io_request_get_transfer_length(
-	struct isci_request *request)
+u32 isci_request_io_request_get_transfer_length(struct isci_request *request)
 {
 	struct sas_task *task = isci_request_access_task(request);
 
-	isci_logger(info, "%d\n", task->total_xfer_len);
+	dev_dbg(&request->isci_host->pdev->dev,
+		"%s: total_xfer_len: %d\n",
+		__func__,
+		task->total_xfer_len);
 	return task->total_xfer_len;
 }
 
@@ -1235,23 +1264,30 @@ SCI_IO_REQUEST_DATA_DIRECTION isci_request_io_request_get_data_direction(
 
 	case DMA_FROM_DEVICE:
 		ret = SCI_IO_REQUEST_DATA_IN;
-		isci_logger(info, "request=%p, FROM_DEVICE\n",
-			    request);
+		dev_dbg(&request->isci_host->pdev->dev,
+			"%s: request=%p, FROM_DEVICE\n",
+			__func__,
+			request);
 		break;
 
 	case DMA_TO_DEVICE:
 		ret = SCI_IO_REQUEST_DATA_OUT;
-		isci_logger(info, "request=%p, TO_DEVICE\n", request);
+		dev_dbg(&request->isci_host->pdev->dev,
+			"%s: request=%p, TO_DEVICE\n",
+			__func__,
+			request);
 		break;
 
 	case DMA_BIDIRECTIONAL:
 	case DMA_NONE:
 	default:
 		ret = SCI_IO_REQUEST_NO_DATA;
-		isci_logger(info,
-			    "request=%p, unhandled direction case, "
-			    "data_dir=%d\n",
-			    request, task->data_dir);
+		dev_dbg(&request->isci_host->pdev->dev,
+			"%s: request=%p, unhandled direction case, "
+			"data_dir=%d\n",
+			__func__,
+			request,
+			task->data_dir);
 		break;
 
 	}
@@ -1275,11 +1311,11 @@ dma_addr_t isci_request_sge_get_address_field(
 	struct isci_host *isci_host = isci_host_from_sas_ha(
 		task->dev->port->ha);
 
-	isci_logger(info,
-		    "request = %p, sge_address = %p\n",
-		    request,
-		    sge_address
-		    );
+	dev_dbg(&isci_host->pdev->dev,
+		"%s: request = %p, sge_address = %p\n",
+		__func__,
+		request,
+		sge_address);
 
 	if (task->data_dir == PCI_DMA_NONE)
 		goto out;
@@ -1288,9 +1324,8 @@ dma_addr_t isci_request_sge_get_address_field(
 	 * task->scatter is the actual buffer address, not an sgl.
 	 * so a map single is required here.
 	 */
-	if (task->num_scatter == 0
-	    && !sas_protocol_ata(task->task_proto)) {
-
+	if ((task->num_scatter == 0) &&
+	    !sas_protocol_ata(task->task_proto)) {
 		ret = pci_map_single(
 			isci_host->pdev,
 			task->scatter,
@@ -1298,13 +1333,14 @@ dma_addr_t isci_request_sge_get_address_field(
 			task->data_dir
 			);
 		request->zero_scatter_daddr = ret;
-
-	} else {
+	} else
 		ret = sg_dma_address(((struct scatterlist *)sge_address));
-	}
 
  out:
-	isci_logger(info, "bus address = %lx\n", (unsigned long)ret);
+	dev_dbg(&isci_host->pdev->dev,
+		"%s: bus address = %lx\n",
+		__func__,
+		(unsigned long)ret);
 
 	return ret;
 }
@@ -1325,11 +1361,11 @@ u32 isci_request_sge_get_length_field(
 	struct sas_task *task = isci_request_access_task(request);
 	int ret = 0;
 
-	isci_logger(info,
-		    "request = %p, sge_address = %p\n",
-		    request,
-		    sge_address
-		    );
+	dev_dbg(&request->isci_host->pdev->dev,
+		"%s: request = %p, sge_address = %p\n",
+		__func__,
+		request,
+		sge_address);
 
 	if (task->data_dir == PCI_DMA_NONE)
 		goto out;
@@ -1344,7 +1380,10 @@ u32 isci_request_sge_get_length_field(
 		ret = sg_dma_len((struct scatterlist *)sge_address);
 
  out:
-	isci_logger(info, "len = %d\n", ret);
+	dev_dbg(&request->isci_host->pdev->dev,
+		"%s: len = %d\n",
+		__func__,
+		ret);
 
 	return ret;
 }
@@ -1362,8 +1401,10 @@ void *isci_request_ssp_io_request_get_cdb_address(
 {
 	struct sas_task *task = isci_request_access_task(request);
 
-	isci_logger(info, "request->task->ssp_task.cdb = %p\n",
-		    task->ssp_task.cdb);
+	dev_dbg(&request->isci_host->pdev->dev,
+		"%s: request->task->ssp_task.cdb = %p\n",
+		__func__,
+		task->ssp_task.cdb);
 	return task->ssp_task.cdb;
 }
 
@@ -1378,8 +1419,6 @@ void *isci_request_ssp_io_request_get_cdb_address(
 u32 isci_request_ssp_io_request_get_cdb_length(
 	struct isci_request *request)
 {
-	isci_logger(info, "\n", 0);
-
 	return 16;
 }
 
@@ -1396,13 +1435,16 @@ u32 isci_request_ssp_io_request_get_lun(
 {
 	struct sas_task *task = isci_request_access_task(request);
 
-/*int i;
- *
- * for (i = 0; i < 8; i++ )
- *      scic_cb_logger_log_trace(0,0,"%s: request->task->ssp_task.LUN[%d] "
- *                                      "= %x\n", __func__, i,
- *                                      request->task->ssp_task.LUN[i]);
- */
+#ifdef DEBUG
+	int i;
+
+	for (i = 0; i < 8; i++)
+		dev_dbg(&request->isci_host->pdev->dev,
+			"%s: request->task->ssp_task.LUN[%d] = %x\n",
+			__func__, i, request->task->ssp_task.LUN[i]);
+
+#endif
+
 	return task->ssp_task.LUN[0];
 }
 
@@ -1419,8 +1461,10 @@ u32 isci_request_ssp_io_request_get_task_attribute(
 {
 	struct sas_task *task = isci_request_access_task(request);
 
-	isci_logger(info, "request->task->ssp_task.task_attr = %x\n",
-		    task->ssp_task.task_attr);
+	dev_dbg(&request->isci_host->pdev->dev,
+		"%s: request->task->ssp_task.task_attr = %x\n",
+		__func__,
+		task->ssp_task.task_attr);
 
 	return task->ssp_task.task_attr;
 }
@@ -1438,13 +1482,10 @@ u32 isci_request_ssp_io_request_get_command_priority(
 {
 	struct sas_task *task = isci_request_access_task(request);
 
-	isci_logger(info, "request->task->ssp_task.task_prio = %x\n",
-		    task->ssp_task.task_prio);
+	dev_dbg(&request->isci_host->pdev->dev,
+		"%s: request->task->ssp_task.task_prio = %x\n",
+		__func__,
+		task->ssp_task.task_prio);
 
 	return task->ssp_task.task_prio;
 }
-
-
-
-
-
