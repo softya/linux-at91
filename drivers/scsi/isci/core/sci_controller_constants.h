@@ -197,34 +197,10 @@
 /**
  *
  *
- * This constant defines the maximum number of PCI devices that can be
- * supported by the driver.
- */
-#define SCI_MAX_PCI_DEVICES (2)
-
-/**
- *
- *
  * This constant defines the maximum number of controllers that can occur in a
  * single silicon package.
  */
-#define SCI_MAX_CONTROLLERS_PER_PCI_DEVICE  (2)
-
-/**
- *
- *
- * This constant defines the maximum number of controllers that can be
- * supported by a library object.  The user specified maximum controller count
- * must be less than or equal to this number.  This is a driver specific
- * constant that is not tied to silicon capabilities.
- */
-#if !defined(SCI_MAX_CONTROLLERS)
-#if defined(PBG_HBA_A0_BOARD) || defined(PBG_HBA_A2_BOARD)
-#define SCI_MAX_CONTROLLERS  (1)
-#else /* !defined(PBG_HBA_A0_BOARD) || defined(PBG_HBA_A2_BOARD) */
-#define SCI_MAX_CONTROLLERS  (2)
-#endif /* !defined(PBG_HBA_B0_BOARD) */
-#endif
+#define SCI_MAX_CONTROLLERS 2
 
 /**
  *

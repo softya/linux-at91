@@ -88,11 +88,6 @@
 extern int loglevel;
 extern struct kmem_cache *isci_kmem_cache;
 
-#define COMPILER_ERR_NO_STEP_TYPE "NO Stepping type compile switch specified:\n" \
-	"   CONFIG_PBG_HBA_A0\n"	\
-	"   CONFIG_PBG_HBA_A2\n"	\
-	"   CONFIG_PBG_HBA_BETA\n"
-
 /**
  * struct isci_module - This class represents single interface to the libsas
  *    and SCI Libraries.
@@ -106,7 +101,7 @@ struct isci_module {
 	struct {
 		SCI_LIBRARY_HANDLE_T core_lib_handle;
 		void *core_lib_memory;
-	} core_lib[SCI_MAX_PCI_DEVICES];
+	} core_lib[SCI_MAX_CONTROLLERS];
 
 	struct list_head pci_devices;
 

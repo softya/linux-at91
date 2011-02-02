@@ -89,58 +89,21 @@ static struct isci_module isci_module_struct = {
 
 };
 
-#if defined(CONFIG_PBG_HBA_A0) || defined(CONFIG_PBG_HBA_A2)
-/*
- * For the FPGA and all of the A-Step Silicon, the chip package could
- * contain up to two SCU controllers (SCU-0 & SCU-1). Each SCU
- * controller is presented as its own PCI function.  Therefore, the
- * the last data field (driver_data) in each structure below
- * indicates the controller index 0=SCU-0, 1=SCU-1 of the package.
- */
 static DEFINE_PCI_DEVICE_TABLE(isci_id_table) = {
-	/* Arlington FPGA device ID. */
-	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, 0x3318), 0, 0, 0 },
-
-	/* Pleasant Ridge/Patsburg SCU-0 Device IDs. */
-	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, 0x1D60), 0, 0, 0 },
-	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, 0x1D62), 0, 0, 0 },
-	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, 0x1D64), 0, 0, 0 },
-	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, 0x1D66), 0, 0, 0 },
-
-	/* Pleasant Ridge/Patsburg SCU-1 Device IDs. */
-	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, 0x1D61), 0, 0, 1 },
-	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, 0x1D63), 0, 0, 1 },
-	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, 0x1D65), 0, 0, 1 },
-	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, 0x1D67), 0, 0, 1 },
+	{ PCI_VDEVICE(INTEL, 0x1D61),},
+	{ PCI_VDEVICE(INTEL, 0x1D63),},
+	{ PCI_VDEVICE(INTEL, 0x1D65),},
+	{ PCI_VDEVICE(INTEL, 0x1D67),},
+	{ PCI_VDEVICE(INTEL, 0x1D69),},
+	{ PCI_VDEVICE(INTEL, 0x1D6B),},
+	{ PCI_VDEVICE(INTEL, 0x1D60),},
+	{ PCI_VDEVICE(INTEL, 0x1D62),},
+	{ PCI_VDEVICE(INTEL, 0x1D64),},
+	{ PCI_VDEVICE(INTEL, 0x1D66),},
+	{ PCI_VDEVICE(INTEL, 0x1D68),},
+	{ PCI_VDEVICE(INTEL, 0x1D6A),},
 	{}
 };
-#elif defined(CONFIG_PBG_HBA_BETA)
-/*
- *  For B-step the silicon, the definition of the driver_data field
- *  changed. B-step silicon now presents only one PCI function, but
- *  depending on the Device ID of the part, the PCI function could
- *  contain up to 2 SCU controllers.  So for B-step silicon, the
- *  driver_data field indicates the number of controllers in the
- *  package vs. controller index.
- */
-static DEFINE_PCI_DEVICE_TABLE(isci_id_table) = {
-	/* Patsburg B-step Silicon single controller Device IDs. */
-	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, 0x1D61), 0, 0, 1 },   /* SKU B3 */
-	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, 0x1D65), 0, 0, 1 },   /* SKU B1 */
-	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, 0x1D69), 0, 0, 1 },   /* SKU B0 */
-	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, 0x1D6B), 0, 0, 1 },   /* SKU A0 */
-
-	/* Patsburg B-step Silicon dual controller Device IDs. */
-	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, 0x1D60), 0, 0, 2 },   /* SKU D3, T3 */
-	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, 0x1D62), 0, 0, 2 },   /* SKU D2, T2 */
-	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, 0x1D64), 0, 0, 2 },   /* SKU D1, T1 */
-	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, 0x1D68), 0, 0, 2 },   /* SKU D0, T0 */
-	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, 0x1D6A), 0, 0, 2 },   /* SKU D0-    */
-	{}
-};
-#else
-#error COMPILER_ERR_NO_STEP_TYPE
-#endif /* end PCI_DEVICE_TABLE definition */
 
 static int __devinit isci_module_pci_probe(
 	struct pci_dev *pdev,
@@ -365,76 +328,96 @@ static int __devinit isci_pci_init(struct pci_dev *pdev)
 
 	pci_set_master(pdev);
 
+	err = pci_set_dma_mask(pdev, DMA_BIT_MASK(64));
+	if (err) {
+		err = pci_set_dma_mask(pdev, DMA_BIT_MASK(32));
+		if (err)
+			return err;
+	}
+
+	err = pci_set_consistent_dma_mask(pdev, DMA_BIT_MASK(64));
+	if (err) {
+		err = pci_set_consistent_dma_mask(pdev, DMA_BIT_MASK(32));
+		if (err)
+			return err;
+	}
+
 	return 0;
 }
 
-static int isci_module_enable_interrupts(struct isci_pci_info *pci_info)
+static struct isci_host *isci_host_by_id(struct pci_dev *pdev, int id)
 {
-	int i, j;
-	int err = -EINVAL;
-	struct pci_dev *pdev = pci_info->pdev;
-	int sci_num_msix_entries;
-	struct msix_entry *msix;
+	struct isci_host *h;
+
+	for_each_isci_host(h, pdev)
+		if (h->id == id)
+			return h;
+	return NULL;
+}
+
+static int num_controllers(struct pci_dev *pdev)
+{
+	/* bar size alone can tell us if we are running with a dual controller
+	 * part, no need to trust revision ids that might be under broken firmware
+	 * control
+	 */
+	resource_size_t scu_bar_size = pci_resource_len(pdev, SCI_SCU_BAR*2);
+	resource_size_t smu_bar_size = pci_resource_len(pdev, SCI_SMU_BAR*2);
+	
+	if (scu_bar_size >= SCI_SCU_BAR_SIZE*SCI_MAX_CONTROLLERS &&
+	    smu_bar_size >= SCI_SMU_BAR_SIZE*SCI_MAX_CONTROLLERS)
+		return SCI_MAX_CONTROLLERS;
+	else
+		return 1;
+}
+
+static int isci_setup_interrupts(struct pci_dev *pdev)
+{
+	int err, i, num_msix;
+	struct isci_pci_info *pci_info = to_pci_info(pdev);
 
 	/*
 	 *  Determine the number of vectors associated with this
 	 *  PCI function.
 	 */
-	sci_num_msix_entries = (pci_info->controller_count == 2) ?
-			       (SCI_NUM_MSI_X_INT + 2) : SCI_NUM_MSI_X_INT;
+	num_msix = num_controllers(pdev) * SCI_NUM_MSI_X_INT;
 
-	memset(pci_info->msix_entries, 0, sizeof(pci_info->msix_entries));
-
-	for (i = 0; i < sci_num_msix_entries; i++)
+	for (i = 0; i < num_msix; i++)
 		pci_info->msix_entries[i].entry = i;
 
-	err = pci_enable_msix(pdev, pci_info->msix_entries,
-			      sci_num_msix_entries);
+	err = pci_enable_msix(pdev, pci_info->msix_entries, num_msix);
+	if (err)
+		goto intx;
 
-	if (!err) { /* Successfully enabled MSIX */
-		for (i = 0; i < sci_num_msix_entries; i++) {
-			u32 ctl_idx =
-				(pci_info->msix_entries[i].entry < 2) ? 0 : 1;
+	for (i = 0; i < num_msix; i++) {
+		int id = i / SCI_NUM_MSI_X_INT;
+		struct msix_entry *msix = &pci_info->msix_entries[i];
+		struct isci_host *isci_host = isci_host_by_id(pdev, id);
 
-			dev_dbg(&pdev->dev,
-				"%s: msix entry = %d, vector = %d\n",
-				__func__,
-				pci_info->msix_entries[i].entry,
-				pci_info->msix_entries[i].vector);
+		BUG_ON(!isci_host);
 
-			/* @todo: need to handle error case. */
-			err = devm_request_irq(&pdev->dev,
-					       pci_info->msix_entries[i].vector,
-					       isci_isr,
-					       0,
-					       "isci-msix",
-					       &(pci_info->ctrl[ctl_idx]));
-			if (err) {
-				dev_err(&pdev->dev,
-					"request_irq failed - err = 0x%x\n",
-					err);
-				for (j = 0; j < i; j++) {
-					msix = &pci_info->msix_entries[j];
-					devm_free_irq(&pdev->dev,
-						      msix->vector,
-						      &(pci_info->ctrl[ctl_idx]));
-				}
-				pci_disable_msix(pdev);
-				goto intx;
-			}
+		/* @todo: need to handle error case. */
+		err = devm_request_irq(&pdev->dev, msix->vector, isci_isr, 0,
+				       DRV_NAME"-msix", isci_host);
+		if (!err)
+			continue;
 
+		dev_info(&pdev->dev, "msix setup failed falling back to intx\n");
+		while (i--) {
+			id = i / SCI_NUM_MSI_X_INT;
+			isci_host = isci_host_by_id(pdev, id);
+			msix = &pci_info->msix_entries[i];
+			devm_free_irq(&pdev->dev, msix->vector, isci_host);
 		}
-
-	} else {
-intx:
-		err = devm_request_irq(&pdev->dev, pdev->irq, isci_legacy_isr,
-				       IRQF_SHARED, "isci-intx", pci_info);
-		if (err)
-			dev_err(&pdev->dev,
-				"request_irq failed - err = 0x%x\n",
-				err);
-
+		pci_disable_msix(pdev);
+		goto intx;
 	}
+
+	return 0;
+
+ intx:
+	err = devm_request_irq(&pdev->dev, pdev->irq, isci_legacy_isr,
+			       IRQF_SHARED, DRV_NAME"-intx", pdev);
 
 	return err;
 }
@@ -519,13 +502,63 @@ enum sci_status isci_module_parse_user_parameters(
 	return SCI_SUCCESS;
 }
 
+static struct isci_host *isci_host_alloc(struct pci_dev *pdev, int id)
+{
+	struct isci_host *isci_host;
+	struct Scsi_Host *shost;
+	int err;
+
+	isci_host = devm_kzalloc(&pdev->dev, sizeof(*isci_host), GFP_KERNEL);
+	if (!isci_host)
+		return NULL;
+
+	isci_host->pdev = pdev;
+	isci_host->id = id;
+	isci_host->parent = &isci_module_struct;
+
+	shost = scsi_host_alloc(&isci_sht, sizeof(void *));
+	if (!shost)
+		return NULL;
+	isci_host->shost = shost;
+
+	err = isci_host_init(isci_host);
+	if (err)
+		goto err_shost;
+
+	SHOST_TO_SAS_HA(shost) = &isci_host->sas_ha;
+	isci_host->sas_ha.core.shost = shost;
+	shost->transportt = isci_module_struct.stt;
+
+	shost->max_id = ~0;
+	shost->max_lun = ~0;
+	shost->max_cmd_len = MAX_COMMAND_SIZE;
+
+	err = scsi_add_host(shost, &pdev->dev);
+	if (err)
+		goto err_shost;
+
+	err = isci_module_register_sas_ha(isci_host);
+	if (err)
+		goto err_shost_remove;
+
+	return isci_host;
+
+ err_shost_remove:
+	scsi_remove_host(shost);
+ err_shost:
+	scsi_host_put(shost);
+
+	return NULL;
+}
+
+
 static int __devinit isci_module_pci_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 {
-	struct Scsi_Host *shost[2] = { NULL, NULL };
 	struct isci_pci_info *pci_info;
-	int err = 0, ctlr_count = 0, count, core_lib_idx;
+	int err = -ENOMEM, core_lib_idx, i;
 	bool found = false;
 	void *scil_memory;
+	struct isci_host *isci_host;
 
 	/*
 	 *  First make sure there is room in the module for an SCI Core Library.
@@ -538,7 +571,7 @@ static int __devinit isci_module_pci_probe(struct pci_dev *pdev, const struct pc
 	 *          SKU.
 	 */
 	for (core_lib_idx = 0;
-	     core_lib_idx < SCI_MAX_PCI_DEVICES;
+	     core_lib_idx < ARRAY_SIZE(isci_module_struct.core_lib);
 	     core_lib_idx++) {
 		if ((isci_module_struct.core_lib[core_lib_idx].core_lib_handle
 					== NULL) &&
@@ -551,11 +584,9 @@ static int __devinit isci_module_pci_probe(struct pci_dev *pdev, const struct pc
 
 	if (found == false) {
 		dev_err(&pdev->dev,
-			"%s: exceeded max core lib count of %d\n",
-			__func__,
-			SCI_MAX_PCI_DEVICES);
-		err = -ENOMEM;
-		goto out;
+			"%s: exceeded max core lib count of %zu\n",
+			__func__, ARRAY_SIZE(isci_module_struct.core_lib));
+		return -ENODEV;
 	}
 
 	scil_memory =
@@ -585,152 +616,61 @@ static int __devinit isci_module_pci_probe(struct pci_dev *pdev, const struct pc
 		isci_module_struct.core_lib[core_lib_idx].core_lib_handle,
 		(void *)&isci_module_struct);
 
-	ctlr_count = scic_library_get_pci_device_controller_count(
-		isci_module_struct.core_lib[core_lib_idx].core_lib_handle);
-
-	pci_info = devm_kzalloc(&pdev->dev,
-				sizeof(struct isci_pci_info),
-				GFP_KERNEL);
-	if (!pci_info) {
-		err = -ENOMEM;
+	pci_info = devm_kzalloc(&pdev->dev, sizeof(*pci_info), GFP_KERNEL);
+	if (!pci_info)
 		goto lib_out;
-	}
 	/*
 	 *  Set key fields in the isci_pci_info structure.
 	 */
-	pci_info->controller_count = ctlr_count;
-	pci_info->k_pci_driver = &(isci_pci_driver);
-	pci_info->pdev = pdev;
 	pci_info->core_lib_handle = isci_module_struct.core_lib[core_lib_idx].core_lib_handle;
 	pci_info->core_lib_array_index = core_lib_idx;
-	INIT_LIST_HEAD(&(pci_info->node));
-
-#if defined(CONFIG_PBG_HBA_BETA)
-	/*  Link the isci_module to each controller's parent field and
-	 *  link each controller back to it's PCI function.
-	 */
-	for (count = 0; count < ctlr_count; count++)
-		pci_info->ctrl[count].parent = &isci_module_struct;
-#endif
-
-	err = isci_pci_init(pdev);
-	if (err) {
-		err = -ENOMEM;
-		goto lib_out;
-	}
 	pci_set_drvdata(pdev, pci_info);
 
-	for (count = 0; count < ctlr_count; count++) {
-		shost[count] = scsi_host_alloc(&isci_sht, sizeof(void *));
-		if (!shost[count]) {
-			err = -ENODEV;
-			goto lib_out;
-		}
-		pci_info->ctrl[count].shost = shost[count];
-		pci_info->ctrl[count].pdev = pdev;
-	}
-
-	err = isci_module_enable_interrupts(pci_info);
-	if (err) {
-		err = -ENODEV;
-		goto lib_out;
-	}
-
-	err = pci_set_dma_mask(pdev, DMA_BIT_MASK(64));
-	if (err) {
-		err = pci_set_dma_mask(pdev, DMA_BIT_MASK(32));
-		if (err) {
-			dev_err(&pdev->dev,
-				"%s: set DMA mask failed!\n",
-				__func__);
-			goto lib_out;
-		}
-	}
-
-	err = pci_set_consistent_dma_mask(pdev, DMA_BIT_MASK(64));
-	if (err) {
-		err = pci_set_consistent_dma_mask(pdev, DMA_BIT_MASK(32));
-		if (err) {
-			dev_err(&pdev->dev,
-				"%s: set consistent DMA mask failed!\n",
-				__func__);
-			goto lib_out;
-
-		}
-	}
-
-	for (count = 0; count < ctlr_count; count++) {
-		struct isci_host *isci_host = &(pci_info->ctrl[count]);
-
-		isci_host->pdev = pdev;
-		isci_host->id = count;
-		err = isci_host_init(isci_host);
-		if (err) {
-			dev_err(&pdev->dev,
-				"%s: isci_host_init failed - err = %d\n",
-				__func__,
-				err);
-			scsi_host_put(shost[count]);
-			goto lib_out;
-		}
-
-		SHOST_TO_SAS_HA(shost[count]) = &isci_host->sas_ha;
-		isci_host->sas_ha.core.shost = shost[count];
-		(shost[count])->transportt = isci_module_struct.stt;
-
-		(shost[count])->max_id = ~0;
-		(shost[count])->max_lun = ~0;
-		(shost[count])->max_cmd_len = MAX_COMMAND_SIZE;
-
-		err = scsi_add_host(shost[count], &pdev->dev);
-		if (err) {
-			scsi_host_put(shost[count]);
-			goto lib_out;
-		}
-	}
-
-	for (count = 0; count < SCI_MAX_CONTROLLERS; count++) {
-		struct isci_host *isci_host = &(pci_info->ctrl[count]);
-		err = isci_module_register_sas_ha(isci_host);
-	}
+	err = isci_pci_init(pdev);
 	if (err)
-		goto err_do_scsi_host_clean;
+		goto lib_out;
 
-	for (count = 0; count < ctlr_count; count++)
-		scsi_scan_host(shost[count]);
+	for (i = 0; i < num_controllers(pdev); i++) {
+		struct isci_host *h = isci_host_alloc(pdev, i);
+
+		if (!h) {
+			err = -ENOMEM;
+			goto err_host_alloc;
+		}
+
+		h->next = pci_info->hosts;
+		pci_info->hosts = h;
+	}
+
+	err = isci_setup_interrupts(pdev);
+	if (err)
+		goto err_host_alloc;
+
+	for_each_isci_host(isci_host, pdev)
+		scsi_scan_host(isci_host->shost);
 
 	return 0;
 
- err_do_scsi_host_clean:
-	for (count = 0; count < ctlr_count; count++) {
-		if (shost[count] != NULL) {
-			scsi_host_put(shost[count]);
-			scsi_remove_host(shost[count]);
-		}
-	}
-
+ err_host_alloc:
+	for_each_isci_host(isci_host, pdev)
+		isci_module_unregister_sas_ha(isci_host);
  lib_out:
 	isci_module_struct.core_lib[core_lib_idx].core_lib_handle = NULL;
 	isci_module_struct.core_lib[core_lib_idx].core_lib_memory = NULL;
 
- out:
 	return err;
 }
 
 static void __devexit isci_module_pci_remove(struct pci_dev *pdev)
 {
-	int i;
-	struct isci_pci_info *pci_info = to_pci_info(pdev);
 	struct isci_host *isci_host;
 
-	for (i = 0; i < pci_info->controller_count; i++) {
-		isci_host = &pci_info->ctrl[i];
+	for_each_isci_host(isci_host, pdev) {
 		isci_module_unregister_sas_ha(isci_host);
 		isci_host_deinit(isci_host);
 		scic_controller_disable_interrupts(isci_host->core_controller);
 	}
 
-	list_del(&pci_info->node);
 	if (list_empty(&(isci_module_struct.pci_devices)))
 		isci_timer_list_destroy(
 			&(isci_module_struct.timer_list_struct)
@@ -747,7 +687,7 @@ static __init int isci_module_init(void)
 	/*
 	 *  Initialize core_lib fields of isci_module_struct.
 	 */
-	for (count = 0; count < SCI_MAX_PCI_DEVICES; count++) {
+	for (count = 0; count < ARRAY_SIZE(isci_module_struct.core_lib); count++) {
 		isci_module_struct.core_lib[count].core_lib_handle = NULL;
 		isci_module_struct.core_lib[count].core_lib_memory = NULL;
 	}

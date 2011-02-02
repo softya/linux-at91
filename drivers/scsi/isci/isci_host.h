@@ -130,40 +130,32 @@ struct isci_host {
 	struct completion stop_complete;
 	struct completion start_complete;
 	spinlock_t scic_lock;
+	struct isci_host *next;
 };
 
 
 /**
  * struct isci_pci_info - This class represents the pci function containing the
  *    controllers. Depending on PCI SKU, there could be up to 2 controllers in
- *    the PCI function.  SCI_MAX_CONTROLLERS is defined at compile time.
- *
- *
+ *    the PCI function.
  */
+#define SCI_MAX_MSIX_INT (SCI_NUM_MSI_X_INT*SCI_MAX_CONTROLLERS)
 
 struct isci_pci_info {
-	u8 controller_count;
-	u8 reserved[3];
-	struct list_head node;
-
-	struct pci_driver *k_pci_driver;
-	struct pci_dev *pdev;
-
-#if defined(CONFIG_PBG_HBA_BETA)
-	struct msix_entry msix_entries[4 + 1];
-#else
-	struct msix_entry msix_entries[SCI_NUM_MSI_X_INT + 1];
-#endif
+	struct msix_entry msix_entries[SCI_MAX_MSIX_INT];
 	int core_lib_array_index;
 	SCI_LIBRARY_HANDLE_T core_lib_handle;
-
-	struct isci_host ctrl[SCI_MAX_CONTROLLERS];
+	struct isci_host *hosts;
 };
 
 static inline struct isci_pci_info *to_pci_info(struct pci_dev *pdev)
 {
 	return pci_get_drvdata(pdev);
 }
+
+#define for_each_isci_host(isci_host, pdev) \
+	for (isci_host = to_pci_info(pdev)->hosts;\
+	     isci_host; isci_host = isci_host->next)
 
 static inline
 enum isci_status isci_host_get_state(

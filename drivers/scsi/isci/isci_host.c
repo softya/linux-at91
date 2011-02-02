@@ -108,23 +108,11 @@ irqreturn_t isci_isr(int vec, void *data)
 	return ret;
 }
 
-/**
- * isci_legacy_isr() - This function is the legacy interrupt service routine
- *    for the controller. It schedules the tasklet and returns.
- * @vec: This parameter specifies the interrupt vector.
- * @data: This parameter specifies the PCI function that generated the legacy
- *    interrupt.
- *
- * IRQ_HANDLED if out interrupt otherwise, IRQ_NONE
- */
-irqreturn_t isci_legacy_isr(
-	int vec,
-	void *data)
+irqreturn_t isci_legacy_isr(int vec, void *data)
 {
-	struct isci_pci_info *pci_info = (struct isci_pci_info *)data;
+	struct pci_dev *pdev = data;
 	struct isci_host *isci_host;
 	struct scic_controller_handler_methods *handlers;
-	int count;
 	irqreturn_t ret = IRQ_NONE;
 
 	/*
@@ -133,9 +121,7 @@ irqreturn_t isci_legacy_isr(
 	 *  the legacy interrupt handler for all controllers on the
 	 *  PCI function.
 	 */
-	for (count = 0; count < pci_info->controller_count; count++) {
-		isci_host = &(pci_info->ctrl[count]);
-
+	for_each_isci_host(isci_host, pdev) {
 		handlers = &isci_host->scic_irq_handlers[SCI_MSIX_NORMAL_VECTOR];
 
 		if (isci_host_get_state(isci_host) != isci_starting
@@ -766,15 +752,6 @@ int isci_host_init(struct isci_host *isci_host)
 
 	INIT_LIST_HEAD(&(isci_host->mdl_struct_list));
 
-	/*
-	 *  If this is the first SCU controller on the PCI device, then
-	 *  link it into the module's pci device list. For dual controller
-	 *  PCI functions, we only want to link its pci device object once.
-	 *  The check here insures that we don't try to link in the pci
-	 *  device object redundantly for the second controller.
-	 */
-	if (isci_host == &pci_info->ctrl[0])
-		list_add_tail(&pci_info->node, &isci_host->parent->pci_devices);
 	INIT_LIST_HEAD(&isci_host->requests_to_complete);
 	INIT_LIST_HEAD(&isci_host->requests_to_abort);
 
