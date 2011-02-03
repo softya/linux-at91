@@ -201,7 +201,7 @@ static enum sci_status isci_remote_device_construct(
 			__func__,
 			isci_device);
 
-		goto out;
+		return status;
 	}
 
 	sci_object_set_association(
@@ -221,10 +221,9 @@ static enum sci_status isci_remote_device_construct(
 		dev_warn(&port->isci_host->pdev->dev,
 			 "%s: scic_remote_device_start failed\n",
 			 __func__);
-		goto out;
+		return status;
 	}
 
- out:
 	return status;
 }
 

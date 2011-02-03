@@ -460,8 +460,7 @@ int isci_task_execute_tmf(
 			__func__,
 			isci_device,
 			isci_remote_device_get_state(isci_device));
-		goto out;
-
+		return TMF_RESP_FUNC_FAILED;
 	} else
 		dev_dbg(&isci_host->pdev->dev,
 			"%s: isci_device = %p\n",
@@ -482,7 +481,7 @@ int isci_task_execute_tmf(
 		dev_warn(&isci_host->pdev->dev,
 			"%s: isci_task_request_build failed\n",
 			__func__);
-		goto out;
+		return TMF_RESP_FUNC_FAILED;
 	}
 
 	/* Allocate the TMF timeout timer. */
@@ -577,8 +576,6 @@ int isci_task_execute_tmf(
 	spin_unlock_irqrestore(&isci_host->scic_lock, flags);
 
 	isci_request_free(isci_host, request);
-
-out:
 
 	return ret;
 }
@@ -1166,9 +1163,7 @@ int isci_task_abort_task(struct sas_task *task)
 			    " task %p is for a STP/SATA device;"
 			    " returning TMF_RESP_FUNC_FAILED\n"
 			    " to cause a LUN reset...\n", task);
-		ret = TMF_RESP_FUNC_FAILED;
-
-		goto out;
+		return TMF_RESP_FUNC_FAILED;
 	}
 
 	dev_dbg(&isci_host->pdev->dev,
@@ -1259,7 +1254,7 @@ int isci_task_abort_task(struct sas_task *task)
 		}
 		spin_unlock_irqrestore(&task->task_state_lock, flags);
 
-		goto out;
+		return ret;
 	}
 
 	spin_lock_irqsave(&isci_host->scic_lock, flags);
@@ -1354,10 +1349,7 @@ int isci_task_abort_task(struct sas_task *task)
 			dev_err(&isci_host->pdev->dev,
 				"%s: isci_task_send_tmf failed\n",
 				__func__);
-
 	}
-
-out:
 
 	return ret;
 }

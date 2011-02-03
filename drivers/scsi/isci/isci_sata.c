@@ -245,10 +245,10 @@ enum sci_status isci_sata_management_task_request_build(
 	struct isci_request *isci_request)
 {
 	struct isci_tmf *isci_tmf;
-	enum sci_status status = SCI_FAILURE;
+	enum sci_status status;
 
 	if (tmf_task != isci_request->ttype)
-		goto out;
+		return SCI_FAILURE;
 
 	isci_tmf = isci_request_access_tmf(isci_request);
 
@@ -275,7 +275,7 @@ enum sci_status isci_sata_management_task_request_build(
 	}
 	/* other management commnd go here... */
 	default:
-		goto out;
+		return SCI_FAILURE;
 	}
 
 	/* core builds the protocol specific request
@@ -285,7 +285,6 @@ enum sci_status isci_sata_management_task_request_build(
 		isci_request->sci_request_handle
 		);
 
- out:
 	return status;
 }
 

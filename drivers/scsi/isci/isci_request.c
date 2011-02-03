@@ -1294,7 +1294,7 @@ dma_addr_t isci_request_sge_get_address_field(
 	void *sge_address)
 {
 	struct sas_task *task = isci_request_access_task(request);
-	dma_addr_t ret = 0;
+	dma_addr_t ret;
 	struct isci_host *isci_host = isci_host_from_sas_ha(
 		task->dev->port->ha);
 
@@ -1305,7 +1305,7 @@ dma_addr_t isci_request_sge_get_address_field(
 		sge_address);
 
 	if (task->data_dir == PCI_DMA_NONE)
-		goto out;
+		return 0;
 
 	/* the case where num_scatter == 0 is special, in that
 	 * task->scatter is the actual buffer address, not an sgl.
@@ -1323,7 +1323,6 @@ dma_addr_t isci_request_sge_get_address_field(
 	} else
 		ret = sg_dma_address(((struct scatterlist *)sge_address));
 
- out:
 	dev_dbg(&isci_host->pdev->dev,
 		"%s: bus address = %lx\n",
 		__func__,
@@ -1346,7 +1345,7 @@ u32 isci_request_sge_get_length_field(
 	void *sge_address)
 {
 	struct sas_task *task = isci_request_access_task(request);
-	int ret = 0;
+	int ret;
 
 	dev_dbg(&request->isci_host->pdev->dev,
 		"%s: request = %p, sge_address = %p\n",
@@ -1355,7 +1354,7 @@ u32 isci_request_sge_get_length_field(
 		sge_address);
 
 	if (task->data_dir == PCI_DMA_NONE)
-		goto out;
+		return 0;
 
 	/* the case where num_scatter == 0 is special, in that
 	 * task->scatter is the actual buffer address, not an sgl.
@@ -1366,7 +1365,6 @@ u32 isci_request_sge_get_length_field(
 	else
 		ret = sg_dma_len((struct scatterlist *)sge_address);
 
- out:
 	dev_dbg(&request->isci_host->pdev->dev,
 		"%s: len = %d\n",
 		__func__,
