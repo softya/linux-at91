@@ -184,8 +184,22 @@ struct sci_base_phy_state_handler {
  *    utilized for the phy state machine.
  *
  */
-void sci_base_phy_construct(
-	struct sci_base_phy *this_phy,
-	const struct sci_base_state *state_table);
+static inline void sci_base_phy_construct(
+	struct sci_base_phy *base_phy,
+	const struct sci_base_state *state_table)
+{
+	base_phy->parent.private = NULL;
+	sci_base_state_machine_construct(
+		&base_phy->state_machine,
+		&base_phy->parent,
+		state_table,
+		SCI_BASE_PHY_STATE_INITIAL
+		);
+
+	sci_base_state_machine_start(
+		&base_phy->state_machine
+		);
+}
+
 
 #endif /* _SCI_BASE_PHY_H_ */

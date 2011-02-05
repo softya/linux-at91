@@ -108,6 +108,8 @@ extern const struct sci_base_state scic_sds_stp_request_started_pio_substate_tab
 
 /* --------------------------------------------------------------------------- */
 
+struct scic_sds_stp_request;
+
 struct scu_sgl_element *scic_sds_stp_request_pio_get_next_sgl(
 	struct scic_sds_stp_request *this_request);
 

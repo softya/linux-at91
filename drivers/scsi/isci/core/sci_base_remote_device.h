@@ -258,8 +258,20 @@ struct sci_base_remote_device_state_handler {
  *    utilized for the remote device state machine.
  *
  */
-void sci_base_remote_device_construct(
-	struct sci_base_remote_device *this_device,
-	const struct sci_base_state *state_table);
+static inline void sci_base_remote_device_construct(
+	struct sci_base_remote_device *base_dev,
+	const struct sci_base_state *state_table)
+{
+	base_dev->parent.private = NULL;
+	sci_base_state_machine_construct(
+		&base_dev->state_machine,
+		&base_dev->parent,
+		state_table,
+		SCI_BASE_REMOTE_DEVICE_STATE_INITIAL
+		);
 
+	sci_base_state_machine_start(
+		&base_dev->state_machine
+		);
+}
 #endif /* _SCI_BASE_REMOTE_DEVICE_H_ */

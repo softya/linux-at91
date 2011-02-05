@@ -11,58 +11,20 @@ isci-objs := init.o phy.o request.o sata.o \
 	     remote_device.o port.o timers.o deprecated.o \
 	     host.o task.o events.o \
 	     core/scic_sds_controller.o  \
-	     core/scic_sds_controller_state_handlers.o \
-	     core/scic_sds_phy_starting_substate_handlers.o \
 	     core/scic_sds_remote_device.o    \
-	     core/scic_sds_controller_states.o \
-	     core/scic_sds_phy_starting_substates.o \
 	     core/scic_sds_request.o \
 	     core/scic_sds_stp_request.o \
-	     core/scic_sds_stp_pio_request.o \
-	     core/scic_sds_phy_state_handlers.o \
-	     core/scic_sds_remote_node_context_state_handlers.o \
-	     core/scic_sds_remote_node_context_states.o \
 	     core/scic_sds_stp_packet_request.o \
-	     core/scic_sds_stp_remote_device_ready_substate_handlers.o \
-	     core/scic_sds_stp_remote_device_ready_substates.o \
-	     core/scic_sds_stp_request_started_soft_reset_substate_handlers.o \
-	     core/scic_sds_stp_request_started_soft_reset_substates.o \
-	     core/scic_sds_request_state_handlers.o \
-	     core/scic_sds_phy_states.o \
-	     core/scic_sds_remote_device_state_handlers.o \
-	     core/scic_sds_request_states.o \
+	     core/scic_sds_stp_remote_device.o \
 	     core/scic_sds_port.o \
 	     core/scic_sds_port_configuration_agent.o \
-	     core/scic_sds_port_states.o \
-	     core/scic_sds_remote_device_states.o \
-	     core/scic_sds_port_ready_substate_handlers.o \
 	     core/scic_sds_phy.o \
-	     core/scic_sds_port_ready_substates.o \
-	     core/scic_sds_port_state_handlers.o \
-	     core/scic_sds_ssp_request_started_task_mgmt_substates.o \
-	     core/scic_sds_ssp_request_started_task_mgmt_substate_handlers.o \
-	     core/scic_sds_stp_request_started_packet_substates.o \
-	     core/scic_sds_stp_request_started_packet_substate_handlers.o \
-	     core/scic_sds_stp_request_started_udma_substate_handlers.o \
-	     core/scic_sds_stp_request_started_udma_substates.o \
-	     core/scic_sds_stp_request_started_non_data_substate_handlers.o \
-	     core/scic_sds_stp_request_started_non_data_substates.o \
-	     core/scic_sds_stp_request_started_pio_substates.o \
-	     core/scic_sds_stp_request_started_pio_substate_handlers.o \
+	     core/scic_sds_ssp_request.o \
 	     core/scic_sds_remote_node_context.o \
 	     core/scic_sds_smp_request.o \
-	     core/scic_sds_smp_request_started_substate_handlers.o \
-	     core/scic_sds_smp_request_started_substates.o \
-	     core/scic_sds_smp_remote_device_ready_substate_handlers.o \
-	     core/scic_sds_smp_remote_device_ready_substates.o \
+	     core/scic_sds_smp_remote_device.o \
 	     core/scic_sds_remote_node_table.o \
 	     core/scic_sds_unsolicited_frame_control.o \
-	     core/sci_base_controller.o \
-	     core/sci_base_domain.o \
 	     core/sci_base_memory_descriptor_list.o \
-	     core/sci_base_phy.o \
-	     core/sci_base_port.o \
-	     core/sci_base_remote_device.o \
-	     core/sci_base_request.o \
 	     core/sci_base_state_machine.o \
 	     core/sci_util.o

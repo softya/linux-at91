@@ -175,8 +175,21 @@ struct sci_base_request_state_handler {
  *    utilized for the request state machine.
  *
  */
-void sci_base_request_construct(
-	struct sci_base_request *this_request,
-	const struct sci_base_state *state_table);
+static inline void sci_base_request_construct(
+	struct sci_base_request *base_req,
+	const struct sci_base_state *my_state_table)
+{
+	base_req->parent.private = NULL;
+	sci_base_state_machine_construct(
+		&base_req->state_machine,
+		&base_req->parent,
+		my_state_table,
+		SCI_BASE_REQUEST_STATE_INITIAL
+		);
+
+	sci_base_state_machine_start(
+		&base_req->state_machine
+		);
+}
 
 #endif /* _SCI_BASE_REQUST_H_ */

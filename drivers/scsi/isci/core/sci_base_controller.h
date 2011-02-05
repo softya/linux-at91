@@ -282,11 +282,25 @@ struct sci_base_controller_state_handler {
  *    manufacturer parameters to be utilized by this controller object.
  *
  */
-void sci_base_controller_construct(
-	struct sci_base_controller *this_controller,
+static inline void sci_base_controller_construct(
+	struct sci_base_controller *scic_base,
 	const struct sci_base_state *state_table,
 	struct sci_physical_memory_descriptor *mdes,
 	u32 mde_count,
-	struct sci_base_memory_descriptor_list *next_mdl);
+	struct sci_base_memory_descriptor_list *next_mdl)
+{
+	scic_base->parent.private = NULL;
+
+	sci_base_state_machine_construct(
+		&scic_base->state_machine,
+		&scic_base->parent,
+		state_table,
+		SCI_BASE_CONTROLLER_STATE_INITIAL
+		);
+
+	sci_base_mdl_construct(&scic_base->mdl, mdes, mde_count, next_mdl);
+
+	sci_base_state_machine_start(&scic_base->state_machine);
+}
 
 #endif /* _SCI_BASE_CONTROLLER_H_ */

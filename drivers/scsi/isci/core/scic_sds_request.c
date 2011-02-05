@@ -53,35 +53,30 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * This file contains the implementation for the operations on an
- *    SCIC_SDS_IO_REQUEST object.
- *
- *
- */
 
-#include "intel_sat.h"
-#include "intel_sata.h"
 #include "intel_sas.h"
-#include "sci_util.h"
-#include "sci_environment.h"
+#include "intel_sata.h"
+#include "intel_sat.h"
 #include "sci_base_request.h"
 #include "scic_controller.h"
 #include "scic_io_request.h"
 #include "scic_remote_device.h"
-#include "scic_user_callback.h"
-#include "scic_sds_request.h"
-#include "scic_sds_pci.h"
-#include "scic_sds_stp_request.h"
 #include "scic_sds_controller.h"
 #include "scic_sds_controller_registers.h"
-#include "scic_sds_remote_device.h"
+#include "scic_sds_pci.h"
 #include "scic_sds_port.h"
+#include "scic_sds_remote_device.h"
+#include "scic_sds_request.h"
+#include "scic_sds_smp_request.h"
+#include "scic_sds_stp_request.h"
+#include "scic_sds_unsolicited_frame_control.h"
+#include "scic_user_callback.h"
+#include "sci_environment.h"
+#include "sci_types.h"
+#include "sci_util.h"
+#include "scu_completion_codes.h"
 #include "scu_constants.h"
 #include "scu_task_context.h"
-#include "scic_sds_smp_request.h"
-#include "scic_sds_unsolicited_frame_control.h"
-#include "sci_types.h"
 
 #if !defined(DISABLE_ATAPI)
 #include "scic_sds_stp_packet_request.h"
@@ -1217,4 +1212,968 @@ void scic_sds_io_request_copy_response(
 
 	memcpy(response_buffer, ssp_response->data, user_response_length);
 }
+
+/*
+ * *****************************************************************************
+ * *  DEFAULT STATE HANDLERS
+ * ***************************************************************************** */
+
+/**
+ * scic_sds_request_default_start_handler() -
+ * @request: This is the struct sci_base_request object that is cast to the
+ *    SCIC_SDS_IO_REQUEST_T object for which the start operation is requested.
+ *
+ * This method is the default action to take when an SCIC_SDS_IO_REQUEST_T
+ * object receives a scic_sds_request_start() request.  The default action is
+ * to log a warning and return a failure status. enum sci_status
+ * SCI_FAILURE_INVALID_STATE
+ */
+enum sci_status scic_sds_request_default_start_handler(
+	struct sci_base_request *request)
+{
+	struct scic_sds_request *scic_request =
+		(struct scic_sds_request *)request;
+
+	dev_warn(scic_to_dev(scic_request->owning_controller),
+		 "%s: SCIC IO Request requested to start while in wrong "
+		 "state %d\n",
+		 __func__,
+		 sci_base_state_machine_get_state(
+			 &((struct scic_sds_request *)request)->parent.state_machine));
+
+	return SCI_FAILURE_INVALID_STATE;
+}
+
+static enum sci_status scic_sds_request_default_abort_handler(
+	struct sci_base_request *request)
+{
+	struct scic_sds_request *scic_request =
+		(struct scic_sds_request *)request;
+
+	dev_warn(scic_to_dev(scic_request->owning_controller),
+		"%s: SCIC IO Request requested to abort while in wrong "
+		"state %d\n",
+		__func__,
+		sci_base_state_machine_get_state(
+			&((struct scic_sds_request *)request)->parent.state_machine));
+
+	return SCI_FAILURE_INVALID_STATE;
+}
+
+/**
+ * scic_sds_request_default_complete_handler() -
+ * @request: This is the struct sci_base_request object that is cast to the
+ *    SCIC_SDS_IO_REQUEST_T object for which the start operation is requested.
+ *
+ * This method is the default action to take when an SCIC_SDS_IO_REQUEST_T
+ * object receives a scic_sds_request_complete() request.  The default action
+ * is to log a warning and return a failure status. enum sci_status
+ * SCI_FAILURE_INVALID_STATE
+ */
+enum sci_status scic_sds_request_default_complete_handler(
+	struct sci_base_request *request)
+{
+	struct scic_sds_request *scic_request =
+		(struct scic_sds_request *)request;
+
+	dev_warn(scic_to_dev(scic_request->owning_controller),
+		"%s: SCIC IO Request requested to complete while in wrong "
+		"state %d\n",
+		__func__,
+		sci_base_state_machine_get_state(
+			&((struct scic_sds_request *)request)->parent.state_machine));
+
+	return SCI_FAILURE_INVALID_STATE;
+}
+
+/**
+ * scic_sds_request_default_destruct_handler() -
+ * @request: This is the struct sci_base_request object that is cast to the
+ *    SCIC_SDS_IO_REQUEST_T object for which the start operation is requested.
+ *
+ * This method is the default action to take when an SCIC_SDS_IO_REQUEST_T
+ * object receives a scic_sds_request_complete() request.  The default action
+ * is to log a warning and return a failure status. enum sci_status
+ * SCI_FAILURE_INVALID_STATE
+ */
+enum sci_status scic_sds_request_default_destruct_handler(
+	struct sci_base_request *request)
+{
+	struct scic_sds_request *scic_request =
+		(struct scic_sds_request *)request;
+
+	dev_warn(scic_to_dev(scic_request->owning_controller),
+		 "%s: SCIC IO Request requested to destroy while in wrong "
+		 "state %d\n",
+		 __func__,
+		 sci_base_state_machine_get_state(
+			 &((struct scic_sds_request *)request)->parent.state_machine));
+
+	return SCI_FAILURE_INVALID_STATE;
+}
+
+/**
+ * scic_sds_request_default_tc_completion_handler() -
+ * @request: This is the struct sci_base_request object that is cast to the
+ *    SCIC_SDS_IO_REQUEST_T object for which the start operation is requested.
+ *
+ * This method is the default action to take when an SCIC_SDS_IO_REQUEST_T
+ * object receives a scic_sds_task_request_complete() request.  The default
+ * action is to log a warning and return a failure status. enum sci_status
+ * SCI_FAILURE_INVALID_STATE
+ */
+enum sci_status scic_sds_request_default_tc_completion_handler(
+	struct scic_sds_request *this_request,
+	u32 completion_code)
+{
+	dev_warn(scic_to_dev(this_request->owning_controller),
+		"%s: SCIC IO Request given task completion notification %x "
+		"while in wrong state %d\n",
+		__func__,
+		completion_code,
+		sci_base_state_machine_get_state(
+			&this_request->parent.state_machine));
+
+	return SCI_FAILURE_INVALID_STATE;
+
+}
+
+/**
+ * scic_sds_request_default_event_handler() -
+ * @request: This is the struct sci_base_request object that is cast to the
+ *    SCIC_SDS_IO_REQUEST_T object for which the start operation is requested.
+ *
+ * This method is the default action to take when an SCIC_SDS_IO_REQUEST_T
+ * object receives a scic_sds_request_event_handler() request.  The default
+ * action is to log a warning and return a failure status. enum sci_status
+ * SCI_FAILURE_INVALID_STATE
+ */
+enum sci_status scic_sds_request_default_event_handler(
+	struct scic_sds_request *this_request,
+	u32 event_code)
+{
+	dev_warn(scic_to_dev(this_request->owning_controller),
+		 "%s: SCIC IO Request given event code notification %x while "
+		 "in wrong state %d\n",
+		 __func__,
+		 event_code,
+		 sci_base_state_machine_get_state(
+			 &this_request->parent.state_machine));
+
+	return SCI_FAILURE_INVALID_STATE;
+}
+
+/**
+ * scic_sds_request_default_frame_handler() -
+ * @request: This is the struct sci_base_request object that is cast to the
+ *    SCIC_SDS_IO_REQUEST_T object for which the start operation is requested.
+ *
+ * This method is the default action to take when an SCIC_SDS_IO_REQUEST_T
+ * object receives a scic_sds_request_event_handler() request.  The default
+ * action is to log a warning and return a failure status. enum sci_status
+ * SCI_FAILURE_INVALID_STATE
+ */
+enum sci_status scic_sds_request_default_frame_handler(
+	struct scic_sds_request *this_request,
+	u32 frame_index)
+{
+	dev_warn(scic_to_dev(this_request->owning_controller),
+		 "%s: SCIC IO Request given unexpected frame %x while in "
+		 "state %d\n",
+		 __func__,
+		 frame_index,
+		 sci_base_state_machine_get_state(
+			 &this_request->parent.state_machine));
+
+	scic_sds_controller_release_frame(
+		this_request->owning_controller, frame_index);
+
+	return SCI_FAILURE_INVALID_STATE;
+}
+
+/*
+ * *****************************************************************************
+ * *  CONSTRUCTED STATE HANDLERS
+ * ***************************************************************************** */
+
+/**
+ * scic_sds_request_constructed_state_start_handler() -
+ * @request: This is the struct sci_base_request object that is cast to the
+ *    SCIC_SDS_IO_REQUEST_T object for which the start operation is requested.
+ *
+ * This method implements the action taken when a constructed
+ * SCIC_SDS_IO_REQUEST_T object receives a scic_sds_request_start() request.
+ * This method will, if necessary, allocate a TCi for the io request object and
+ * then will, if necessary, copy the constructed TC data into the actual TC
+ * buffer.  If everything is successful the post context field is updated with
+ * the TCi so the controller can post the request to the hardware. enum sci_status
+ * SCI_SUCCESS SCI_FAILURE_INSUFFICIENT_RESOURCES
+ */
+static enum sci_status scic_sds_request_constructed_state_start_handler(
+	struct sci_base_request *request)
+{
+	struct scu_task_context *task_context;
+	struct scic_sds_request *this_request = (struct scic_sds_request *)request;
+
+	if (this_request->io_tag == SCI_CONTROLLER_INVALID_IO_TAG) {
+		this_request->io_tag =
+			scic_controller_allocate_io_tag(this_request->owning_controller);
+	}
+
+	/* Record the IO Tag in the request */
+	if (this_request->io_tag != SCI_CONTROLLER_INVALID_IO_TAG) {
+		task_context = this_request->task_context_buffer;
+
+		task_context->task_index = scic_sds_io_tag_get_index(this_request->io_tag);
+
+		switch (task_context->protocol_type) {
+		case SCU_TASK_CONTEXT_PROTOCOL_SMP:
+		case SCU_TASK_CONTEXT_PROTOCOL_SSP:
+			/* SSP/SMP Frame */
+			task_context->type.ssp.tag = this_request->io_tag;
+			task_context->type.ssp.target_port_transfer_tag = 0xFFFF;
+			break;
+
+		case SCU_TASK_CONTEXT_PROTOCOL_STP:
+			/*
+			 * STP/SATA Frame
+			 * task_context->type.stp.ncq_tag = this_request->ncq_tag; */
+			break;
+
+		case SCU_TASK_CONTEXT_PROTOCOL_NONE:
+			/* / @todo When do we set no protocol type? */
+			break;
+
+		default:
+			/* This should never happen since we build the IO requests */
+			break;
+		}
+
+		/*
+		 * Check to see if we need to copy the task context buffer
+		 * or have been building into the task context buffer */
+		if (this_request->was_tag_assigned_by_user == false) {
+			scic_sds_controller_copy_task_context(
+				this_request->owning_controller, this_request
+				);
+		}
+
+		/* Add to the post_context the io tag value */
+		this_request->post_context |= scic_sds_io_tag_get_index(this_request->io_tag);
+
+		/* Everything is good go ahead and change state */
+		sci_base_state_machine_change_state(
+			&this_request->parent.state_machine,
+			SCI_BASE_REQUEST_STATE_STARTED
+			);
+
+		return SCI_SUCCESS;
+	}
+
+	return SCI_FAILURE_INSUFFICIENT_RESOURCES;
+}
+
+/**
+ * scic_sds_request_constructed_state_abort_handler() -
+ * @request: This is the struct sci_base_request object that is cast to the
+ *    SCIC_SDS_IO_REQUEST_T object for which the start operation is requested.
+ *
+ * This method implements the action to be taken when an SCIC_SDS_IO_REQUEST_T
+ * object receives a scic_sds_request_terminate() request. Since the request
+ * has not yet been posted to the hardware the request transitions to the
+ * completed state. enum sci_status SCI_SUCCESS
+ */
+static enum sci_status scic_sds_request_constructed_state_abort_handler(
+	struct sci_base_request *request)
+{
+	struct scic_sds_request *this_request = (struct scic_sds_request *)request;
+
+	/*
+	 * This request has been terminated by the user make sure that the correct
+	 * status code is returned */
+	scic_sds_request_set_status(
+		this_request,
+		SCU_TASK_DONE_TASK_ABORT,
+		SCI_FAILURE_IO_TERMINATED
+		);
+
+	sci_base_state_machine_change_state(
+		&this_request->parent.state_machine,
+		SCI_BASE_REQUEST_STATE_COMPLETED
+		);
+
+	return SCI_SUCCESS;
+}
+
+/*
+ * *****************************************************************************
+ * *  STARTED STATE HANDLERS
+ * ***************************************************************************** */
+
+/**
+ * scic_sds_request_started_state_abort_handler() -
+ * @request: This is the struct sci_base_request object that is cast to the
+ *    SCIC_SDS_IO_REQUEST_T object for which the start operation is requested.
+ *
+ * This method implements the action to be taken when an SCIC_SDS_IO_REQUEST_T
+ * object receives a scic_sds_request_terminate() request. Since the request
+ * has been posted to the hardware the io request state is changed to the
+ * aborting state. enum sci_status SCI_SUCCESS
+ */
+enum sci_status scic_sds_request_started_state_abort_handler(
+	struct sci_base_request *request)
+{
+	struct scic_sds_request *this_request = (struct scic_sds_request *)request;
+
+	if (this_request->has_started_substate_machine) {
+		sci_base_state_machine_stop(&this_request->started_substate_machine);
+	}
+
+	sci_base_state_machine_change_state(
+		&this_request->parent.state_machine,
+		SCI_BASE_REQUEST_STATE_ABORTING
+		);
+
+	return SCI_SUCCESS;
+}
+
+/**
+ * scic_sds_request_started_state_tc_completion_handler() - This method process
+ *    TC (task context) completions for normal IO request (i.e. Task/Abort
+ *    Completions of type 0).  This method will update the
+ *    SCIC_SDS_IO_REQUEST_T::status field.
+ * @this_request: This parameter specifies the request for which a completion
+ *    occurred.
+ * @completion_code: This parameter specifies the completion code received from
+ *    the SCU.
+ *
+ */
+enum sci_status scic_sds_request_started_state_tc_completion_handler(
+	struct scic_sds_request *this_request,
+	u32 completion_code)
+{
+	u8 data_present;
+	struct sci_ssp_response_iu *response_buffer;
+
+	/**
+	 * @todo Any SDMA return code of other than 0 is bad
+	 *       decode 0x003C0000 to determine SDMA status
+	 */
+	switch (SCU_GET_COMPLETION_TL_STATUS(completion_code)) {
+	case SCU_MAKE_COMPLETION_STATUS(SCU_TASK_DONE_GOOD):
+		scic_sds_request_set_status(
+			this_request, SCU_TASK_DONE_GOOD, SCI_SUCCESS
+			);
+		break;
+
+	case SCU_MAKE_COMPLETION_STATUS(SCU_TASK_DONE_EARLY_RESP):
+	{
+		/*
+		 * There are times when the SCU hardware will return an early response
+		 * because the io request specified more data than is returned by the
+		 * target device (mode pages, inquiry data, etc.).  We must check the
+		 * response stats to see if this is truly a failed request or a good
+		 * request that just got completed early. */
+		struct sci_ssp_response_iu *response = (struct sci_ssp_response_iu *)
+						  this_request->response_buffer;
+		scic_word_copy_with_swap(
+			this_request->response_buffer,
+			this_request->response_buffer,
+			sizeof(struct sci_ssp_response_iu) / sizeof(u32)
+			);
+
+		if (response->status == 0) {
+			scic_sds_request_set_status(
+				this_request, SCU_TASK_DONE_GOOD, SCI_SUCCESS_IO_DONE_EARLY
+				);
+		} else {
+			scic_sds_request_set_status(
+				this_request,
+				SCU_TASK_DONE_CHECK_RESPONSE,
+				SCI_FAILURE_IO_RESPONSE_VALID
+				);
+		}
+	}
+	break;
+
+	case SCU_MAKE_COMPLETION_STATUS(SCU_TASK_DONE_CHECK_RESPONSE):
+		scic_word_copy_with_swap(
+			this_request->response_buffer,
+			this_request->response_buffer,
+			sizeof(struct sci_ssp_response_iu) / sizeof(u32)
+			);
+
+		scic_sds_request_set_status(
+			this_request,
+			SCU_TASK_DONE_CHECK_RESPONSE,
+			SCI_FAILURE_IO_RESPONSE_VALID
+			);
+		break;
+
+	case SCU_MAKE_COMPLETION_STATUS(SCU_TASK_DONE_RESP_LEN_ERR):
+		/*
+		 * / @todo With TASK_DONE_RESP_LEN_ERR is the response frame guaranteed
+		 * /       to be received before this completion status is posted? */
+		response_buffer =
+			(struct sci_ssp_response_iu *)this_request->response_buffer;
+		data_present =
+			response_buffer->data_present & SCI_SSP_RESPONSE_IU_DATA_PRESENT_MASK;
+
+		if ((data_present == 0x01) || (data_present == 0x02)) {
+			scic_sds_request_set_status(
+				this_request,
+				SCU_TASK_DONE_CHECK_RESPONSE,
+				SCI_FAILURE_IO_RESPONSE_VALID
+				);
+		} else {
+			scic_sds_request_set_status(
+				this_request, SCU_TASK_DONE_GOOD, SCI_SUCCESS
+				);
+		}
+		break;
+
+	/* only stp device gets suspended. */
+	case SCU_MAKE_COMPLETION_STATUS(SCU_TASK_DONE_ACK_NAK_TO):
+	case SCU_MAKE_COMPLETION_STATUS(SCU_TASK_DONE_LL_PERR):
+	case SCU_MAKE_COMPLETION_STATUS(SCU_TASK_DONE_NAK_ERR):
+	case SCU_MAKE_COMPLETION_STATUS(SCU_TASK_DONE_DATA_LEN_ERR):
+	case SCU_MAKE_COMPLETION_STATUS(SCU_TASK_DONE_LL_ABORT_ERR):
+	case SCU_MAKE_COMPLETION_STATUS(SCU_TASK_DONE_XR_WD_LEN):
+	case SCU_MAKE_COMPLETION_STATUS(SCU_TASK_DONE_MAX_PLD_ERR):
+	case SCU_MAKE_COMPLETION_STATUS(SCU_TASK_DONE_UNEXP_RESP):
+	case SCU_MAKE_COMPLETION_STATUS(SCU_TASK_DONE_UNEXP_SDBFIS):
+	case SCU_MAKE_COMPLETION_STATUS(SCU_TASK_DONE_REG_ERR):
+	case SCU_MAKE_COMPLETION_STATUS(SCU_TASK_DONE_SDB_ERR):
+		if (this_request->protocol == SCIC_STP_PROTOCOL) {
+			scic_sds_request_set_status(
+				this_request,
+				SCU_GET_COMPLETION_TL_STATUS(completion_code) >> SCU_COMPLETION_TL_STATUS_SHIFT,
+				SCI_FAILURE_REMOTE_DEVICE_RESET_REQUIRED
+				);
+		} else {
+			scic_sds_request_set_status(
+				this_request,
+				SCU_GET_COMPLETION_TL_STATUS(completion_code) >> SCU_COMPLETION_TL_STATUS_SHIFT,
+				SCI_FAILURE_CONTROLLER_SPECIFIC_IO_ERR
+				);
+		}
+		break;
+
+	/* both stp/ssp device gets suspended */
+	case SCU_MAKE_COMPLETION_STATUS(SCU_TASK_DONE_LF_ERR):
+	case SCU_MAKE_COMPLETION_STATUS(SCU_TASK_OPEN_REJECT_WRONG_DESTINATION):
+	case SCU_MAKE_COMPLETION_STATUS(SCU_TASK_OPEN_REJECT_RESERVED_ABANDON_1):
+	case SCU_MAKE_COMPLETION_STATUS(SCU_TASK_OPEN_REJECT_RESERVED_ABANDON_2):
+	case SCU_MAKE_COMPLETION_STATUS(SCU_TASK_OPEN_REJECT_RESERVED_ABANDON_3):
+	case SCU_MAKE_COMPLETION_STATUS(SCU_TASK_OPEN_REJECT_BAD_DESTINATION):
+	case SCU_MAKE_COMPLETION_STATUS(SCU_TASK_OPEN_REJECT_ZONE_VIOLATION):
+	case SCU_MAKE_COMPLETION_STATUS(SCU_TASK_OPEN_REJECT_STP_RESOURCES_BUSY):
+	case SCU_MAKE_COMPLETION_STATUS(SCU_TASK_OPEN_REJECT_PROTOCOL_NOT_SUPPORTED):
+	case SCU_MAKE_COMPLETION_STATUS(SCU_TASK_OPEN_REJECT_CONNECTION_RATE_NOT_SUPPORTED):
+		scic_sds_request_set_status(
+			this_request,
+			SCU_GET_COMPLETION_TL_STATUS(completion_code) >> SCU_COMPLETION_TL_STATUS_SHIFT,
+			SCI_FAILURE_REMOTE_DEVICE_RESET_REQUIRED
+			);
+		break;
+
+	/* neither ssp nor stp gets suspended. */
+	case SCU_MAKE_COMPLETION_STATUS(SCU_TASK_DONE_NAK_CMD_ERR):
+	case SCU_MAKE_COMPLETION_STATUS(SCU_TASK_DONE_UNEXP_XR):
+	case SCU_MAKE_COMPLETION_STATUS(SCU_TASK_DONE_XR_IU_LEN_ERR):
+	case SCU_MAKE_COMPLETION_STATUS(SCU_TASK_DONE_SDMA_ERR):
+	case SCU_MAKE_COMPLETION_STATUS(SCU_TASK_DONE_OFFSET_ERR):
+	case SCU_MAKE_COMPLETION_STATUS(SCU_TASK_DONE_EXCESS_DATA):
+	case SCU_MAKE_COMPLETION_STATUS(SCU_TASK_DONE_SMP_RESP_TO_ERR):
+	case SCU_MAKE_COMPLETION_STATUS(SCU_TASK_DONE_SMP_UFI_ERR):
+	case SCU_MAKE_COMPLETION_STATUS(SCU_TASK_DONE_SMP_FRM_TYPE_ERR):
+	case SCU_MAKE_COMPLETION_STATUS(SCU_TASK_DONE_SMP_LL_RX_ERR):
+	case SCU_MAKE_COMPLETION_STATUS(SCU_TASK_DONE_UNEXP_DATA):
+	case SCU_MAKE_COMPLETION_STATUS(SCU_TASK_DONE_OPEN_FAIL):
+	case SCU_MAKE_COMPLETION_STATUS(SCU_TASK_DONE_VIIT_ENTRY_NV):
+	case SCU_MAKE_COMPLETION_STATUS(SCU_TASK_DONE_IIT_ENTRY_NV):
+	case SCU_MAKE_COMPLETION_STATUS(SCU_TASK_DONE_RNCNV_OUTBOUND):
+	default:
+		scic_sds_request_set_status(
+			this_request,
+			SCU_GET_COMPLETION_TL_STATUS(completion_code) >> SCU_COMPLETION_TL_STATUS_SHIFT,
+			SCI_FAILURE_CONTROLLER_SPECIFIC_IO_ERR
+			);
+		break;
+	}
+
+	/**
+	 * @todo This is probably wrong for ACK/NAK timeout conditions
+	 */
+
+	/* In all cases we will treat this as the completion of the IO request. */
+	sci_base_state_machine_change_state(
+		&this_request->parent.state_machine,
+		SCI_BASE_REQUEST_STATE_COMPLETED
+		);
+
+	return SCI_SUCCESS;
+}
+
+/**
+ * scic_sds_request_started_state_frame_handler() -
+ * @request: This is the struct sci_base_request object that is cast to the
+ *    SCIC_SDS_IO_REQUEST_T object for which the start operation is requested.
+ * @frame_index: This is the index of the unsolicited frame to be processed.
+ *
+ * This method implements the action to be taken when an SCIC_SDS_IO_REQUEST_T
+ * object receives a scic_sds_request_frame_handler() request. This method
+ * first determines the frame type received.  If this is a response frame then
+ * the response data is copied to the io request response buffer for processing
+ * at completion time. If the frame type is not a response buffer an error is
+ * logged. enum sci_status SCI_SUCCESS SCI_FAILURE_INVALID_PARAMETER_VALUE
+ */
+static enum sci_status scic_sds_request_started_state_frame_handler(
+	struct scic_sds_request *this_request,
+	u32 frame_index)
+{
+	enum sci_status status;
+	struct sci_ssp_frame_header *frame_header;
+
+	/* / @todo If this is a response frame we must record that we received it */
+	status = scic_sds_unsolicited_frame_control_get_header(
+		&(scic_sds_request_get_controller(this_request)->uf_control),
+		frame_index,
+		(void **)&frame_header
+		);
+
+	if (frame_header->frame_type == SCI_SAS_RESPONSE_FRAME) {
+		struct sci_ssp_response_iu *response_buffer;
+
+		status = scic_sds_unsolicited_frame_control_get_buffer(
+			&(scic_sds_request_get_controller(this_request)->uf_control),
+			frame_index,
+			(void **)&response_buffer
+			);
+
+		scic_word_copy_with_swap(
+			this_request->response_buffer,
+			(u32 *)response_buffer,
+			sizeof(struct sci_ssp_response_iu)
+			);
+
+		response_buffer = (struct sci_ssp_response_iu *)this_request->response_buffer;
+
+		if ((response_buffer->data_present == 0x01) ||
+		    (response_buffer->data_present == 0x02)) {
+			scic_sds_request_set_status(
+				this_request,
+				SCU_TASK_DONE_CHECK_RESPONSE,
+				SCI_FAILURE_CONTROLLER_SPECIFIC_IO_ERR
+				);
+		} else
+			scic_sds_request_set_status(
+				this_request, SCU_TASK_DONE_GOOD, SCI_SUCCESS
+				);
+	} else
+		/* This was not a response frame why did it get forwarded? */
+		dev_err(scic_to_dev(this_request->owning_controller),
+			"%s: SCIC IO Request 0x%p received unexpected "
+			"frame %d type 0x%02x\n",
+			__func__,
+			this_request,
+			frame_index,
+			frame_header->frame_type);
+
+	/*
+	 * In any case we are done with this frame buffer return it to the
+	 * controller */
+	scic_sds_controller_release_frame(
+		this_request->owning_controller, frame_index
+		);
+
+	return SCI_SUCCESS;
+}
+
+/*
+ * *****************************************************************************
+ * *  COMPLETED STATE HANDLERS
+ * ***************************************************************************** */
+
+
+/**
+ * scic_sds_request_completed_state_complete_handler() -
+ * @request: This is the struct sci_base_request object that is cast to the
+ *    SCIC_SDS_IO_REQUEST_T object for which the start operation is requested.
+ *
+ * This method implements the action to be taken when an SCIC_SDS_IO_REQUEST_T
+ * object receives a scic_sds_request_complete() request. This method frees up
+ * any io request resources that have been allocated and transitions the
+ * request to its final state. Consider stopping the state machine instead of
+ * transitioning to the final state? enum sci_status SCI_SUCCESS
+ */
+static enum sci_status scic_sds_request_completed_state_complete_handler(
+	struct sci_base_request *request)
+{
+	struct scic_sds_request *this_request = (struct scic_sds_request *)request;
+
+	if (this_request->was_tag_assigned_by_user != true) {
+		scic_controller_free_io_tag(
+			this_request->owning_controller, this_request->io_tag
+			);
+	}
+
+	if (this_request->saved_rx_frame_index != SCU_INVALID_FRAME_INDEX) {
+		scic_sds_controller_release_frame(
+			this_request->owning_controller, this_request->saved_rx_frame_index);
+	}
+
+	sci_base_state_machine_change_state(
+		&this_request->parent.state_machine,
+		SCI_BASE_REQUEST_STATE_FINAL
+		);
+
+	return SCI_SUCCESS;
+}
+
+/*
+ * *****************************************************************************
+ * *  ABORTING STATE HANDLERS
+ * ***************************************************************************** */
+
+/**
+ * scic_sds_request_aborting_state_abort_handler() -
+ * @request: This is the struct sci_base_request object that is cast to the
+ *    SCIC_SDS_IO_REQUEST_T object for which the start operation is requested.
+ *
+ * This method implements the action to be taken when an SCIC_SDS_IO_REQUEST_T
+ * object receives a scic_sds_request_terminate() request. This method is the
+ * io request aborting state abort handlers.  On receipt of a multiple
+ * terminate requests the io request will transition to the completed state.
+ * This should not happen in normal operation. enum sci_status SCI_SUCCESS
+ */
+static enum sci_status scic_sds_request_aborting_state_abort_handler(
+	struct sci_base_request *request)
+{
+	struct scic_sds_request *this_request = (struct scic_sds_request *)request;
+
+	sci_base_state_machine_change_state(
+		&this_request->parent.state_machine,
+		SCI_BASE_REQUEST_STATE_COMPLETED
+		);
+
+	return SCI_SUCCESS;
+}
+
+/**
+ * scic_sds_request_aborting_state_tc_completion_handler() -
+ * @request: This is the struct sci_base_request object that is cast to the
+ *    SCIC_SDS_IO_REQUEST_T object for which the start operation is requested.
+ *
+ * This method implements the action to be taken when an SCIC_SDS_IO_REQUEST_T
+ * object receives a scic_sds_request_task_completion() request. This method
+ * decodes the completion type waiting for the abort task complete
+ * notification. When the abort task complete is received the io request
+ * transitions to the completed state. enum sci_status SCI_SUCCESS
+ */
+static enum sci_status scic_sds_request_aborting_state_tc_completion_handler(
+	struct scic_sds_request *this_request,
+	u32 completion_code)
+{
+	switch (SCU_GET_COMPLETION_TL_STATUS(completion_code)) {
+	case (SCU_TASK_DONE_GOOD << SCU_COMPLETION_TL_STATUS_SHIFT):
+	case (SCU_TASK_DONE_TASK_ABORT << SCU_COMPLETION_TL_STATUS_SHIFT):
+		scic_sds_request_set_status(
+			this_request, SCU_TASK_DONE_TASK_ABORT, SCI_FAILURE_IO_TERMINATED
+			);
+
+		sci_base_state_machine_change_state(
+			&this_request->parent.state_machine,
+			SCI_BASE_REQUEST_STATE_COMPLETED
+			);
+		break;
+
+	default:
+		/*
+		 * Unless we get some strange error wait for the task abort to complete
+		 * TODO: Should there be a state change for this completion? */
+		break;
+	}
+
+	return SCI_SUCCESS;
+}
+
+/**
+ * scic_sds_request_aborting_state_frame_handler() -
+ * @request: This is the struct sci_base_request object that is cast to the
+ *    SCIC_SDS_IO_REQUEST_T object for which the start operation is requested.
+ *
+ * This method implements the action to be taken when an SCIC_SDS_IO_REQUEST_T
+ * object receives a scic_sds_request_frame_handler() request. This method
+ * discards the unsolicited frame since we are waiting for the abort task
+ * completion. enum sci_status SCI_SUCCESS
+ */
+static enum sci_status scic_sds_request_aborting_state_frame_handler(
+	struct scic_sds_request *this_request,
+	u32 frame_index)
+{
+	/* TODO: Is it even possible to get an unsolicited frame in the aborting state? */
+
+	scic_sds_controller_release_frame(
+		this_request->owning_controller, frame_index);
+
+	return SCI_SUCCESS;
+}
+
+/* --------------------------------------------------------------------------- */
+
+const struct scic_sds_io_request_state_handler scic_sds_request_state_handler_table[] = {
+	[SCI_BASE_REQUEST_STATE_INITIAL] = {
+		.parent.start_handler    = scic_sds_request_default_start_handler,
+		.parent.abort_handler    = scic_sds_request_default_abort_handler,
+		.parent.complete_handler = scic_sds_request_default_complete_handler,
+		.parent.destruct_handler = scic_sds_request_default_destruct_handler,
+		.tc_completion_handler   = scic_sds_request_default_tc_completion_handler,
+		.event_handler           = scic_sds_request_default_event_handler,
+		.frame_handler           = scic_sds_request_default_frame_handler,
+	},
+	[SCI_BASE_REQUEST_STATE_CONSTRUCTED] = {
+		.parent.start_handler    = scic_sds_request_constructed_state_start_handler,
+		.parent.abort_handler    = scic_sds_request_constructed_state_abort_handler,
+		.parent.complete_handler = scic_sds_request_default_complete_handler,
+		.parent.destruct_handler = scic_sds_request_default_destruct_handler,
+		.tc_completion_handler   = scic_sds_request_default_tc_completion_handler,
+		.event_handler           = scic_sds_request_default_event_handler,
+		.frame_handler           = scic_sds_request_default_frame_handler,
+	},
+	[SCI_BASE_REQUEST_STATE_STARTED] = {
+		.parent.start_handler    = scic_sds_request_default_start_handler,
+		.parent.abort_handler    = scic_sds_request_started_state_abort_handler,
+		.parent.complete_handler = scic_sds_request_default_complete_handler,
+		.parent.destruct_handler = scic_sds_request_default_destruct_handler,
+		.tc_completion_handler   = scic_sds_request_started_state_tc_completion_handler,
+		.event_handler           = scic_sds_request_default_event_handler,
+		.frame_handler           = scic_sds_request_started_state_frame_handler,
+	},
+	[SCI_BASE_REQUEST_STATE_COMPLETED] = {
+		.parent.start_handler    = scic_sds_request_default_start_handler,
+		.parent.abort_handler    = scic_sds_request_default_abort_handler,
+		.parent.complete_handler = scic_sds_request_completed_state_complete_handler,
+		.parent.destruct_handler = scic_sds_request_default_destruct_handler,
+		.tc_completion_handler   = scic_sds_request_default_tc_completion_handler,
+		.event_handler           = scic_sds_request_default_event_handler,
+		.frame_handler           = scic_sds_request_default_frame_handler,
+	},
+	[SCI_BASE_REQUEST_STATE_ABORTING] = {
+		.parent.start_handler    = scic_sds_request_default_start_handler,
+		.parent.abort_handler    = scic_sds_request_aborting_state_abort_handler,
+		.parent.complete_handler = scic_sds_request_default_complete_handler,
+		.parent.destruct_handler = scic_sds_request_default_destruct_handler,
+		.tc_completion_handler   = scic_sds_request_aborting_state_tc_completion_handler,
+		.event_handler           = scic_sds_request_default_event_handler,
+		.frame_handler           = scic_sds_request_aborting_state_frame_handler,
+	},
+	[SCI_BASE_REQUEST_STATE_FINAL] = {
+		.parent.start_handler    = scic_sds_request_default_start_handler,
+		.parent.abort_handler    = scic_sds_request_default_abort_handler,
+		.parent.complete_handler = scic_sds_request_default_complete_handler,
+		.parent.destruct_handler = scic_sds_request_default_destruct_handler,
+		.tc_completion_handler   = scic_sds_request_default_tc_completion_handler,
+		.event_handler           = scic_sds_request_default_event_handler,
+		.frame_handler           = scic_sds_request_default_frame_handler,
+	},
+};
+
+/**
+ * scic_sds_request_initial_state_enter() -
+ * @object: This parameter specifies the base object for which the state
+ *    transition is occurring.
+ *
+ * This method implements the actions taken when entering the
+ * SCI_BASE_REQUEST_STATE_INITIAL state. This state is entered when the initial
+ * base request is constructed. Entry into the initial state sets all handlers
+ * for the io request object to their default handlers. none
+ */
+static void scic_sds_request_initial_state_enter(
+	struct sci_base_object *object)
+{
+	struct scic_sds_request *this_request = (struct scic_sds_request *)object;
+
+	SET_STATE_HANDLER(
+		this_request,
+		scic_sds_request_state_handler_table,
+		SCI_BASE_REQUEST_STATE_INITIAL
+		);
+}
+
+/**
+ * scic_sds_request_constructed_state_enter() -
+ * @object: The io request object that is to enter the constructed state.
+ *
+ * This method implements the actions taken when entering the
+ * SCI_BASE_REQUEST_STATE_CONSTRUCTED state. The method sets the state handlers
+ * for the the constructed state. none
+ */
+static void scic_sds_request_constructed_state_enter(
+	struct sci_base_object *object)
+{
+	struct scic_sds_request *this_request = (struct scic_sds_request *)object;
+
+	SET_STATE_HANDLER(
+		this_request,
+		scic_sds_request_state_handler_table,
+		SCI_BASE_REQUEST_STATE_CONSTRUCTED
+		);
+}
+
+/**
+ * scic_sds_request_started_state_enter() -
+ * @object: This parameter specifies the base object for which the state
+ *    transition is occuring.  This is cast into a SCIC_SDS_IO_REQUEST object.
+ *
+ * This method implements the actions taken when entering the
+ * SCI_BASE_REQUEST_STATE_STARTED state. If the io request object type is a
+ * SCSI Task request we must enter the started substate machine. none
+ */
+static void scic_sds_request_started_state_enter(
+	struct sci_base_object *object)
+{
+	struct scic_sds_request *this_request = (struct scic_sds_request *)object;
+
+	SET_STATE_HANDLER(
+		this_request,
+		scic_sds_request_state_handler_table,
+		SCI_BASE_REQUEST_STATE_STARTED
+		);
+
+	/*
+	 * Most of the request state machines have a started substate machine so
+	 * start its execution on the entry to the started state. */
+	if (this_request->has_started_substate_machine == true)
+		sci_base_state_machine_start(&this_request->started_substate_machine);
+}
+
+/**
+ * scic_sds_request_started_state_exit() -
+ * @object: This parameter specifies the base object for which the state
+ *    transition is occuring.  This object is cast into a SCIC_SDS_IO_REQUEST
+ *    object.
+ *
+ * This method implements the actions taken when exiting the
+ * SCI_BASE_REQUEST_STATE_STARTED state. For task requests the action will be
+ * to stop the started substate machine. none
+ */
+static void scic_sds_request_started_state_exit(
+	struct sci_base_object *object)
+{
+	struct scic_sds_request *this_request = (struct scic_sds_request *)object;
+
+	if (this_request->has_started_substate_machine == true)
+		sci_base_state_machine_stop(&this_request->started_substate_machine);
+}
+
+/**
+ * scic_sds_request_completed_state_enter() -
+ * @object: This parameter specifies the base object for which the state
+ *    transition is occuring.  This object is cast into a SCIC_SDS_IO_REQUEST
+ *    object.
+ *
+ * This method implements the actions taken when entering the
+ * SCI_BASE_REQUEST_STATE_COMPLETED state.  This state is entered when the
+ * SCIC_SDS_IO_REQUEST has completed.  The method will decode the request
+ * completion status and convert it to an enum sci_status to return in the
+ * completion callback function. none
+ */
+static void scic_sds_request_completed_state_enter(
+	struct sci_base_object *object)
+{
+	struct scic_sds_request *this_request = (struct scic_sds_request *)object;
+
+	SET_STATE_HANDLER(
+		this_request,
+		scic_sds_request_state_handler_table,
+		SCI_BASE_REQUEST_STATE_COMPLETED
+		);
+
+	/* Tell the SCI_USER that the IO request is complete */
+	if (this_request->is_task_management_request == false) {
+		scic_cb_io_request_complete(
+			scic_sds_request_get_controller(this_request),
+			scic_sds_request_get_device(this_request),
+			this_request,
+			this_request->sci_status
+			);
+	} else {
+		scic_cb_task_request_complete(
+			scic_sds_request_get_controller(this_request),
+			scic_sds_request_get_device(this_request),
+			this_request,
+			this_request->sci_status
+			);
+	}
+}
+
+/**
+ * scic_sds_request_aborting_state_enter() -
+ * @object: This parameter specifies the base object for which the state
+ *    transition is occuring.  This object is cast into a SCIC_SDS_IO_REQUEST
+ *    object.
+ *
+ * This method implements the actions taken when entering the
+ * SCI_BASE_REQUEST_STATE_ABORTING state. none
+ */
+static void scic_sds_request_aborting_state_enter(
+	struct sci_base_object *object)
+{
+	struct scic_sds_request *this_request = (struct scic_sds_request *)object;
+
+	/* Setting the abort bit in the Task Context is required by the silicon. */
+	this_request->task_context_buffer->abort = 1;
+
+	SET_STATE_HANDLER(
+		this_request,
+		scic_sds_request_state_handler_table,
+		SCI_BASE_REQUEST_STATE_ABORTING
+		);
+}
+
+/**
+ * scic_sds_request_final_state_enter() -
+ * @object: This parameter specifies the base object for which the state
+ *    transition is occuring.  This is cast into a SCIC_SDS_IO_REQUEST object.
+ *
+ * This method implements the actions taken when entering the
+ * SCI_BASE_REQUEST_STATE_FINAL state. The only action required is to put the
+ * state handlers in place. none
+ */
+static void scic_sds_request_final_state_enter(
+	struct sci_base_object *object)
+{
+	struct scic_sds_request *this_request = (struct scic_sds_request *)object;
+
+	SET_STATE_HANDLER(
+		this_request,
+		scic_sds_request_state_handler_table,
+		SCI_BASE_REQUEST_STATE_FINAL
+		);
+}
+
+/* --------------------------------------------------------------------------- */
+
+const struct sci_base_state scic_sds_request_state_table[] = {
+	[SCI_BASE_REQUEST_STATE_INITIAL] = {
+		.enter_state = scic_sds_request_initial_state_enter,
+	},
+	[SCI_BASE_REQUEST_STATE_CONSTRUCTED] = {
+		.enter_state = scic_sds_request_constructed_state_enter,
+	},
+	[SCI_BASE_REQUEST_STATE_STARTED] = {
+		.enter_state = scic_sds_request_started_state_enter,
+		.exit_state  = scic_sds_request_started_state_exit
+	},
+	[SCI_BASE_REQUEST_STATE_COMPLETED] = {
+		.enter_state = scic_sds_request_completed_state_enter,
+	},
+	[SCI_BASE_REQUEST_STATE_ABORTING] = {
+		.enter_state = scic_sds_request_aborting_state_enter,
+	},
+	[SCI_BASE_REQUEST_STATE_FINAL] = {
+		.enter_state = scic_sds_request_final_state_enter,
+	},
+};
 
