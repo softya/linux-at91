@@ -83,7 +83,7 @@
  */
 void *scic_cb_timer_create(
 	SCI_CONTROLLER_HANDLE_T controller,
-	SCI_TIMER_CALLBACK_T timer_callback,
+	void (*timer_callback)(void *),
 	void *cookie)
 {
 	struct isci_host *isci_host;

@@ -118,14 +118,6 @@ struct scic_sds_controller;
  */
 typedef void *SCI_LIBRARY_HANDLE_T;
 
-/**
- * This callback defines the format of all other timer callback methods that
- *    are to be implemented by an SCI user, including the method that will be
- *    invoked as a result of timer expiration. Parameters: value passed into
- *    the callback represents the cookie supplied by the SCI component when the
- *    timer was created. Return: - None
- */
-typedef void (*SCI_TIMER_CALLBACK_T)(void *);
 
 typedef enum {
 	SCI_IO_REQUEST_DATA_IN = 0,	/* Read operation */
