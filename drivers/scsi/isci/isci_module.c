@@ -286,7 +286,6 @@ void scic_cb_task_request_complete(
 	isci_task_request_complete(isci_host, request, completion_status);
 }
 
-#ifndef SCI_GET_PHYSICAL_ADDRESS_OPTIMIZATION_ENABLED
 /**
  * scic_cb_io_request_get_physical_address() - This callback method asks the
  *    user to provide the physical address for the supplied virtual address
@@ -303,74 +302,19 @@ void scic_cb_io_request_get_physical_address(
 	void *virtual_address,
 	dma_addr_t *physical_address)
 {
-	struct isci_host *isci_host =
-		(struct isci_host *)sci_object_get_association(controller);
-
 	struct isci_request *request =
 		(struct isci_request *)sci_object_get_association(io_request);
 
 	char *requested_address = (char *)virtual_address;
 	char *base_address = (char *)request;
 
-	dev_dbg(&isci_host->pdev->dev,
-		"%s: isci_host = %p\n",
-		__func__,
-		isci_host);
+	BUG_ON(requested_address < base_address);
+	BUG_ON((requested_address - base_address) >=
+			request->request_alloc_size);
 
-	/*
-	 * First check to see if the requested address was allocated as part
-	 * of this specific isci_request. This is the most common usage.
-	 */
-
-	if (requested_address >= base_address
-	    && (requested_address - base_address) < request->request_alloc_size) {
-
-		*physical_address = request->request_daddr
-				    + (requested_address - base_address);
-
-	} else {
-
-		/*
-		 * Since there are only a handful of blocks of DMA'able
-		 * memory we've allocated, we'll need to find which block
-		 * this specific virtual_address belongs. I hate this
-		 * because its a slow lookup in an io path. May need to
-		 * create a hash or something in the controller object
-		 * for this.
-		 */
-
-		struct coherent_memory_info *mdl_struct;
-		struct list_head *curr_element;
-
-		list_for_each(curr_element, &isci_host->mdl_struct_list) {
-			mdl_struct = list_entry(curr_element,
-						struct coherent_memory_info,
-						node);
-
-			base_address = (char *)mdl_struct->vaddr;
-
-			if (requested_address >= base_address
-			    && (requested_address - base_address)
-			    < mdl_struct->size) {
-
-				*physical_address = mdl_struct->dma_handle
-						    + (requested_address
-						       - base_address);
-
-				return;
-			}
-		}
-
-		/*
-		 * if we drop down here, we're in trouble as the caller is
-		 * probably trying to find the address of an SGL element. If
-		 * that is the case, this is not the proper function to call,
-		 * as the physical address is stored within the SGL element
-		 */
-		BUG();
-	}
+	*physical_address = request->request_daddr +
+		(requested_address - base_address);
 }
-#endif
 
 /**
  * scic_cb_io_request_get_transfer_length() - This callback method asks the
@@ -411,7 +355,6 @@ SCI_IO_REQUEST_DATA_DIRECTION scic_cb_io_request_get_data_direction(
 }
 
 
-#ifndef SCI_SGL_OPTIMIZATION_ENABLED
 /**
  * scic_cb_io_request_get_next_sge() - This callback method asks the user to
  *    provide the address to where the next Scatter-Gather Element is located.
@@ -434,7 +377,6 @@ void scic_cb_io_request_get_next_sge(
 		current_sge_address
 		);
 }
-#endif
 
 /**
  * scic_cb_sge_get_address_field() - This callback method asks the user to
