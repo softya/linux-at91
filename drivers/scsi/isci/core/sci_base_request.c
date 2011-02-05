@@ -56,19 +56,18 @@
 #include "sci_base_request.h"
 
 void sci_base_request_construct(
-	struct sci_base_request *this_request,
+	struct sci_base_request *base_req,
 	const struct sci_base_state *my_state_table)
 {
-	sci_base_object_construct(&this_request->parent);
-
+	base_req->parent.private = NULL;
 	sci_base_state_machine_construct(
-		&this_request->state_machine,
-		&this_request->parent,
+		&base_req->state_machine,
+		&base_req->parent,
 		my_state_table,
 		SCI_BASE_REQUEST_STATE_INITIAL
 		);
 
 	sci_base_state_machine_start(
-		&this_request->state_machine
+		&base_req->state_machine
 		);
 }

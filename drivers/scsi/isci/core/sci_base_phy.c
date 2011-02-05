@@ -69,20 +69,19 @@
  * ****************************************************************************** */
 
 void sci_base_phy_construct(
-	struct sci_base_phy *this_phy,
+	struct sci_base_phy *base_phy,
 	const struct sci_base_state *state_table)
 {
-	sci_base_object_construct(&this_phy->parent);
-
+	base_phy->parent.private = NULL;
 	sci_base_state_machine_construct(
-		&this_phy->state_machine,
-		&this_phy->parent,
+		&base_phy->state_machine,
+		&base_phy->parent,
 		state_table,
 		SCI_BASE_PHY_STATE_INITIAL
 		);
 
 	sci_base_state_machine_start(
-		&this_phy->state_machine
+		&base_phy->state_machine
 		);
 }
 

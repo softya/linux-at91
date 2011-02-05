@@ -68,20 +68,19 @@
  * ****************************************************************************** */
 
 void sci_base_port_construct(
-	struct sci_base_port *this_port,
+	struct sci_base_port *base_port,
 	const struct sci_base_state *state_table)
 {
-	sci_base_object_construct(&this_port->parent);
-
+	base_port->parent.private = NULL;
 	sci_base_state_machine_construct(
-		&this_port->state_machine,
-		&this_port->parent,
+		&base_port->state_machine,
+		&base_port->parent,
 		state_table,
 		SCI_BASE_PORT_STATE_STOPPED
 		);
 
 	sci_base_state_machine_start(
-		&this_port->state_machine
+		&base_port->state_machine
 		);
 }
 

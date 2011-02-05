@@ -60,7 +60,6 @@ isci-objs := isci_module_init.o isci_phy.o isci_request.o isci_sata.o \
 	     core/sci_base_controller.o \
 	     core/sci_base_domain.o \
 	     core/sci_base_memory_descriptor_list.o \
-	     core/sci_base_object.o \
 	     core/sci_base_phy.o \
 	     core/sci_base_port.o \
 	     core/sci_base_remote_device.o \

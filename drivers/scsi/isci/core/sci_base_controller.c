@@ -61,48 +61,33 @@
  *
  */
 
-#include "sci_base_controller.h"
-
-struct scic_sds_controller;
-
-/*
- * ******************************************************************************
- * * P U B L I C   M E T H O D S
- * ****************************************************************************** */
+#include "scic_sds_controller.h"
 
 struct sci_base_memory_descriptor_list *
 sci_controller_get_memory_descriptor_list_handle(
-	struct scic_sds_controller *controller)
+	struct scic_sds_controller *scic)
 {
-	struct sci_base_controller *this_controller = (struct sci_base_controller *)controller;
-
-	return (struct sci_base_memory_descriptor_list *)
-		&this_controller->mdl;
+	return &scic->parent.mdl;
 }
 
-/*
- * ******************************************************************************
- * * P R O T E C T E D   M E T H O D S
- * ****************************************************************************** */
-
 void sci_base_controller_construct(
-	struct sci_base_controller *this_controller,
+	struct sci_base_controller *scic_base,
 	const struct sci_base_state *state_table,
 	struct sci_physical_memory_descriptor *mdes,
 	u32 mde_count,
 	struct sci_base_memory_descriptor_list *next_mdl)
 {
-	sci_base_object_construct((struct sci_base_object *)this_controller);
+	scic_base->parent.private = NULL;
 
 	sci_base_state_machine_construct(
-		&this_controller->state_machine,
-		&this_controller->parent,
+		&scic_base->state_machine,
+		&scic_base->parent,
 		state_table,
 		SCI_BASE_CONTROLLER_STATE_INITIAL
 		);
 
-	sci_base_mdl_construct(&this_controller->mdl, mdes, mde_count, next_mdl);
+	sci_base_mdl_construct(&scic_base->mdl, mdes, mde_count, next_mdl);
 
-	sci_base_state_machine_start(&this_controller->state_machine);
+	sci_base_state_machine_start(&scic_base->state_machine);
 }
 

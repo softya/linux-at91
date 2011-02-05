@@ -56,15 +56,7 @@
 #ifndef _SCI_BASE_STATE_H_
 #define _SCI_BASE_STATE_H_
 
-/**
- * This file contains all of the structures, constants, and methods common to
- *    all base object definitions.
- *
- *
- */
-
-
-#include "sci_base_object.h"
+#include "sci_object.h"
 
 typedef void (*SCI_BASE_STATE_HANDLER_T)(
 	void

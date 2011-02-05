@@ -69,36 +69,31 @@
 #include "sci_status.h"
 
 /**
- * defined() - This method returns the object to which a previous association
- *    was created.  This association represents a link between an SCI object
- *    and another SCI object or potentially a user object.  The association
- *    essentially acts as a cookie for the user of an object. The user of an
- *    SCI object is now able to retrieve a handle to their own object that is
- *    managing, or related in someway, to said SCI object.
- * @base_object: This parameter specifies the SCI object for which to retrieve
- *    the association reference.
+ * struct sci_base_object - all core objects must include this as their
+ *     first member to permit the casting below
  *
- * This method returns a pointer to the object that was previously associated
- * to the supplied base_object parameter. SCI_INVALID_HANDLE This value is
- * returned when there is no known association for the supplied base_object
- * instance.
+ * TODO: unwind this assumption, convert these routines and callers to pass a struct
+ * sci_base_object pointer without casting, or convert 'private' to the
+ * expected type per-object
+ *
  */
-#define sci_object_get_association(object) (*((void **)object))
+struct sci_base_object {
+	void *private;
+};
 
-/**
- * defined() - This method will associate to SCI objects.
- * @base_object: This parameter specifies the SCI object for which to set the
- *    association reference.
- * @associated_object: This parameter specifies a pointer to the object being
- *    associated.
- *
- * For more information about associations please reference the
- * sci_object_get_association() method. This method will return an indication
- * as to whether the association was set successfully. SCI_SUCCESS This value
- * is currently always returned.
- */
-#define sci_object_set_association(base_object, associated_object) \
-	((*((void **)base_object)) = (associated_object))
+static inline void *sci_object_get_association(void *obj)
+{
+	struct sci_base_object *base = obj;
+
+	return base->private;
+}
+
+static inline void sci_object_set_association(void *obj, void *private)
+{
+	struct sci_base_object *base = obj;
+
+	base->private = private;
+}
 
 #endif  /* _SCI_OBJECT_H_ */
 

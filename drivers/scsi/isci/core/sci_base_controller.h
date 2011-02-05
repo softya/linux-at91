@@ -56,20 +56,12 @@
 #ifndef _SCI_BASE_CONTROLLER_H_
 #define _SCI_BASE_CONTROLLER_H_
 
-/**
- * This file contains all of the structures, constants, and methods common to
- *    all controller object definitions.
- *
- *
- */
-
 #include "intel_sas.h"
 #include "sci_controller_constants.h"
-
-#include "sci_base_object.h"
 #include "sci_base_state.h"
 #include "sci_base_memory_descriptor_list.h"
 #include "sci_base_state_machine.h"
+#include "sci_object.h"
 
 struct sci_base_memory_descriptor_list;
 

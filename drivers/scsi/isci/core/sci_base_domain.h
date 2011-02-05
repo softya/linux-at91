@@ -56,15 +56,8 @@
 #ifndef _SCI_BASE_DOMAIN_H_
 #define _SCI_BASE_DOMAIN_H_
 
-/**
- * This file contains all of the structures, constants, and methods common to
- *    all domain object definitions.
- *
- *
- */
-
-#include "sci_base_object.h"
 #include "sci_base_state_machine.h"
+#include "sci_object.h"
 
 /**
  * enum sci_base_domain_states - This enumeration depicts the standard states
