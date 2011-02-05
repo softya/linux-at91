@@ -64,11 +64,6 @@
 #define SCI_INVALID_HANDLE 0x0
 
 /**
- * This typedef just provides an opaque handle for all SCI objects.
- */
-typedef void *SCI_OBJECT_HANDLE_T;
-
-/**
  * The SCI_IO_REQUEST_HANDLE_T will be utilized by SCI users as an opaque
  *    handle for the various SCI IO Request objects.
  */

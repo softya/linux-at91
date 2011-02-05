@@ -53,43 +53,10 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * This file contains all of the method implementations for the struct sci_base_object
- *    object.
- *
- *
- */
-
 #include "sci_status.h"
 #include "sci_types.h"
 #include "sci_base_object.h"
 
-/*
- * ******************************************************************************
- * * P U B L I C   M E T H O D S
- * ****************************************************************************** */
-
-#if defined(SCI_OBJECT_USE_ASSOCIATION_FUNCTIONS)
-void *sci_object_get_association(
-	SCI_OBJECT_HANDLE_T object
-	) {
-	return ((struct sci_base_object *)object)->associated_object;
-}
-#endif
-
-/* --------------------------------------------------------------------------- */
-
-#if defined(SCI_OBJECT_USE_ASSOCIATION_FUNCTIONS)
-enum sci_status sci_object_set_association(
-	SCI_OBJECT_HANDLE_T object,
-	void *associated_object)
-{
-	((struct sci_base_object *)object)->associated_object = associated_object;
-	return SCI_SUCCESS;
-}
-#endif
-
-/* --------------------------------------------------------------------------- */
 
 void sci_base_object_construct(
 	struct sci_base_object *base_object)

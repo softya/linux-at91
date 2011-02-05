@@ -245,28 +245,25 @@ static enum sci_status scic_sds_phy_link_layer_initialization(
 }
 
 /**
- *
- * @cookie: This object is cast to the struct scic_sds_phy object.
- *
  * This function will handle the sata SIGNATURE FIS timeout condition.  It will
  * restart the starting substate machine since we dont know what has actually
- * happening. none
+ * happening.
  */
-static void scic_sds_phy_sata_timeout(SCI_OBJECT_HANDLE_T cookie)
+static void scic_sds_phy_sata_timeout(void *phy)
 {
-	struct scic_sds_phy *this_phy = (struct scic_sds_phy *)cookie;
+	struct scic_sds_phy *sci_phy = phy;
 
-	dev_dbg(sciphy_to_dev(this_phy),
+	dev_dbg(sciphy_to_dev(sci_phy),
 		 "%s: SCIC SDS Phy 0x%p did not receive signature fis before "
 		 "timeout.\n",
 		 __func__,
-		 this_phy);
+		 sci_phy);
 
 	sci_base_state_machine_stop(
-		scic_sds_phy_get_starting_substate_machine(this_phy));
+		scic_sds_phy_get_starting_substate_machine(sci_phy));
 
 	sci_base_state_machine_change_state(
-		scic_sds_phy_get_base_state_machine(this_phy),
+		scic_sds_phy_get_base_state_machine(sci_phy),
 		SCI_BASE_PHY_STATE_STARTING
 		);
 }
@@ -452,30 +449,30 @@ void scic_sds_phy_set_port(
 
 /**
  * This method will initialize the constructed phy
- * @this_phy:
+ * @sci_phy:
  * @link_layer_registers:
  *
  * enum sci_status
  */
 enum sci_status scic_sds_phy_initialize(
-	struct scic_sds_phy *this_phy,
+	struct scic_sds_phy *sci_phy,
 	struct scu_link_layer_registers *link_layer_registers)
 {
 	/* Create the SIGNATURE FIS Timeout timer for this phy */
-	this_phy->sata_timeout_timer = scic_cb_timer_create(
-		scic_sds_phy_get_controller(this_phy),
+	sci_phy->sata_timeout_timer = scic_cb_timer_create(
+		scic_sds_phy_get_controller(sci_phy),
 		scic_sds_phy_sata_timeout,
-		this_phy
+		sci_phy
 		);
 
 	/* Perofrm the initialization of the PE hardware */
-	scic_sds_phy_link_layer_initialization(this_phy, link_layer_registers);
+	scic_sds_phy_link_layer_initialization(sci_phy, link_layer_registers);
 
 	/*
 	 * There is nothing that needs to be done in this state just
 	 * transition to the stopped state. */
 	sci_base_state_machine_change_state(
-		scic_sds_phy_get_base_state_machine(this_phy),
+		scic_sds_phy_get_base_state_machine(sci_phy),
 		SCI_BASE_PHY_STATE_STOPPED
 		);
 

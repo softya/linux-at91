@@ -83,12 +83,7 @@
  * returned when there is no known association for the supplied base_object
  * instance.
  */
-#if defined(SCI_OBJECT_USE_ASSOCIATION_FUNCTIONS)
-void *sci_object_get_association(
-	SCI_OBJECT_HANDLE_T base_object);
-#else
 #define sci_object_get_association(object) (*((void **)object))
-#endif
 
 /**
  * defined() - This method will associate to SCI objects.
@@ -102,14 +97,8 @@ void *sci_object_get_association(
  * as to whether the association was set successfully. SCI_SUCCESS This value
  * is currently always returned.
  */
-#if defined(SCI_OBJECT_USE_ASSOCIATION_FUNCTIONS)
-enum sci_status sci_object_set_association(
-	SCI_OBJECT_HANDLE_T base_object,
-	void *associated_object);
-#else
 #define sci_object_set_association(base_object, associated_object) \
 	((*((void **)base_object)) = (associated_object))
-#endif
 
 #endif  /* _SCI_OBJECT_H_ */
 
