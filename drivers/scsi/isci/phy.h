@@ -53,86 +53,52 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * This file contains the isci_module object definition.
- *
- * isci_module.h
- */
 
-#if !defined(_SCI_MODULE_H_)
-#define _SCI_MODULE_H_
+#if !defined(_ISCI_PHY_H_)
+#define _ISCI_PHY_H_
 
-/**
- * This file contains the SCI low level driver interface to the SCI and Libsas
- *    Libraries.
- *
- * isci_module.h
- */
-
-#include <linux/kernel.h>
-#include <linux/list.h>
-#include <linux/types.h>
-#include <linux/spinlock.h>
-#include <linux/interrupt.h>
-#include <linux/firmware.h>
-#include <linux/bug.h>
+#include "port.h"
+#include "host.h"
 #include <scsi/libsas.h>
-#include <scsi/scsi.h>
 
-#include "sci_types.h"
-#include "sci_base_controller.h"
-#include "scic_controller.h"
-#include "isci_host.h"
-#include "isci_timers.h"
-#include "sci_status.h"
 
-extern int loglevel;
-extern struct kmem_cache *isci_kmem_cache;
+/**
+ * struct isci_phy - This class implements the ISCI specific representation of
+ *    the phy object.
+ *
+ *
+ */
 
-#define ISCI_FW_NAME		"isci/isci_firmware.bin"
+struct isci_phy {
 
-#define ISCI_FIRMWARE_MIN_SIZE	149
+	struct scic_sds_phy *sci_phy_handle;
 
-#define ISCI_FW_IDSIZE		12
-#define ISCI_FW_VER_OFS		ISCI_FW_IDSIZE
-#define ISCI_FW_SUBVER_OFS	ISCI_FW_VER_OFS + 1
-#define ISCI_FW_DATA_OFS	ISCI_FW_SUBVER_OFS + 1
+	struct asd_sas_phy sas_phy;
+	struct sas_identify_frame *frame;
+	struct isci_port *isci_port;
+	u8 sas_addr[SAS_ADDR_SIZE];
 
-#define ISCI_FW_HDR_PHYMASK	0x1
-#define ISCI_FW_HDR_PHYGEN	0x2
-#define ISCI_FW_HDR_SASADDR	0x3
-#define ISCI_FW_HDR_EOF		0xff
+	union {
 
-struct isci_firmware {
-	const u8 *id;
-	u8 version;
-	u8 subversion;
-	const u32 *phy_masks;
-	u8 phy_masks_size;
-	const u32 *phy_gens;
-	u8 phy_gens_size;
-	const u64 *sas_addrs;
-	u8 sas_addrs_size;
+		u8 aif[sizeof(struct sci_sas_identify_address_frame)];
+		u8 fis[sizeof(struct sata_fis_reg_d2h)];
+
+	} frame_rcvd;
 };
 
-irqreturn_t isci_isr(int vec, void *data);
-irqreturn_t isci_legacy_isr(int vec, void *data);
+#define to_isci_phy(p)	\
+	container_of(p, struct isci_phy, sas_phy);
 
-enum sci_status isci_module_parse_oem_parameters(
-	union scic_oem_parameters *oem_params,
-	int scu_index,
-	struct isci_firmware *fw);
+struct isci_host;
 
-enum sci_status isci_module_parse_user_parameters(
-	union scic_user_parameters *user_params,
-	int scu_index,
-	struct isci_firmware *fw);
+void isci_phy_init(
+	struct isci_phy *phy,
+	struct isci_host *isci_host,
+	int index);
 
-#ifdef ISCI_SLAVE_ALLOC
-extern int ISCI_SLAVE_ALLOC(struct scsi_device *scsi_dev);
-#endif /* ISCI_SLAVE_ALLOC */
+int isci_phy_control(
+	struct asd_sas_phy *phy,
+	enum phy_func func,
+	void *buf);
 
-#ifdef ISCI_SLAVE_DESTROY
-extern void ISCI_SLAVE_DESTROY(struct scsi_device *scsi_dev);
-#endif  /* ISCI_SLAVE_DESTROY */
-#endif  /* !defined(_SCI_MODULE_H_) */
+#endif /* !defined(_ISCI_PHY_H_) */

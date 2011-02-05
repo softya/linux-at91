@@ -53,21 +53,14 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * This file contains the host adapter implementation.
- *
- * isci_host.c
- */
-
-
-#include "isci_module.h"
+#include "isci.h"
 #include "scic_io_request.h"
 #include "scic_remote_device.h"
 #include "scic_port.h"
 
-#include "isci_port.h"
-#include "isci_request.h"
-#include "isci_host.h"
+#include "port.h"
+#include "request.h"
+#include "host.h"
 
 /**
  * isci_isr() - This function is the interrupt service routine for the
@@ -641,9 +634,8 @@ int isci_host_init(struct isci_host *isci_host)
 		}
 
 		/* grab any OEM and USER parameters specified at module load */
-		status = isci_module_parse_oem_parameters(&scic_oem_params,
-							  isci_host->id,
-							  isci_fw);
+		status = isci_parse_oem_parameters(&scic_oem_params,
+						   isci_host->id, isci_fw);
 		if (status != SCI_SUCCESS) {
 			dev_warn(&isci_host->pdev->dev,
 				 "parsing firmware oem parameters failed\n");
@@ -651,12 +643,11 @@ int isci_host_init(struct isci_host *isci_host)
 			goto out;
 		}
 
-		status = isci_module_parse_user_parameters(&scic_user_params,
-							   isci_host->id,
-							   isci_fw);
+		status = isci_parse_user_parameters(&scic_user_params,
+						    isci_host->id, isci_fw);
 		if (status != SCI_SUCCESS) {
 			dev_warn(&isci_host->pdev->dev,
-				 "%s: isci_module_parse_user_parameters"
+				 "%s: isci_parse_user_parameters"
 				 " failed\n", __func__);
 			err = -EINVAL;
 			goto out;

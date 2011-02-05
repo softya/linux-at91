@@ -56,7 +56,7 @@
 /**
  * This file contains the isci_port object definition.
  *
- * isci_port.h
+ * port.h
  */
 
 #if !defined(_ISCI_PORT_H_)

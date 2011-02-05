@@ -53,80 +53,102 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * This file contains the isci_module initialization routines.
- *
- * isci_timers.h
- */
+#if !defined(_ISCI_REMOTE_DEVICE_H_)
+#define _ISCI_REMOTE_DEVICE_H_
+#include "scic_user_callback.h"
 
-#if !defined(_SCI_TIMER_H_)
-#define _SCI_TIMER_H_
+struct isci_host;
+struct scic_sds_remote_device;
 
-#include <linux/timer.h>
-#include <linux/types.h>
-
-/***************************************************
- * isci_timer
- ***************************************************
- */
-/**
- * struct isci_timer_list - This class is the container for all isci_timer
- *    objects
- *
- *
- */
-struct isci_timer_list {
-
-	struct list_head timers;
-};
-
-/**
- * struct isci_timer - This class represents the timer object used by SCIC. It
- *    wraps the Linux timer_list object.
- *
- *
- */
-struct isci_timer {
-	int used;
-	int stopped;
-	int restart;
-	int timeout_value;
-	void *cookie;
-	void (*timer_callback)(void *);
+struct isci_remote_device {
+	struct scic_sds_remote_device *sci_device_handle;
+	enum isci_status status;
+	struct isci_port *isci_port;
+	struct domain_device *domain_dev;
+	struct completion *completion;
 	struct list_head node;
-	struct timer_list timer;
-	struct isci_timer_list *parent;
-	struct isci_host *isci_host;
+	struct list_head reqs_in_process;
+	struct work_struct stop_work;
+	spinlock_t state_lock;
+	spinlock_t host_quiesce_lock;
+	bool host_quiesce;
 };
 
-#define to_isci_timer(t)	\
-	container_of(t, struct isci_timer, timer);
+#define to_isci_remote_device(p)	\
+	container_of(p, struct isci_remote_device, sci_remote_device);
 
-int isci_timer_list_construct(
-	struct isci_timer_list *isci_timer_list,
-	int timer_list_size);
+#define ISCI_REMOTE_DEVICE_START_TIMEOUT 5000
 
 
-int isci_timer_list_destroy(
-	struct isci_timer_list *isci_timer_list);
+/**
+ * This function gets the status of the remote_device object.
+ * @isci_device: This parameter points to the isci_remote_device object
+ *
+ * status of the object as a isci_status enum.
+ */
+static inline
+enum isci_status isci_remote_device_get_state(
+	struct isci_remote_device *isci_device)
+{
+	return (isci_device->host_quiesce)
+	       ? isci_host_quiesce
+	       : isci_device->status;
+}
 
-struct isci_timer *isci_timer_create(
-	struct isci_timer_list *isci_timer_list,
+
+/**
+ * isci_dev_from_domain_dev() - This accessor retrieves the remote_device
+ *    object reference from the Linux domain_device reference.
+ * @domdev,: This parameter points to the Linux domain_device object .
+ *
+ * A reference to the associated isci remote device.
+ */
+#define isci_dev_from_domain_dev(domdev) \
+	((struct isci_remote_device *)(domdev)->lldd_dev)
+
+void isci_remote_device_start_complete(
+	struct isci_host *,
+	struct isci_remote_device *,
+	enum sci_status);
+
+void isci_remote_device_stop_complete(
+	struct isci_host *,
+	struct isci_remote_device *,
+	enum sci_status);
+
+enum sci_status isci_remote_device_stop(
+	struct isci_remote_device *isci_device);
+
+void isci_remote_device_nuke_requests(
+	struct isci_remote_device *isci_device);
+
+void isci_remote_device_ready(
+	struct isci_remote_device *);
+
+void isci_remote_device_not_ready(
+	struct isci_remote_device *,
+	u32);
+
+void isci_remote_device_gone(
+	struct domain_device *domain_dev);
+
+int isci_remote_device_found(
+	struct domain_device *domain_dev);
+
+bool isci_device_is_reset_pending(
 	struct isci_host *isci_host,
-	void *cookie,
-	void (*timer_callback)(void *));
+	struct isci_remote_device *isci_device);
 
-void isci_timer_free(
-	struct isci_timer_list *isci_timer_list,
-	struct isci_timer *isci_timer);
+void isci_device_clear_reset_pending(
+	struct isci_remote_device *isci_device);
 
-void isci_timer_start(
-	struct isci_timer *isci_timer,
-	unsigned long timeout);
+void isci_device_set_host_quiesce_lock_state(
+	struct isci_remote_device *isci_device,
+	bool lock_state);
 
-void isci_timer_stop(
-	struct isci_timer *isci_timer);
+void isci_remote_device_change_state(
+	struct isci_remote_device *isci_device,
+	enum isci_status status);
 
-
-#endif /* !defined (_SCI_TIMER_H_) */
+#endif /* !defined(_ISCI_REMOTE_DEVICE_H_) */
 

@@ -7,9 +7,9 @@ EXTRA_CFLAGS += -DDISABLE_ATAPI
 
 EXTRA_CFLAGS += -Idrivers/scsi/isci/core/ -Idrivers/scsi/isci/
 obj-$(CONFIG_SCSI_ISCI) += isci.o
-isci-objs := isci_module_init.o isci_phy.o isci_request.o isci_sata.o \
-	     isci_remote_device.o isci_port.o isci_timers.o isci_module.o \
-	     isci_host.o isci_task.o \
+isci-objs := init.o phy.o request.o sata.o \
+	     remote_device.o port.o timers.o deprecated.o \
+	     host.o task.o events.o \
 	     core/scic_sds_controller.o  \
 	     core/scic_sds_controller_state_handlers.o \
 	     core/scic_sds_phy_starting_substate_handlers.o \

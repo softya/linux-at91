@@ -53,18 +53,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * This file contains the isci_module initialization routines.
- *
- * isci_module_init.c
- */
-
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/module.h>
 #include <asm/string.h>
-#include "isci_module.h"
-#include "isci_task.h"
+#include "isci.h"
+#include "task.h"
 #include "sci_controller_constants.h"
 #include "scic_remote_device.h"
 #include "sci_environment.h"
@@ -88,19 +82,19 @@ static DEFINE_PCI_DEVICE_TABLE(isci_id_table) = {
 	{}
 };
 
-static int __devinit isci_module_pci_probe(
+static int __devinit isci_pci_probe(
 	struct pci_dev *pdev,
 	const struct pci_device_id *device_id_p);
 
-static void __devexit isci_module_pci_remove(struct pci_dev *pdev);
+static void __devexit isci_pci_remove(struct pci_dev *pdev);
 
 MODULE_DEVICE_TABLE(pci, isci_id_table);
 
 static struct pci_driver isci_pci_driver = {
 	.name		= DRV_NAME,
 	.id_table	= isci_id_table,
-	.probe		= isci_module_pci_probe,
-	.remove		= __devexit_p(isci_module_pci_remove),
+	.probe		= isci_pci_probe,
+	.remove		= __devexit_p(isci_pci_remove),
 };
 
 /* linux isci specific settings */
@@ -179,7 +173,7 @@ static struct sas_domain_function_template isci_transport_ops  = {
 
 
 /**
- * isci_module_register_sas_ha() - This method initializes various lldd
+ * isci_register_sas_ha() - This method initializes various lldd
  *    specific members of the sas_ha struct and calls the libsas
  *    sas_register_ha() function.
  * @isci_host: This parameter specifies the lldd specific wrapper for the
@@ -189,7 +183,7 @@ static struct sas_domain_function_template isci_transport_ops  = {
  * should check for possible memory allocation error return otherwise, a zero
  * indicates success.
  */
-static int isci_module_register_sas_ha(struct isci_host *isci_host)
+static int isci_register_sas_ha(struct isci_host *isci_host)
 {
 	int i;
 	struct sas_ha_struct *sas_ha = &(isci_host->sas_ha);
@@ -235,7 +229,7 @@ static int isci_module_register_sas_ha(struct isci_host *isci_host)
 	return 0;
 }
 
-static void isci_module_unregister_sas_ha(struct isci_host *isci_host)
+static void isci_unregister_sas_ha(struct isci_host *isci_host)
 {
 	if (!isci_host)
 		return;
@@ -368,7 +362,7 @@ static int isci_setup_interrupts(struct pci_dev *pdev)
 }
 
 /**
- * isci_module_parse_oem_parameters() - This method will take OEM parameters
+ * isci_parse_oem_parameters() - This method will take OEM parameters
  *    from the module init parameters and copy them to oem_params. This will
  *    only copy values that are not set to the module parameter default values
  * @oem_parameters: This parameter specifies the controller default OEM
@@ -377,10 +371,9 @@ static int isci_setup_interrupts(struct pci_dev *pdev)
  *
  *
  */
-enum sci_status isci_module_parse_oem_parameters(
-	union scic_oem_parameters *oem_params,
-	int scu_index,
-	struct isci_firmware *fw)
+enum sci_status isci_parse_oem_parameters(union scic_oem_parameters *oem_params,
+					  int scu_index,
+					  struct isci_firmware *fw)
 {
 	int i;
 
@@ -414,7 +407,7 @@ enum sci_status isci_module_parse_oem_parameters(
 }
 
 /**
- * isci_module_parse_user_parameters() - This method will take user parameters
+ * isci_parse_user_parameters() - This method will take user parameters
  *    from the module init parameters and copy them to user_params. This will
  *    only copy values that are not set to the module parameter default values
  * @user_parameters: This parameter specifies the controller default user
@@ -423,7 +416,7 @@ enum sci_status isci_module_parse_oem_parameters(
  *
  *
  */
-enum sci_status isci_module_parse_user_parameters(
+enum sci_status isci_parse_user_parameters(
 	union scic_user_parameters *user_params,
 	int scu_index,
 	struct isci_firmware *fw)
@@ -481,7 +474,7 @@ static struct isci_host *isci_host_alloc(struct pci_dev *pdev, int id)
 	if (err)
 		goto err_shost;
 
-	err = isci_module_register_sas_ha(isci_host);
+	err = isci_register_sas_ha(isci_host);
 	if (err)
 		goto err_shost_remove;
 
@@ -521,7 +514,7 @@ static void check_si_rev(struct pci_dev *pdev)
 		
 }
 
-static int __devinit isci_module_pci_probe(struct pci_dev *pdev, const struct pci_device_id *id)
+static int __devinit isci_pci_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 {
 	struct isci_pci_info *pci_info;
 	int err, i;
@@ -561,22 +554,22 @@ static int __devinit isci_module_pci_probe(struct pci_dev *pdev, const struct pc
 
  err_host_alloc:
 	for_each_isci_host(isci_host, pdev)
-		isci_module_unregister_sas_ha(isci_host);
+		isci_unregister_sas_ha(isci_host);
 	return err;
 }
 
-static void __devexit isci_module_pci_remove(struct pci_dev *pdev)
+static void __devexit isci_pci_remove(struct pci_dev *pdev)
 {
 	struct isci_host *isci_host;
 
 	for_each_isci_host(isci_host, pdev) {
-		isci_module_unregister_sas_ha(isci_host);
+		isci_unregister_sas_ha(isci_host);
 		isci_host_deinit(isci_host);
 		scic_controller_disable_interrupts(isci_host->core_controller);
 	}
 }
 
-static __init int isci_module_init(void)
+static __init int isci_init(void)
 {
 	int err = -ENOMEM;
 
@@ -607,7 +600,7 @@ static __init int isci_module_init(void)
 	return err;
 }
 
-static __exit void isci_module_exit(void)
+static __exit void isci_exit(void)
 {
 	pci_unregister_driver(&isci_pci_driver);
 	sas_release_transport(isci_transport_template);
@@ -616,5 +609,5 @@ static __exit void isci_module_exit(void)
 
 MODULE_LICENSE("Dual BSD/GPL");
 MODULE_FIRMWARE(ISCI_FW_NAME);
-module_init(isci_module_init);
-module_exit(isci_module_exit);
+module_init(isci_init);
+module_exit(isci_exit);

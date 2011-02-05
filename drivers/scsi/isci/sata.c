@@ -53,20 +53,14 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * This file contains the isci sata protocol implementation.
- *
- * isci_sata.c
- */
-
-#include "isci_module.h"
+#include "isci.h"
 #include "scic_remote_device.h"
 #include "scic_sds_remote_device.h"
 #include "scic_io_request.h"
 #include "scic_task_request.h"
-#include "isci_task.h"
-#include "isci_request.h"
-#include "isci_sata.h"
+#include "task.h"
+#include "request.h"
+#include "sata.h"
 #include "intel_sat.h"
 #include "intel_ata.h"
 

@@ -53,37 +53,74 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * This file contains the isci sata protocol implementation.
- *
- * isci_sata.h
+#if !defined(_SCI_TIMER_H_)
+#define _SCI_TIMER_H_
+
+#include <linux/timer.h>
+#include <linux/types.h>
+
+/***************************************************
+ * isci_timer
+ ***************************************************
  */
+/**
+ * struct isci_timer_list - This class is the container for all isci_timer
+ *    objects
+ *
+ *
+ */
+struct isci_timer_list {
 
-#include "intel_sat.h"
+	struct list_head timers;
+};
+
+/**
+ * struct isci_timer - This class represents the timer object used by SCIC. It
+ *    wraps the Linux timer_list object.
+ *
+ *
+ */
+struct isci_timer {
+	int used;
+	int stopped;
+	int restart;
+	int timeout_value;
+	void *cookie;
+	void (*timer_callback)(void *);
+	struct list_head node;
+	struct timer_list timer;
+	struct isci_timer_list *parent;
+	struct isci_host *isci_host;
+};
+
+#define to_isci_timer(t)	\
+	container_of(t, struct isci_timer, timer);
+
+int isci_timer_list_construct(
+	struct isci_timer_list *isci_timer_list,
+	int timer_list_size);
 
 
+int isci_timer_list_destroy(
+	struct isci_timer_list *isci_timer_list);
 
-struct host_to_dev_fis *isci_sata_task_to_fis_copy(
-	struct sas_task *task);
-
-bool isci_sata_is_task_ncq(
-	struct sas_task *task);
-
-void isci_sata_set_ncq_tag(
-	struct host_to_dev_fis *register_fis,
-	struct sas_task *task);
-
-void isci_request_process_stp_response(
-	struct sas_task *task,
-	void *response_buffer);
-
-u8 isci_sata_get_sat_protocol(
-	struct isci_request *isci_request);
-
-enum sci_status isci_sata_management_task_request_build(
-	struct isci_request *isci_request);
-
-int isci_task_send_lu_reset_sata(
+struct isci_timer *isci_timer_create(
+	struct isci_timer_list *isci_timer_list,
 	struct isci_host *isci_host,
-	struct isci_remote_device *isci_device,
-	u8 *lun);
+	void *cookie,
+	void (*timer_callback)(void *));
+
+void isci_timer_free(
+	struct isci_timer_list *isci_timer_list,
+	struct isci_timer *isci_timer);
+
+void isci_timer_start(
+	struct isci_timer *isci_timer,
+	unsigned long timeout);
+
+void isci_timer_stop(
+	struct isci_timer *isci_timer);
+
+
+#endif /* !defined (_SCI_TIMER_H_) */
+

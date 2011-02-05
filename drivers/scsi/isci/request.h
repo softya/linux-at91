@@ -53,16 +53,10 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * This file contains the isci_reuest object definition.
- *
- *
- */
-
 #if !defined(_ISCI_REQUEST_H_)
 #define _ISCI_REQUEST_H_
 
-#include "isci_module.h"
+#include "isci.h"
 
 /**
  * struct isci_request_status - This enum defines the possible states of an I/O

@@ -53,52 +53,31 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
-#if !defined(_ISCI_PHY_H_)
-#define _ISCI_PHY_H_
-
-#include "isci_port.h"
-#include "isci_host.h"
-#include <scsi/libsas.h>
+#include "intel_sat.h"
 
 
-/**
- * struct isci_phy - This class implements the ISCI specific representation of
- *    the phy object.
- *
- *
- */
 
-struct isci_phy {
+struct host_to_dev_fis *isci_sata_task_to_fis_copy(
+	struct sas_task *task);
 
-	struct scic_sds_phy *sci_phy_handle;
+bool isci_sata_is_task_ncq(
+	struct sas_task *task);
 
-	struct asd_sas_phy sas_phy;
-	struct sas_identify_frame *frame;
-	struct isci_port *isci_port;
-	u8 sas_addr[SAS_ADDR_SIZE];
+void isci_sata_set_ncq_tag(
+	struct host_to_dev_fis *register_fis,
+	struct sas_task *task);
 
-	union {
+void isci_request_process_stp_response(
+	struct sas_task *task,
+	void *response_buffer);
 
-		u8 aif[sizeof(struct sci_sas_identify_address_frame)];
-		u8 fis[sizeof(struct sata_fis_reg_d2h)];
+u8 isci_sata_get_sat_protocol(
+	struct isci_request *isci_request);
 
-	} frame_rcvd;
-};
+enum sci_status isci_sata_management_task_request_build(
+	struct isci_request *isci_request);
 
-#define to_isci_phy(p)	\
-	container_of(p, struct isci_phy, sas_phy);
-
-struct isci_host;
-
-void isci_phy_init(
-	struct isci_phy *phy,
+int isci_task_send_lu_reset_sata(
 	struct isci_host *isci_host,
-	int index);
-
-int isci_phy_control(
-	struct asd_sas_phy *phy,
-	enum phy_func func,
-	void *buf);
-
-#endif /* !defined(_ISCI_PHY_H_) */
+	struct isci_remote_device *isci_device,
+	u8 *lun);

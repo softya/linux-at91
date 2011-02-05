@@ -61,14 +61,14 @@
 
 
 #include <linux/workqueue.h>
-#include "isci_module.h"
+#include "isci.h"
 #include "scic_io_request.h"
 #include "scic_remote_device.h"
 #include "scic_phy.h"
 #include "scic_sds_phy.h"
 #include "scic_port.h"
-#include "isci_port.h"
-#include "isci_request.h"
+#include "port.h"
+#include "request.h"
 
 static void isci_port_change_state(
 	struct isci_port *isci_port,

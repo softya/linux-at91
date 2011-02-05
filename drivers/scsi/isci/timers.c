@@ -53,22 +53,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * This file contains the isci_module initialization routines.
- *
- * isci_timers.c
- */
-
-#include "isci_module.h"
-#include "isci_timers.h"
-
-
-
-/**
- * This file contains the timer object implementation.
- *
- * isci_timers.c
- */
+#include "isci.h"
+#include "timers.h"
 
 
 /**

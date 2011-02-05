@@ -53,23 +53,11 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * This file contains the isci_module initialization routines.
- *
- *
- */
-
-#include "isci_module.h"
-#include "isci_phy.h"
+#include "isci.h"
+#include "phy.h"
 #include "scic_port.h"
 #include "scic_config_parameters.h"
 
-
-/**
- * This file contains the isci phy object implementation.
- *
- * isci_phy.c
- */
 
 /**
  * isci_phy_init() - This function is called by the probe function to

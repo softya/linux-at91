@@ -56,7 +56,7 @@
 #ifndef _SCI_ENVIRONMENT_H_
 #define _SCI_ENVIRONMENT_H_
 
-#include "isci_module.h"
+#include "isci.h"
 
 struct scic_sds_controller;
 struct scic_sds_phy;

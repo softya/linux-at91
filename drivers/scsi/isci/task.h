@@ -53,12 +53,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * This file contains the isci_task object definition.
- *
- * isci_task.h
- */
-
 #if !defined(_ISCI_TASK_H_)
 #define _ISCI_TASK_H_
 

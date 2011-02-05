@@ -56,7 +56,7 @@
 /**
  * This file contains the isci_module initialization routines.
  *
- * isci_host.h
+ * host.h
  */
 
 
@@ -64,10 +64,10 @@
 #if !defined(_SCI_HOST_H_)
 #define _SCI_HOST_H_
 
-#include "isci_phy.h"
-/*#include "isci_task.h"*/
-#include "isci_timers.h"
-#include "isci_remote_device.h"
+#include "phy.h"
+/*#include "task.h"*/
+#include "timers.h"
+#include "remote_device.h"
 #include "scic_user_callback.h"
 
 #define DRV_NAME "isci"

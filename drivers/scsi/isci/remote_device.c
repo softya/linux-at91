@@ -53,15 +53,15 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "isci_module.h"
+#include "isci.h"
 #include "scic_io_request.h"
 #include "scic_remote_device.h"
 #include "scic_phy.h"
 #include "scic_port.h"
-#include "isci_port.h"
-#include "isci_remote_device.h"
-#include "isci_request.h"
-#include "isci_task.h"
+#include "port.h"
+#include "remote_device.h"
+#include "request.h"
+#include "task.h"
 
 
 
