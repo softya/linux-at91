@@ -64,13 +64,6 @@
 #define SCI_INVALID_HANDLE 0x0
 
 /**
- * The SCI_CONTROLLER_HANDLE_T will be utilized by SCI users as an opaque
- *    handle for all SCI Controller objects.
- */
-typedef void *SCI_CONTROLLER_HANDLE_T;
-struct scic_sds_controller;
-
-/**
  * The SCI_LIBRARY_HANDLE_T will be utilized by SCI users as an opaque handle
  *    for the SCI Library object.
  *

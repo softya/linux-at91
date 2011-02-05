@@ -715,37 +715,25 @@ static void scic_sds_controller_transition_to_ready(
 /**
  * This method is the general timeout handler for the controller. It will take
  *    the correct timetout action based on the current controller state
- * @controller: This parameter indicates the controller on which a timeout
- *    occurred.
- *
  */
 void scic_sds_controller_timeout_handler(
-	SCI_CONTROLLER_HANDLE_T controller)
+	struct scic_sds_controller *scic)
 {
 	enum sci_base_controller_states current_state;
-	struct scic_sds_controller *this_controller;
-
-	this_controller = (struct scic_sds_controller *)controller;
 
 	current_state = sci_base_state_machine_get_state(
-		scic_sds_controller_get_base_state_machine(this_controller)
-		);
+		scic_sds_controller_get_base_state_machine(scic));
 
 	if (current_state == SCI_BASE_CONTROLLER_STATE_STARTING) {
 		scic_sds_controller_transition_to_ready(
-			this_controller, SCI_FAILURE_TIMEOUT
-			);
+			scic, SCI_FAILURE_TIMEOUT);
 	} else if (current_state == SCI_BASE_CONTROLLER_STATE_STOPPING) {
 		sci_base_state_machine_change_state(
-			scic_sds_controller_get_base_state_machine(
-					this_controller),
-			SCI_BASE_CONTROLLER_STATE_FAILED
-			);
-
-		scic_cb_controller_stop_complete(controller,
-						 SCI_FAILURE_TIMEOUT);
+			scic_sds_controller_get_base_state_machine(scic),
+			SCI_BASE_CONTROLLER_STATE_FAILED);
+		scic_cb_controller_stop_complete(scic, SCI_FAILURE_TIMEOUT);
 	} else	/* / @todo Now what do we want to do in this case? */
-		dev_err(scic_to_dev(this_controller),
+		dev_err(scic_to_dev(scic),
 			"%s: Controller timer fired when controller was not "
 			"in a state being timed.\n",
 			__func__);
@@ -1663,17 +1651,14 @@ static bool scic_sds_controller_standard_interrupt_handler(
 /**
  * This is the method provided to handle polling for interrupts for the
  *    controller object.
- * @controller:
  *
  * bool true if an interrupt is to be processed false if no interrupt was
  * pending
  */
 static bool scic_sds_controller_polling_interrupt_handler(
-	SCI_CONTROLLER_HANDLE_T controller)
+	struct scic_sds_controller *scic)
 {
 	u32 interrupt_status;
-	struct scic_sds_controller *this_controller =
-		(struct scic_sds_controller *)controller;
 
 	/*
 	 * In INTERRUPT_POLLING_MODE we exit the interrupt handler if the
@@ -1683,7 +1668,7 @@ static bool scic_sds_controller_polling_interrupt_handler(
 	 * is ready. We'll simply wait for another polling interval and check
 	 * again.
 	 */
-	interrupt_status = SMU_ISR_READ(this_controller);
+	interrupt_status = SMU_ISR_READ(scic);
 	if ((interrupt_status &
 	     (SMU_ISR_COMPLETION |
 	      SMU_ISR_QUEUE_ERROR |
@@ -1692,35 +1677,30 @@ static bool scic_sds_controller_polling_interrupt_handler(
 	}
 
 	return scic_sds_controller_standard_interrupt_handler(
-		       controller, interrupt_status
-		       );
+		       scic, interrupt_status);
 }
 
 /**
  * This is the method provided to handle completions when interrupt polling is
  *    in use.
- * @controller:
- *
  */
 static void scic_sds_controller_polling_completion_handler(
-	SCI_CONTROLLER_HANDLE_T controller)
+	struct scic_sds_controller *scic)
 {
-	struct scic_sds_controller *this_controller = (struct scic_sds_controller *)controller;
-
-	if (this_controller->encountered_fatal_error == true) {
-		dev_err(scic_to_dev(this_controller),
+	if (scic->encountered_fatal_error == true) {
+		dev_err(scic_to_dev(scic),
 			"%s: SCIC Controller has encountered a fatal error.\n",
 			__func__);
 
 		sci_base_state_machine_change_state(
-			scic_sds_controller_get_base_state_machine(this_controller),
-			SCI_BASE_CONTROLLER_STATE_FAILED
-			);
-	} else if (scic_sds_controller_completion_queue_has_entries(this_controller)) {
-		if (this_controller->restrict_completions == false)
-			scic_sds_controller_process_completions(this_controller);
+			scic_sds_controller_get_base_state_machine(scic),
+			SCI_BASE_CONTROLLER_STATE_FAILED);
+	} else if (scic_sds_controller_completion_queue_has_entries(scic)) {
+		if (scic->restrict_completions == false)
+			scic_sds_controller_process_completions(scic);
 		else
-			scic_sds_controller_transitioned_process_completions(this_controller);
+			scic_sds_controller_transitioned_process_completions(
+				scic);
 	}
 
 	/*
@@ -1733,7 +1713,7 @@ static void scic_sds_controller_polling_completion_handler(
 	 * corresponding completion event. Also, we unmask interrupts.
 	 */
 	SMU_ISR_WRITE(
-		this_controller,
+		scic,
 		(u32)(SMU_ISR_COMPLETION | SMU_ISR_QUEUE_ERROR | SMU_ISR_QUEUE_SUSPEND)
 		);
 }
@@ -1741,21 +1721,18 @@ static void scic_sds_controller_polling_completion_handler(
 /**
  * This is the method provided to handle legacy interrupts for the controller
  *    object.
- * @controller:
  *
  * bool true if an interrupt is processed false if no interrupt was processed
  */
 static bool scic_sds_controller_legacy_interrupt_handler(
-	SCI_CONTROLLER_HANDLE_T controller)
+	struct scic_sds_controller *scic)
 {
 	u32 interrupt_status;
 	bool is_completion_needed;
-	struct scic_sds_controller *this_controller = (struct scic_sds_controller *)controller;
 
-	interrupt_status     = SMU_ISR_READ(this_controller);
+	interrupt_status     = SMU_ISR_READ(scic);
 	is_completion_needed = scic_sds_controller_standard_interrupt_handler(
-		this_controller, interrupt_status
-		);
+		scic, interrupt_status);
 
 	return is_completion_needed;
 }
@@ -1765,57 +1742,44 @@ static bool scic_sds_controller_legacy_interrupt_handler(
  * This is the method provided to handle legacy completions it is expected that
  *    the SCI User will call this completion handler anytime the interrupt
  *    handler reports that it has handled an interrupt.
- * @controller:
- *
  */
 static void scic_sds_controller_legacy_completion_handler(
-	SCI_CONTROLLER_HANDLE_T controller)
+	struct scic_sds_controller *scic)
 {
-	struct scic_sds_controller *this_controller = (struct scic_sds_controller *)controller;
-
-	scic_sds_controller_polling_completion_handler(controller);
-
-	SMU_IMR_WRITE(this_controller, 0x00000000);
+	scic_sds_controller_polling_completion_handler(scic);
+	SMU_IMR_WRITE(scic, 0x00000000);
 }
 
 /**
  * This is the method provided to handle an MSIX interrupt message when there
  *    is just a single MSIX message being provided by the hardware.  This mode
  *    of operation is single vector mode.
- * @controller:
  *
  * bool true if an interrupt is processed false if no interrupt was processed
  */
 static bool scic_sds_controller_single_vector_interrupt_handler(
-	SCI_CONTROLLER_HANDLE_T controller)
+	struct scic_sds_controller *scic)
 {
 	u32 interrupt_status;
-	struct scic_sds_controller *this_controller;
-
-	this_controller = (struct scic_sds_controller *)controller;
 
 	/*
 	 * Mask the interrupts
 	 * There is a race in the hardware that could cause us not to be notified
 	 * of an interrupt completion if we do not take this step.  We will unmask
 	 * the interrupts in the completion routine. */
-	SMU_IMR_WRITE(this_controller, 0xFFFFFFFF);
+	SMU_IMR_WRITE(scic, 0xFFFFFFFF);
 
-	interrupt_status = SMU_ISR_READ(this_controller);
+	interrupt_status = SMU_ISR_READ(scic);
 	interrupt_status &= (SMU_ISR_QUEUE_ERROR | SMU_ISR_QUEUE_SUSPEND);
 
-	if (
-		(interrupt_status == 0)
-		&& scic_sds_controller_completion_queue_has_entries(this_controller)
-		) {
+	if ((interrupt_status == 0) &&
+	    scic_sds_controller_completion_queue_has_entries(scic)) {
 		/*
 		 * There is at least one completion queue entry to process so we can
 		 * return a success and ignore for now the case of an error interrupt */
-		SMU_ISR_WRITE(this_controller, SMU_ISR_COMPLETION);
-
+		SMU_ISR_WRITE(scic, SMU_ISR_COMPLETION);
 		return true;
 	}
-
 
 	if (interrupt_status != 0) {
 		/*
@@ -1827,30 +1791,25 @@ static bool scic_sds_controller_single_vector_interrupt_handler(
 	/*
 	 * Clear any offending interrupts since we could not find any to handle
 	 * and unmask them all */
-	SMU_ISR_WRITE(this_controller, 0x00000000);
-	SMU_IMR_WRITE(this_controller, 0x00000000);
+	SMU_ISR_WRITE(scic, 0x00000000);
+	SMU_IMR_WRITE(scic, 0x00000000);
 
 	return false;
 }
 
 /**
  * This is the method provided to handle completions for a single MSIX message.
- *
- *
  */
 static void scic_sds_controller_single_vector_completion_handler(
-	SCI_CONTROLLER_HANDLE_T controller)
+	struct scic_sds_controller *scic)
 {
 	u32 interrupt_status;
-	struct scic_sds_controller *this_controller;
 
-	this_controller = (struct scic_sds_controller *)controller;
-
-	interrupt_status = SMU_ISR_READ(this_controller);
+	interrupt_status = SMU_ISR_READ(scic);
 	interrupt_status &= (SMU_ISR_QUEUE_ERROR | SMU_ISR_QUEUE_SUSPEND);
 
 	if (interrupt_status & SMU_ISR_QUEUE_ERROR) {
-		dev_err(scic_to_dev(this_controller),
+		dev_err(scic_to_dev(scic),
 			"%s: SCIC Controller has encountered a fatal error.\n",
 			__func__);
 
@@ -1858,16 +1817,14 @@ static void scic_sds_controller_single_vector_completion_handler(
 		 * We have a fatal condition and must reset the controller
 		 * Leave the interrupt mask in place and get the controller reset */
 		sci_base_state_machine_change_state(
-			scic_sds_controller_get_base_state_machine(this_controller),
-			SCI_BASE_CONTROLLER_STATE_FAILED
-			);
+			scic_sds_controller_get_base_state_machine(scic),
+			SCI_BASE_CONTROLLER_STATE_FAILED);
 		return;
 	}
 
 	if ((interrupt_status & SMU_ISR_QUEUE_SUSPEND) &&
-	    !scic_sds_controller_completion_queue_has_entries(
-						this_controller)) {
-		dev_err(scic_to_dev(this_controller),
+	    !scic_sds_controller_completion_queue_has_entries(scic)) {
+		dev_err(scic_to_dev(scic),
 			"%s: SCIC Controller has encountered a fatal error.\n",
 			__func__);
 
@@ -1875,55 +1832,48 @@ static void scic_sds_controller_single_vector_completion_handler(
 		 * We have a fatal condtion and must reset the controller
 		 * Leave the interrupt mask in place and get the controller reset */
 		sci_base_state_machine_change_state(
-			scic_sds_controller_get_base_state_machine(this_controller),
-			SCI_BASE_CONTROLLER_STATE_FAILED
-			);
+			scic_sds_controller_get_base_state_machine(scic),
+			SCI_BASE_CONTROLLER_STATE_FAILED);
 		return;
 	}
 
-	if (scic_sds_controller_completion_queue_has_entries(this_controller)) {
-		scic_sds_controller_process_completions(this_controller);
+	if (scic_sds_controller_completion_queue_has_entries(scic)) {
+		scic_sds_controller_process_completions(scic);
 
 		/*
 		 * We dont care which interrupt got us to processing the completion queu
 		 * so clear them both. */
 		SMU_ISR_WRITE(
-			this_controller,
-			(SMU_ISR_COMPLETION | SMU_ISR_QUEUE_SUSPEND)
-			);
+			scic,
+			(SMU_ISR_COMPLETION | SMU_ISR_QUEUE_SUSPEND));
 	}
 
-	SMU_IMR_WRITE(this_controller, 0x00000000);
+	SMU_IMR_WRITE(scic, 0x00000000);
 }
 
 /**
  * This is the method provided to handle a MSIX message for a normal completion.
- * @controller:
  *
  * bool true if an interrupt is processed false if no interrupt was processed
  */
 static bool scic_sds_controller_normal_vector_interrupt_handler(
-	SCI_CONTROLLER_HANDLE_T controller)
+	struct scic_sds_controller *scic)
 {
-	struct scic_sds_controller *this_controller;
-
-	this_controller = (struct scic_sds_controller *)controller;
-
-	if (scic_sds_controller_completion_queue_has_entries(this_controller)) {
+	if (scic_sds_controller_completion_queue_has_entries(scic)) {
 		return true;
 	} else {
 		/*
 		 * we have a spurious interrupt it could be that we have already
 		 * emptied the completion queue from a previous interrupt */
-		SMU_ISR_WRITE(this_controller, SMU_ISR_COMPLETION);
+		SMU_ISR_WRITE(scic, SMU_ISR_COMPLETION);
 
 		/*
 		 * There is a race in the hardware that could cause us not to be notified
 		 * of an interrupt completion if we do not take this step.  We will mask
 		 * then unmask the interrupts so if there is another interrupt pending
 		 * the clearing of the interrupt source we get the next interrupt message. */
-		SMU_IMR_WRITE(this_controller, 0xFF000000);
-		SMU_IMR_WRITE(this_controller, 0x00000000);
+		SMU_IMR_WRITE(scic, 0xFF000000);
+		SMU_IMR_WRITE(scic, 0x00000000);
 	}
 
 	return false;
@@ -1932,45 +1882,33 @@ static bool scic_sds_controller_normal_vector_interrupt_handler(
 /**
  * This is the method provided to handle the completions for a normal MSIX
  *    message.
- *
- *
  */
 static void scic_sds_controller_normal_vector_completion_handler(
-	SCI_CONTROLLER_HANDLE_T controller)
+	struct scic_sds_controller *scic)
 {
-	struct scic_sds_controller *this_controller;
-
-	this_controller = (struct scic_sds_controller *)controller;
-
 	/* Empty out the completion queue */
-	if (scic_sds_controller_completion_queue_has_entries(this_controller)) {
-		scic_sds_controller_process_completions(this_controller);
-	}
+	if (scic_sds_controller_completion_queue_has_entries(scic))
+		scic_sds_controller_process_completions(scic);
 
 	/* Clear the interrupt and enable all interrupts again */
-	SMU_ISR_WRITE(this_controller, SMU_ISR_COMPLETION);
+	SMU_ISR_WRITE(scic, SMU_ISR_COMPLETION);
 	/* Could we write the value of SMU_ISR_COMPLETION? */
-	SMU_IMR_WRITE(this_controller, 0xFF000000);
-	SMU_IMR_WRITE(this_controller, 0x00000000);
+	SMU_IMR_WRITE(scic, 0xFF000000);
+	SMU_IMR_WRITE(scic, 0x00000000);
 }
 
 /**
  * This is the method provided to handle the error MSIX message interrupt.
  *    This is the normal operating mode for the hardware if MSIX is enabled.
- * @controller:
  *
  * bool true if an interrupt is processed false if no interrupt was processed
  */
 static bool scic_sds_controller_error_vector_interrupt_handler(
-	SCI_CONTROLLER_HANDLE_T controller)
+	struct scic_sds_controller *scic)
 {
 	u32 interrupt_status;
-	struct scic_sds_controller *this_controller;
 
-	this_controller = (struct scic_sds_controller *)controller;
-
-
-	interrupt_status = SMU_ISR_READ(this_controller);
+	interrupt_status = SMU_ISR_READ(scic);
 	interrupt_status &= (SMU_ISR_QUEUE_ERROR | SMU_ISR_QUEUE_SUSPEND);
 
 	if (interrupt_status != 0) {
@@ -1986,8 +1924,8 @@ static bool scic_sds_controller_error_vector_interrupt_handler(
 	 * then unmask the error interrupts so if there was another interrupt
 	 * pending we will be notified.
 	 * Could we write the value of (SMU_ISR_QUEUE_ERROR | SMU_ISR_QUEUE_SUSPEND)? */
-	SMU_IMR_WRITE(this_controller, 0x000000FF);
-	SMU_IMR_WRITE(this_controller, 0x00000000);
+	SMU_IMR_WRITE(scic, 0x000000FF);
+	SMU_IMR_WRITE(scic, 0x00000000);
 
 	return false;
 }
@@ -1995,37 +1933,30 @@ static bool scic_sds_controller_error_vector_interrupt_handler(
 /**
  * This is the method provided to handle the error completions when the
  *    hardware is using two MSIX messages.
- *
- *
  */
 static void scic_sds_controller_error_vector_completion_handler(
-	SCI_CONTROLLER_HANDLE_T controller)
+	struct scic_sds_controller *scic)
 {
 	u32 interrupt_status;
-	struct scic_sds_controller *this_controller;
 
-	this_controller = (struct scic_sds_controller *)controller;
+	interrupt_status = SMU_ISR_READ(scic);
 
-	interrupt_status = SMU_ISR_READ(this_controller);
+	if ((interrupt_status & SMU_ISR_QUEUE_SUSPEND) &&
+	    scic_sds_controller_completion_queue_has_entries(scic)) {
 
-	if (
-		(interrupt_status & SMU_ISR_QUEUE_SUSPEND)
-		&& scic_sds_controller_completion_queue_has_entries(this_controller)
-		) {
-		scic_sds_controller_process_completions(this_controller);
+		scic_sds_controller_process_completions(scic);
+		SMU_ISR_WRITE(scic, SMU_ISR_QUEUE_SUSPEND);
 
-		SMU_ISR_WRITE(this_controller, SMU_ISR_QUEUE_SUSPEND);
 	} else {
-		dev_err(scic_to_dev(this_controller),
+		dev_err(scic_to_dev(scic),
 			"%s: SCIC Controller reports CRC error on completion "
 			"ISR %x\n",
 			__func__,
 			interrupt_status);
 
 		sci_base_state_machine_change_state(
-			scic_sds_controller_get_base_state_machine(this_controller),
-			SCI_BASE_CONTROLLER_STATE_FAILED
-			);
+			scic_sds_controller_get_base_state_machine(scic),
+			SCI_BASE_CONTROLLER_STATE_FAILED);
 
 		return;
 	}
@@ -2033,7 +1964,7 @@ static void scic_sds_controller_error_vector_completion_handler(
 	/*
 	 * If we dont process any completions I am not sure that we want to do this.
 	 * We are in the middle of a hardware fault and should probably be reset. */
-	SMU_IMR_WRITE(this_controller, 0x00000000);
+	SMU_IMR_WRITE(scic, 0x00000000);
 }
 
 
@@ -2044,38 +1975,13 @@ static void scic_sds_controller_error_vector_completion_handler(
 
 /**
  * This method returns the sizeof the SCIC SDS Controller Object
- *
- * u32
  */
 u32 scic_sds_controller_get_object_size(void)
 {
 	return sizeof(struct scic_sds_controller);
 }
 
-/**
- *
- *
- * This method returns the minimum number of timers that are required by the
- * controller object.  This will include required timers for phys and ports.
- * u32 The minimum number of timers that are required to make this controller
- * operational.
- */
 
-/**
- *
- *
- * This method returns the maximum number of timers that are required by the
- * controller object.  This will include required timers for phys and ports.
- * u32 The maximum number of timers that will be used by the controller object
- */
-
-/**
- *
- * @this_controller:
- * @the_port:
- * @the_phy:
- *
- */
 void scic_sds_controller_link_up(
 	struct scic_sds_controller *scic,
 	struct scic_sds_port *sci_port,
@@ -2100,13 +2006,7 @@ void scic_sds_controller_link_up(
 					scic)));
 }
 
-/**
- *
- * @scic:
- * @sci_port:
- *
- *
- */
+
 void scic_sds_controller_link_down(
 	struct scic_sds_controller *scic,
 	struct scic_sds_port *sci_port,
@@ -2478,14 +2378,12 @@ enum sci_status scic_controller_construct(struct scic_sds_controller *controller
 /* --------------------------------------------------------------------------- */
 
 enum sci_status scic_controller_initialize(
-	SCI_CONTROLLER_HANDLE_T controller)
+	struct scic_sds_controller *scic)
 {
 	enum sci_status status = SCI_FAILURE_INVALID_STATE;
 	sci_base_controller_handler_t initialize;
-	struct scic_sds_controller *scic;
 	u32 state;
 
-	scic = (struct scic_sds_controller *)controller;
 	state = scic->parent.state_machine.current_state_id;
 	initialize = scic_sds_controller_state_handler_table[state].base.initialize;
 
@@ -2506,10 +2404,10 @@ enum sci_status scic_controller_initialize(
 /* --------------------------------------------------------------------------- */
 
 u32 scic_controller_get_suggested_start_timeout(
-	SCI_CONTROLLER_HANDLE_T controller)
+	struct scic_sds_controller *sc)
 {
 	/* Validate the user supplied parameters. */
-	if (controller == SCI_INVALID_HANDLE)
+	if (sc == SCI_INVALID_HANDLE)
 		return 0;
 
 	/*
@@ -2534,15 +2432,13 @@ u32 scic_controller_get_suggested_start_timeout(
 /* --------------------------------------------------------------------------- */
 
 enum sci_status scic_controller_start(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *scic,
 	u32 timeout)
 {
 	enum sci_status status = SCI_FAILURE_INVALID_STATE;
 	sci_base_controller_timed_handler_t start;
-	struct scic_sds_controller *scic;
 	u32 state;
 
-	scic = (struct scic_sds_controller *)controller;
 	state = scic->parent.state_machine.current_state_id;
 	start = scic_sds_controller_state_handler_table[state].base.start;
 
@@ -2563,15 +2459,13 @@ enum sci_status scic_controller_start(
 /* --------------------------------------------------------------------------- */
 
 enum sci_status scic_controller_stop(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *scic,
 	u32 timeout)
 {
 	enum sci_status status = SCI_FAILURE_INVALID_STATE;
 	sci_base_controller_timed_handler_t stop;
-	struct scic_sds_controller *scic;
 	u32 state;
 
-	scic = (struct scic_sds_controller *)controller;
 	state = scic->parent.state_machine.current_state_id;
 	stop = scic_sds_controller_state_handler_table[state].base.stop;
 
@@ -2592,14 +2486,12 @@ enum sci_status scic_controller_stop(
 /* --------------------------------------------------------------------------- */
 
 enum sci_status scic_controller_reset(
-	SCI_CONTROLLER_HANDLE_T controller)
+	struct scic_sds_controller *scic)
 {
 	enum sci_status status = SCI_FAILURE_INVALID_STATE;
 	sci_base_controller_handler_t reset;
-	struct scic_sds_controller *scic;
 	u32 state;
 
-	scic = (struct scic_sds_controller *)controller;
 	state = scic->parent.state_machine.current_state_id;
 	reset = scic_sds_controller_state_handler_table[state].base.reset;
 
@@ -2684,16 +2576,14 @@ enum sci_status scic_controller_get_handler_methods(
 /* --------------------------------------------------------------------------- */
 
 enum sci_io_status scic_controller_start_io(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *scic,
 	struct scic_sds_remote_device *remote_device,
 	struct scic_sds_request *io_request,
 	u16 io_tag)
 {
 	u32 state;
-	struct scic_sds_controller *scic;
 	sci_base_controller_start_request_handler_t start_io;
 
-	scic = (struct scic_sds_controller *)controller;
 	state = scic->parent.state_machine.current_state_id;
 	start_io = scic_sds_controller_state_handler_table[state].base.start_io;
 
@@ -2705,15 +2595,13 @@ enum sci_io_status scic_controller_start_io(
 /* --------------------------------------------------------------------------- */
 
 enum sci_status scic_controller_terminate_request(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *scic,
 	struct scic_sds_remote_device *remote_device,
 	struct scic_sds_request *request)
 {
 	sci_base_controller_request_handler_t terminate_request;
-	struct scic_sds_controller *scic;
 	u32 state;
 
-	scic = (struct scic_sds_controller *)controller;
 	state = scic->parent.state_machine.current_state_id;
 	terminate_request = scic_sds_controller_state_handler_table[state].terminate_request;
 
@@ -2725,15 +2613,13 @@ enum sci_status scic_controller_terminate_request(
 /* --------------------------------------------------------------------------- */
 
 enum sci_status scic_controller_complete_io(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *scic,
 	struct scic_sds_remote_device *remote_device,
 	struct scic_sds_request *io_request)
 {
 	u32 state;
-	struct scic_sds_controller *scic;
 	sci_base_controller_request_handler_t complete_io;
 
-	scic = (struct scic_sds_controller *)controller;
 	state = scic->parent.state_machine.current_state_id;
 	complete_io = scic_sds_controller_state_handler_table[state].base.complete_io;
 
@@ -2746,17 +2632,15 @@ enum sci_status scic_controller_complete_io(
 
 
 enum sci_task_status scic_controller_start_task(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *scic,
 	struct scic_sds_remote_device *remote_device,
 	struct scic_sds_request *task_request,
 	u16 task_tag)
 {
 	u32 state;
-	struct scic_sds_controller *scic;
 	sci_base_controller_start_request_handler_t start_task;
 	enum sci_task_status status = SCI_TASK_FAILURE_INVALID_STATE;
 
-	scic = (struct scic_sds_controller *)controller;
 	state = scic->parent.state_machine.current_state_id;
 	start_task = scic_sds_controller_state_handler_table[state].base.start_task;
 
@@ -2777,20 +2661,16 @@ enum sci_task_status scic_controller_start_task(
 /* --------------------------------------------------------------------------- */
 
 enum sci_status scic_controller_complete_task(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *scic,
 	struct scic_sds_remote_device *remote_device,
 	struct scic_sds_request *task_request)
 {
 	u32 state;
-	struct scic_sds_controller *scic;
 	sci_base_controller_request_handler_t complete_task;
 	enum sci_status status = SCI_FAILURE_INVALID_STATE;
 
-	scic = (struct scic_sds_controller *)controller;
 	state = scic->parent.state_machine.current_state_id;
 	complete_task = scic_sds_controller_state_handler_table[state].base.complete_task;
-
-	scic = (struct scic_sds_controller *)controller;
 
 	if (complete_task)
 		status = complete_task(&scic->parent,
@@ -2809,16 +2689,12 @@ enum sci_status scic_controller_complete_task(
 /* --------------------------------------------------------------------------- */
 
 enum sci_status scic_controller_get_port_handle(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *scic,
 	u8 port_index,
 	struct scic_sds_port **port_handle)
 {
-	struct scic_sds_controller *this_controller;
-
-	this_controller = (struct scic_sds_controller *)controller;
-
-	if (port_index < this_controller->logical_port_entries) {
-		*port_handle = &this_controller->port_table[port_index];
+	if (port_index < scic->logical_port_entries) {
+		*port_handle = &scic->port_table[port_index];
 
 		return SCI_SUCCESS;
 	}
@@ -2829,23 +2705,19 @@ enum sci_status scic_controller_get_port_handle(
 /* --------------------------------------------------------------------------- */
 
 enum sci_status scic_controller_get_phy_handle(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *scic,
 	u8 phy_index,
 	struct scic_sds_phy **phy_handle)
 {
-	struct scic_sds_controller *this_controller;
-
-	this_controller = (struct scic_sds_controller *)controller;
-
-	if (phy_index < ARRAY_SIZE(this_controller->phy_table)) {
-		*phy_handle = &this_controller->phy_table[phy_index];
+	if (phy_index < ARRAY_SIZE(scic->phy_table)) {
+		*phy_handle = &scic->phy_table[phy_index];
 
 		return SCI_SUCCESS;
 	}
 
-	dev_err(scic_to_dev(this_controller),
+	dev_err(scic_to_dev(scic),
 		"%s: Controller:0x%p PhyId:0x%x invalid phy index\n",
-		__func__, this_controller, phy_index);
+		__func__, scic, phy_index);
 
 	return SCI_FAILURE_INVALID_PHY;
 }
@@ -2853,18 +2725,15 @@ enum sci_status scic_controller_get_phy_handle(
 /* --------------------------------------------------------------------------- */
 
 u16 scic_controller_allocate_io_tag(
-	SCI_CONTROLLER_HANDLE_T controller)
+	struct scic_sds_controller *scic)
 {
 	u16 task_context;
 	u16 sequence_count;
-	struct scic_sds_controller *this_controller;
 
-	this_controller = (struct scic_sds_controller *)controller;
+	if (!sci_pool_empty(scic->tci_pool)) {
+		sci_pool_get(scic->tci_pool, task_context);
 
-	if (!sci_pool_empty(this_controller->tci_pool)) {
-		sci_pool_get(this_controller->tci_pool, task_context);
-
-		sequence_count = this_controller->io_request_sequence[task_context];
+		sequence_count = scic->io_request_sequence[task_context];
 
 		return scic_sds_io_tag_construct(sequence_count, task_context);
 	}
@@ -2875,27 +2744,23 @@ u16 scic_controller_allocate_io_tag(
 /* --------------------------------------------------------------------------- */
 
 enum sci_status scic_controller_free_io_tag(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *scic,
 	u16 io_tag)
 {
 	u16 sequence;
 	u16 index;
-
-	struct scic_sds_controller *this_controller;
-
-	this_controller = (struct scic_sds_controller *)controller;
 
 	BUG_ON(io_tag == SCI_CONTROLLER_INVALID_IO_TAG);
 
 	sequence = scic_sds_io_tag_get_sequence(io_tag);
 	index    = scic_sds_io_tag_get_index(io_tag);
 
-	if (!sci_pool_full(this_controller->tci_pool)) {
-		if (sequence == this_controller->io_request_sequence[index]) {
+	if (!sci_pool_full(scic->tci_pool)) {
+		if (sequence == scic->io_request_sequence[index]) {
 			scic_sds_io_sequence_increment(
-				this_controller->io_request_sequence[index]);
+				scic->io_request_sequence[index]);
 
-			sci_pool_put(this_controller->tci_pool, index);
+			sci_pool_put(scic->tci_pool, index);
 
 			return SCI_SUCCESS;
 		}
@@ -2907,61 +2772,54 @@ enum sci_status scic_controller_free_io_tag(
 /* --------------------------------------------------------------------------- */
 
 void scic_controller_enable_interrupts(
-	SCI_CONTROLLER_HANDLE_T controller)
+	struct scic_sds_controller *scic)
 {
-	struct scic_sds_controller *this_controller;
-
-	this_controller = (struct scic_sds_controller *)controller;
-
-	BUG_ON(this_controller->smu_registers == NULL);
-
-	SMU_IMR_WRITE(this_controller, 0x00000000);
+	BUG_ON(scic->smu_registers == NULL);
+	SMU_IMR_WRITE(scic, 0x00000000);
 }
 
 /* --------------------------------------------------------------------------- */
 
 void scic_controller_disable_interrupts(
-	SCI_CONTROLLER_HANDLE_T controller)
+	struct scic_sds_controller *scic)
 {
-	struct scic_sds_controller *this_controller;
-
-	this_controller = (struct scic_sds_controller *)controller;
-
-	BUG_ON(this_controller->smu_registers == NULL);
-
-	SMU_IMR_WRITE(this_controller, 0xffffffff);
+	BUG_ON(scic->smu_registers == NULL);
+	SMU_IMR_WRITE(scic, 0xffffffff);
 }
 
 /* --------------------------------------------------------------------------- */
 
 enum sci_status scic_controller_set_mode(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *scic,
 	enum sci_controller_mode operating_mode)
 {
-	struct scic_sds_controller *this_controller = (struct scic_sds_controller *)controller;
 	enum sci_status status          = SCI_SUCCESS;
 
-	if ((this_controller->parent.state_machine.current_state_id ==
+	if ((scic->parent.state_machine.current_state_id ==
 				SCI_BASE_CONTROLLER_STATE_INITIALIZING) ||
-	    (this_controller->parent.state_machine.current_state_id ==
+	    (scic->parent.state_machine.current_state_id ==
 				SCI_BASE_CONTROLLER_STATE_INITIALIZED)) {
 		switch (operating_mode) {
 		case SCI_MODE_SPEED:
-			this_controller->remote_node_entries      = SCI_MAX_REMOTE_DEVICES;
-			this_controller->task_context_entries     = SCU_IO_REQUEST_COUNT;
-			this_controller->uf_control.buffers.count = SCU_UNSOLICITED_FRAME_COUNT;
-			this_controller->completion_event_entries = SCU_EVENT_COUNT;
-			this_controller->completion_queue_entries = SCU_COMPLETION_QUEUE_COUNT;
-			scic_sds_controller_build_memory_descriptor_table(this_controller);
+			scic->remote_node_entries      = SCI_MAX_REMOTE_DEVICES;
+			scic->task_context_entries     = SCU_IO_REQUEST_COUNT;
+			scic->uf_control.buffers.count =
+				SCU_UNSOLICITED_FRAME_COUNT;
+			scic->completion_event_entries = SCU_EVENT_COUNT;
+			scic->completion_queue_entries =
+				SCU_COMPLETION_QUEUE_COUNT;
+			scic_sds_controller_build_memory_descriptor_table(scic);
 			break;
 
 		case SCI_MODE_SIZE:
-			this_controller->remote_node_entries      = SCI_MIN_REMOTE_DEVICES;
-			this_controller->task_context_entries     = SCI_MIN_IO_REQUESTS;
-			this_controller->uf_control.buffers.count = SCU_MIN_UNSOLICITED_FRAMES;
-			this_controller->completion_event_entries = SCU_MIN_EVENTS;
-			this_controller->completion_queue_entries = SCU_MIN_COMPLETION_QUEUE_ENTRIES;
-			scic_sds_controller_build_memory_descriptor_table(this_controller);
+			scic->remote_node_entries      = SCI_MIN_REMOTE_DEVICES;
+			scic->task_context_entries     = SCI_MIN_IO_REQUESTS;
+			scic->uf_control.buffers.count =
+				SCU_MIN_UNSOLICITED_FRAMES;
+			scic->completion_event_entries = SCU_MIN_EVENTS;
+			scic->completion_queue_entries =
+				SCU_MIN_COMPLETION_QUEUE_ENTRIES;
+			scic_sds_controller_build_memory_descriptor_table(scic);
 			break;
 
 		default:
@@ -2980,38 +2838,36 @@ enum sci_status scic_controller_set_mode(
  * This method will reset the controller hardware.
  */
 void scic_sds_controller_reset_hardware(
-	struct scic_sds_controller *this_controller)
+	struct scic_sds_controller *scic)
 {
 	/* Disable interrupts so we dont take any spurious interrupts */
-	scic_controller_disable_interrupts(this_controller);
+	scic_controller_disable_interrupts(scic);
 
 	/* Reset the SCU */
-	SMU_SMUSRCR_WRITE(this_controller, 0xFFFFFFFF);
+	SMU_SMUSRCR_WRITE(scic, 0xFFFFFFFF);
 
 	/* Delay for 1ms to before clearing the CQP and UFQPR. */
 	scic_cb_stall_execution(1000);
 
 	/* The write to the CQGR clears the CQP */
-	SMU_CQGR_WRITE(this_controller, 0x00000000);
+	SMU_CQGR_WRITE(scic, 0x00000000);
 
 	/* The write to the UFQGP clears the UFQPR */
-	SCU_UFQGP_WRITE(this_controller, 0x00000000);
+	SCU_UFQGP_WRITE(scic, 0x00000000);
 }
 
 /* --------------------------------------------------------------------------- */
 
 enum sci_status scic_user_parameters_set(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *scic,
 	union scic_user_parameters *scic_parms)
 {
-	struct scic_sds_controller *this_controller = (struct scic_sds_controller *)controller;
-
 	if (
-		(this_controller->parent.state_machine.current_state_id
+		(scic->parent.state_machine.current_state_id
 		 == SCI_BASE_CONTROLLER_STATE_RESET)
-		|| (this_controller->parent.state_machine.current_state_id
+		|| (scic->parent.state_machine.current_state_id
 		    == SCI_BASE_CONTROLLER_STATE_INITIALIZING)
-		|| (this_controller->parent.state_machine.current_state_id
+		|| (scic->parent.state_machine.current_state_id
 		    == SCI_BASE_CONTROLLER_STATE_INITIALIZED)
 		) {
 		u16 index;
@@ -3030,8 +2886,7 @@ enum sci_status scic_user_parameters_set(
 				return SCI_FAILURE_INVALID_PARAMETER_VALUE;
 		}
 
-		memcpy(
-			(&this_controller->user_parameters), scic_parms, sizeof(*scic_parms));
+		memcpy(&scic->user_parameters, scic_parms, sizeof(*scic_parms));
 
 		return SCI_SUCCESS;
 	}
@@ -3042,28 +2897,24 @@ enum sci_status scic_user_parameters_set(
 /* --------------------------------------------------------------------------- */
 
 void scic_user_parameters_get(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *scic,
 	union scic_user_parameters *scic_parms)
 {
-	struct scic_sds_controller *this_controller = (struct scic_sds_controller *)controller;
-
-	memcpy(scic_parms, (&this_controller->user_parameters), sizeof(*scic_parms));
+	memcpy(scic_parms, (&scic->user_parameters), sizeof(*scic_parms));
 }
 
 /* --------------------------------------------------------------------------- */
 
 enum sci_status scic_oem_parameters_set(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *scic,
 	union scic_oem_parameters *scic_parms)
 {
-	struct scic_sds_controller *this_controller = (struct scic_sds_controller *)controller;
-
 	if (
-		(this_controller->parent.state_machine.current_state_id
+		(scic->parent.state_machine.current_state_id
 		 == SCI_BASE_CONTROLLER_STATE_RESET)
-		|| (this_controller->parent.state_machine.current_state_id
+		|| (scic->parent.state_machine.current_state_id
 		    == SCI_BASE_CONTROLLER_STATE_INITIALIZING)
-		|| (this_controller->parent.state_machine.current_state_id
+		|| (scic->parent.state_machine.current_state_id
 		    == SCI_BASE_CONTROLLER_STATE_INITIALIZED)
 		) {
 		u16 index;
@@ -3086,8 +2937,7 @@ enum sci_status scic_oem_parameters_set(
 			}
 		}
 
-		memcpy(
-			(&this_controller->oem_parameters), scic_parms, sizeof(*scic_parms));
+		memcpy(&scic->oem_parameters, scic_parms, sizeof(*scic_parms));
 		return SCI_SUCCESS;
 	}
 
@@ -3097,12 +2947,10 @@ enum sci_status scic_oem_parameters_set(
 /* --------------------------------------------------------------------------- */
 
 void scic_oem_parameters_get(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *scic,
 	union scic_oem_parameters *scic_parms)
 {
-	struct scic_sds_controller *this_controller = (struct scic_sds_controller *)controller;
-
-	memcpy(scic_parms, (&this_controller->oem_parameters), sizeof(*scic_parms));
+	memcpy(scic_parms, (&scic->oem_parameters), sizeof(*scic_parms));
 }
 
 /* --------------------------------------------------------------------------- */
@@ -3116,11 +2964,10 @@ void scic_oem_parameters_get(
 #define INTERRUPT_COALESCE_TIMEOUT_ENCODE_MAX                28
 
 enum sci_status scic_controller_set_interrupt_coalescence(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *scic_controller,
 	u32 coalesce_number,
 	u32 coalesce_timeout)
 {
-	struct scic_sds_controller *scic_controller = (struct scic_sds_controller *)controller;
 	u8 timeout_encode = 0;
 	u32 min = 0;
 	u32 max = 0;

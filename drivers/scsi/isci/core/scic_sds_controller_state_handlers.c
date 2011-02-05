@@ -245,10 +245,9 @@ static enum sci_status scic_sds_controller_reset_state_initialize_handler(
 		);
 
 	this_controller->timeout_timer = scic_cb_timer_create(
-		controller,
-		scic_sds_controller_timeout_handler,
-		controller
-		);
+		this_controller,
+		(void (*)(void *))scic_sds_controller_timeout_handler,
+		(void (*)(void *))controller);
 
 	scic_sds_controller_initialize_phy_startup(this_controller);
 
@@ -458,7 +457,7 @@ static enum sci_status scic_sds_controller_initialized_state_start_handler(
 		/*
 		 * Before anything else lets make sure we will not be interrupted
 		 * by the hardware. */
-		scic_controller_disable_interrupts(controller);
+		scic_controller_disable_interrupts(this_controller);
 
 		/* Enable the port task scheduler */
 		scic_sds_controller_enable_port_task_scheduler(this_controller);
@@ -476,7 +475,9 @@ static enum sci_status scic_sds_controller_initialized_state_start_handler(
 	if (SCI_SUCCESS == result) {
 		scic_sds_controller_start_next_phy(this_controller);
 
-		scic_cb_timer_start(controller, this_controller->timeout_timer, timeout);
+		scic_cb_timer_start(this_controller,
+				    this_controller->timeout_timer,
+				    timeout);
 
 		sci_base_state_machine_change_state(
 			scic_sds_controller_get_base_state_machine(this_controller),
@@ -564,7 +565,9 @@ static enum sci_status scic_sds_controller_ready_state_stop_handler(
 
 	this_controller = (struct scic_sds_controller *)controller;
 
-	scic_cb_timer_start(controller, this_controller->timeout_timer, timeout);
+	scic_cb_timer_start(this_controller,
+			    this_controller->timeout_timer,
+			    timeout);
 
 	sci_base_state_machine_change_state(
 		scic_sds_controller_get_base_state_machine(this_controller),

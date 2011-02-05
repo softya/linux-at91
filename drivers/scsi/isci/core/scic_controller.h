@@ -100,7 +100,7 @@ enum scic_interrupt_type {
  * process and it was processed. false: returned if no interrupt was processed.
  */
 typedef bool (*SCIC_CONTROLLER_INTERRUPT_HANDLER)(
-	SCI_CONTROLLER_HANDLE_T controller
+	struct scic_sds_controller *controller
 	);
 
 /**
@@ -115,7 +115,7 @@ typedef bool (*SCIC_CONTROLLER_INTERRUPT_HANDLER)(
  * which they invoke this API.
  */
 typedef void (*SCIC_CONTROLLER_COMPLETION_HANDLER)(
-	SCI_CONTROLLER_HANDLE_T controller
+	struct scic_sds_controller *controller
 	);
 
 /**
@@ -158,7 +158,7 @@ enum sci_status scic_controller_construct(struct scic_sds_controller *c,
  *
  */
 void scic_controller_enable_interrupts(
-	SCI_CONTROLLER_HANDLE_T controller);
+	struct scic_sds_controller *controller);
 
 /**
  * scic_controller_disable_interrupts() - This method will disable all
@@ -168,7 +168,7 @@ void scic_controller_enable_interrupts(
  *
  */
 void scic_controller_disable_interrupts(
-	SCI_CONTROLLER_HANDLE_T controller);
+	struct scic_sds_controller *controller);
 
 /**
  * scic_controller_get_handler_methods() - This method will return provide
@@ -227,7 +227,7 @@ enum sci_status scic_controller_get_handler_methods(
  * is returned if the controller hardware was successfully initialized.
  */
 enum sci_status scic_controller_initialize(
-	SCI_CONTROLLER_HANDLE_T controller);
+	struct scic_sds_controller *controller);
 
 /**
  * scic_controller_get_suggested_start_timeout() - This method returns the
@@ -242,7 +242,7 @@ enum sci_status scic_controller_initialize(
  * operation timeout.
  */
 u32 scic_controller_get_suggested_start_timeout(
-	SCI_CONTROLLER_HANDLE_T controller);
+	struct scic_sds_controller *controller);
 
 /**
  * scic_controller_start() - This method will start the supplied core
@@ -267,7 +267,7 @@ u32 scic_controller_get_suggested_start_timeout(
  * struct sci_physical_memory_descriptor array.
  */
 enum sci_status scic_controller_start(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *controller,
 	u32 timeout);
 
 /**
@@ -289,7 +289,7 @@ enum sci_status scic_controller_start(
  * controller is not either in the STARTED or STOPPED states.
  */
 enum sci_status scic_controller_stop(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *controller,
 	u32 timeout);
 
 /**
@@ -305,7 +305,7 @@ enum sci_status scic_controller_stop(
  * the controller reset operation is unable to complete.
  */
 enum sci_status scic_controller_reset(
-	SCI_CONTROLLER_HANDLE_T controller);
+	struct scic_sds_controller *controller);
 
 /**
  * scic_controller_start_io() - This method is called by the SCI user to
@@ -335,7 +335,7 @@ enum sci_status scic_controller_reset(
  * successfully started. Determine the failure situations and return values.
  */
 enum sci_io_status scic_controller_start_io(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *controller,
 	struct scic_sds_remote_device *remote_device,
 	struct scic_sds_request *io_request,
 	u16 io_tag);
@@ -370,7 +370,7 @@ enum sci_io_status scic_controller_start_io(
  * completion before this request can succeed.
  */
 enum sci_task_status scic_controller_start_task(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *controller,
 	struct scic_sds_remote_device *remote_device,
 	struct scic_sds_request *task_request,
 	u16 io_tag);
@@ -390,7 +390,7 @@ enum sci_task_status scic_controller_start_task(
  * request. SCI_SUCCESS if the completion process was successful.
  */
 enum sci_status scic_controller_complete_task(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *controller,
 	struct scic_sds_remote_device *remote_device,
 	struct scic_sds_request *task_request);
 
@@ -412,7 +412,7 @@ enum sci_status scic_controller_complete_task(
  * for the request. Determine the failure situations and return values.
  */
 enum sci_status scic_controller_terminate_request(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *controller,
 	struct scic_sds_remote_device *remote_device,
 	struct scic_sds_request *request);
 
@@ -439,7 +439,7 @@ enum sci_status scic_controller_terminate_request(
  * completion process was successful.
  */
 enum sci_status scic_controller_complete_io(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *controller,
 	struct scic_sds_remote_device *remote_device,
 	struct scic_sds_request *io_request);
 
@@ -461,7 +461,7 @@ enum sci_status scic_controller_complete_io(
  * not in the supported range.
  */
 enum sci_status scic_controller_get_port_handle(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *controller,
 	u8 port_index,
 	struct scic_sds_port **port_handle);
 
@@ -480,7 +480,7 @@ enum sci_status scic_controller_get_port_handle(
  * This value is returned if the supplied phy id is not in the supported range.
  */
 enum sci_status scic_controller_get_phy_handle(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *controller,
 	u8 phy_index,
 	struct scic_sds_phy **phy_handle);
 
@@ -507,7 +507,7 @@ enum sci_status scic_controller_get_phy_handle(
  * legitimate tag.
  */
 u16 scic_controller_allocate_io_tag(
-	SCI_CONTROLLER_HANDLE_T controller);
+	struct scic_sds_controller *controller);
 
 /**
  * scic_controller_free_io_tag() - This method will free an IO tag to the pool
@@ -535,7 +535,7 @@ u16 scic_controller_allocate_io_tag(
  * is not a valid IO tag value.
  */
 enum sci_status scic_controller_free_io_tag(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *controller,
 	u16 io_tag);
 
 
@@ -552,7 +552,7 @@ enum sci_status scic_controller_free_io_tag(
  * controller. SCI_SUCCESS The user successfully updated the mode.
  */
 enum sci_status scic_controller_set_mode(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *controller,
 	enum sci_controller_mode mode);
 
 
@@ -574,7 +574,7 @@ enum sci_status scic_controller_set_mode(
  * SCI_FAILURE_INVALID_PARAMETER_VALUE The user input value is out of range.
  */
 enum sci_status scic_controller_set_interrupt_coalescence(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *controller,
 	u32 coalesce_number,
 	u32 coalesce_timeout);
 

@@ -67,6 +67,7 @@
 #include "sci_types.h"
 
 struct sci_base_memory_descriptor_list;
+struct scic_sds_controller;
 
 #define SCI_CONTROLLER_INVALID_IO_TAG 0xFFFF
 
@@ -92,7 +93,7 @@ struct sci_base_memory_descriptor_list;
  */
 struct sci_base_memory_descriptor_list *
 	sci_controller_get_memory_descriptor_list_handle(
-	SCI_CONTROLLER_HANDLE_T controller);
+	struct scic_sds_controller *controller);
 
 
 #endif  /* _SCI_CONTROLLER_H_ */

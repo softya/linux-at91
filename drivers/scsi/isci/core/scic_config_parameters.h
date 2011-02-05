@@ -70,6 +70,8 @@
 #include "intel_sas.h"
 #include "sci_controller_constants.h"
 
+struct scic_sds_controller;
+
 /**
  *
  *
@@ -292,7 +294,7 @@ union scic_oem_parameters {
  * supplied an invalid interrupt coalescence time, spin up delay interval, etc.
  */
 enum sci_status scic_user_parameters_set(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *controller,
 	union scic_user_parameters *user_parameters);
 
 /**
@@ -305,7 +307,7 @@ enum sci_status scic_user_parameters_set(
  *
  */
 void scic_user_parameters_get(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *controller,
 	union scic_user_parameters *user_parameters);
 
 /**
@@ -324,7 +326,7 @@ void scic_user_parameters_get(
  * supplied an unsupported value for one of the OEM parameters.
  */
 enum sci_status scic_oem_parameters_set(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *controller,
 	union scic_oem_parameters *oem_parameters);
 
 /**
@@ -337,7 +339,7 @@ enum sci_status scic_oem_parameters_set(
  *
  */
 void scic_oem_parameters_get(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *controller,
 	union scic_oem_parameters *oem_parameters);
 
 

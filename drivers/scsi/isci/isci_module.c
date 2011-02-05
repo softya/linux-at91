@@ -82,7 +82,7 @@
  * handle will be utilized for all further interactions relating to this timer.
  */
 void *scic_cb_timer_create(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *controller,
 	void (*timer_callback)(void *),
 	void *cookie)
 {
@@ -119,7 +119,7 @@ void *scic_cb_timer_create(
  *
  */
 void scic_cb_timer_start(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *controller,
 	void *timer,
 	u32 milliseconds)
 {
@@ -146,7 +146,7 @@ void scic_cb_timer_start(
  *
  */
 void scic_cb_timer_stop(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *controller,
 	void *timer)
 {
 	struct isci_host *isci_host;
@@ -187,7 +187,7 @@ void scic_cb_stall_execution(
  *
  */
 void scic_cb_controller_start_complete(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *controller,
 	enum sci_status completion_status)
 {
 	struct isci_host *isci_host =
@@ -209,7 +209,7 @@ void scic_cb_controller_start_complete(
  *
  */
 void scic_cb_controller_stop_complete(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *controller,
 	enum sci_status completion_status)
 {
 	struct isci_host *isci_host =
@@ -233,7 +233,7 @@ void scic_cb_controller_stop_complete(
  *
  */
 void scic_cb_io_request_complete(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *controller,
 	struct scic_sds_remote_device *remote_device,
 	struct scic_sds_request *scic_io_request,
 	enum sci_io_status completion_status)
@@ -268,7 +268,7 @@ void scic_cb_io_request_complete(
  *
  */
 void scic_cb_task_request_complete(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *controller,
 	struct scic_sds_remote_device *remote_device,
 	struct scic_sds_request *scic_task_request,
 	enum sci_task_status completion_status)
@@ -298,7 +298,7 @@ void scic_cb_task_request_complete(
  *
  */
 void scic_cb_io_request_get_physical_address(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *controller,
 	struct scic_sds_request *io_request,
 	void *virtual_address,
 	dma_addr_t *physical_address)
@@ -701,7 +701,7 @@ u32 scic_cb_stp_packet_io_request_get_cdb_length(
  *
  */
 void scic_cb_port_stop_complete(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *controller,
 	struct scic_sds_port *port,
 	enum sci_status completion_status)
 {
@@ -722,7 +722,7 @@ void scic_cb_port_stop_complete(
  *
  */
 void scic_cb_port_hard_reset_complete(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *controller,
 	struct scic_sds_port *port,
 	enum sci_status completion_status)
 {
@@ -742,7 +742,7 @@ void scic_cb_port_hard_reset_complete(
  *
  */
 void scic_cb_port_ready(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *controller,
 	struct scic_sds_port *port)
 {
 	struct isci_port *isci_port;
@@ -770,7 +770,7 @@ void scic_cb_port_ready(
  *
  */
 void scic_cb_port_not_ready(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *controller,
 	struct scic_sds_port *port,
 	u32 reason_code)
 {
@@ -803,7 +803,7 @@ void scic_cb_port_not_ready(
  *
  */
 void scic_cb_port_invalid_link_up(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *controller,
 	struct scic_sds_port *port,
 	struct scic_sds_phy *phy)
 {
@@ -824,7 +824,7 @@ void scic_cb_port_invalid_link_up(
  *
  */
 void scic_cb_port_bc_change_primitive_received(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *controller,
 	struct scic_sds_port *port,
 	struct scic_sds_phy *phy)
 {
@@ -856,7 +856,7 @@ void scic_cb_port_bc_change_primitive_received(
  * none.
  */
 void scic_cb_port_link_up(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *controller,
 	struct scic_sds_port *port,
 	struct scic_sds_phy *phy)
 {
@@ -886,7 +886,7 @@ void scic_cb_port_link_up(
  * none.
  */
 void scic_cb_port_link_down(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *controller,
 	struct scic_sds_port *port,
 	struct scic_sds_phy *phy)
 {
@@ -921,7 +921,7 @@ void scic_cb_port_link_down(
  *
  */
 void scic_cb_remote_device_start_complete(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *controller,
 	struct scic_sds_remote_device *remote_device,
 	enum sci_status completion_status)
 {
@@ -956,7 +956,7 @@ void scic_cb_remote_device_start_complete(
  *
  */
 void scic_cb_remote_device_stop_complete(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *controller,
 	struct scic_sds_remote_device *remote_device,
 	enum sci_status completion_status)
 {
@@ -989,7 +989,7 @@ void scic_cb_remote_device_stop_complete(
  *
  */
 void scic_cb_remote_device_ready(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *controller,
 	struct scic_sds_remote_device *remote_device)
 {
 	struct isci_remote_device *isci_device =
@@ -1015,7 +1015,7 @@ void scic_cb_remote_device_ready(
  *
  */
 void scic_cb_remote_device_not_ready(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *controller,
 	struct scic_sds_remote_device *remote_device,
 	u32 reason_code)
 {
@@ -1069,7 +1069,7 @@ bool scic_cb_io_request_do_copy_rx_frames(
  * The method returns the virtual address for the supplied physical address.
  */
 void *scic_cb_get_virtual_address(
-	SCI_CONTROLLER_HANDLE_T controller,
+	struct scic_sds_controller *controller,
 	dma_addr_t physical_address)
 {
 	void *virt_addr = (void *)phys_to_virt(physical_address);

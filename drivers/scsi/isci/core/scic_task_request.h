@@ -70,6 +70,7 @@
 
 struct scic_sds_request;
 struct scic_sds_remote_device;
+struct scic_sds_controller;
 
 
 /**
@@ -104,7 +105,7 @@ struct scic_sds_remote_device;
  * the task request was successfully built.
  */
 enum sci_status scic_task_request_construct(
-	SCI_CONTROLLER_HANDLE_T scic_controller,
+	struct scic_sds_controller *scic_controller,
 	struct scic_sds_remote_device *scic_remote_device,
 	u16 io_tag,
 	void *user_task_request_object,

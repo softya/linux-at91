@@ -99,11 +99,9 @@ static void scic_sds_controller_initial_state_enter(
 static void scic_sds_controller_starting_state_exit(
 	struct sci_base_object *object)
 {
-	struct scic_sds_controller *this_controller;
+	struct scic_sds_controller *scic = (struct scic_sds_controller *)object;
 
-	this_controller = (struct scic_sds_controller *)object;
-
-	scic_cb_timer_stop(object, this_controller->timeout_timer);
+	scic_cb_timer_stop(scic, scic->timeout_timer);
 }
 
 /**

@@ -90,7 +90,7 @@ void isci_port_init(
 	int index)
 {
 	struct scic_sds_port *scic_port;
-	SCI_CONTROLLER_HANDLE_T controller = isci_host->core_controller;
+	struct scic_sds_controller *controller = isci_host->core_controller;
 
 	INIT_LIST_HEAD(&isci_port->remote_dev_list);
 	INIT_LIST_HEAD(&isci_port->domain_dev_list);

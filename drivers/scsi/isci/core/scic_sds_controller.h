@@ -82,6 +82,7 @@
 
 struct scic_sds_remote_device;
 struct scic_sds_request;
+struct scic_sds_controller;
 
 
 #define SCU_COMPLETION_RAM_ALIGNMENT            (64)
@@ -687,7 +688,7 @@ void scic_sds_controller_copy_task_context(
 	struct scic_sds_request *this_request);
 
 void scic_sds_controller_timeout_handler(
-	SCI_CONTROLLER_HANDLE_T controller);
+	struct scic_sds_controller *controller);
 
 void scic_sds_controller_initialize_power_control(
 	struct scic_sds_controller *this_controller);

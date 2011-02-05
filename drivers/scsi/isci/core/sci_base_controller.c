@@ -63,6 +63,8 @@
 
 #include "sci_base_controller.h"
 
+struct scic_sds_controller;
+
 /*
  * ******************************************************************************
  * * P U B L I C   M E T H O D S
@@ -70,7 +72,7 @@
 
 struct sci_base_memory_descriptor_list *
 sci_controller_get_memory_descriptor_list_handle(
-	SCI_CONTROLLER_HANDLE_T controller)
+	struct scic_sds_controller *controller)
 {
 	struct sci_base_controller *this_controller = (struct sci_base_controller *)controller;
 
