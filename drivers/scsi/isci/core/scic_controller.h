@@ -334,7 +334,7 @@ enum sci_status scic_controller_reset(
 enum sci_io_status scic_controller_start_io(
 	SCI_CONTROLLER_HANDLE_T controller,
 	SCI_REMOTE_DEVICE_HANDLE_T remote_device,
-	SCI_IO_REQUEST_HANDLE_T io_request,
+	struct scic_sds_request *io_request,
 	u16 io_tag);
 
 
@@ -411,7 +411,7 @@ enum sci_status scic_controller_complete_task(
 enum sci_status scic_controller_terminate_request(
 	SCI_CONTROLLER_HANDLE_T controller,
 	SCI_REMOTE_DEVICE_HANDLE_T remote_device,
-	SCI_IO_REQUEST_HANDLE_T request);
+	struct scic_sds_request *request);
 
 /**
  * scic_controller_complete_io() - This method will perform core specific
@@ -438,7 +438,7 @@ enum sci_status scic_controller_terminate_request(
 enum sci_status scic_controller_complete_io(
 	SCI_CONTROLLER_HANDLE_T controller,
 	SCI_REMOTE_DEVICE_HANDLE_T remote_device,
-	SCI_IO_REQUEST_HANDLE_T io_request);
+	struct scic_sds_request *io_request);
 
 
 /**

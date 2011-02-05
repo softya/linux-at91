@@ -137,8 +137,6 @@ void scic_sds_smp_request_assign_buffers(
 }
 /**
  * This method is called by the SCI user to build an SMP IO request.
- * @scic_io_request: This parameter specifies the handle to the io request
- *    object to be built.
  *
  * - The user must have previously called scic_io_request_construct() on the
  * supplied IO request. Indicate if the controller successfully built the IO
@@ -151,26 +149,24 @@ void scic_sds_smp_request_assign_buffers(
  * information.
  */
 enum sci_status scic_io_request_construct_smp(
-	SCI_IO_REQUEST_HANDLE_T scic_smp_request)
+	struct scic_sds_request *sci_req)
 {
 	struct smp_request smp_request;
 
-	struct scic_sds_request *this_request = (struct scic_sds_request *)scic_smp_request;
-
-	this_request->protocol                     = SCIC_SMP_PROTOCOL;
-	this_request->has_started_substate_machine = true;
+	sci_req->protocol                     = SCIC_SMP_PROTOCOL;
+	sci_req->has_started_substate_machine = true;
 
 	/* Construct the started sub-state machine. */
 	sci_base_state_machine_construct(
-		&this_request->started_substate_machine,
-		&this_request->parent.parent,
+		&sci_req->started_substate_machine,
+		&sci_req->parent.parent,
 		scic_sds_smp_request_started_substate_table,
 		SCIC_SDS_SMP_REQUEST_STARTED_SUBSTATE_AWAIT_RESPONSE
 		);
 
 	/* Construct the SMP SCU Task Context */
 	memcpy((char *)&smp_request,
-	       this_request->command_buffer,
+	       sci_req->command_buffer,
 	       sizeof(struct smp_request));
 
 	/*
@@ -194,13 +190,10 @@ enum sci_status scic_io_request_construct_smp(
 		}
 	}
 
-	scu_smp_request_construct_task_context(
-		this_request,
-		&smp_request
-		);
+	scu_smp_request_construct_task_context(sci_req, &smp_request);
 
 	sci_base_state_machine_change_state(
-		&this_request->parent.state_machine,
+		&sci_req->parent.state_machine,
 		SCI_BASE_REQUEST_STATE_CONSTRUCTED
 		);
 

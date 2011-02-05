@@ -222,7 +222,7 @@ static enum sci_status isci_io_request_build(
 		SCI_CONTROLLER_INVALID_IO_TAG,
 		request,
 		request->sci_request_mem_ptr,
-		(SCI_IO_REQUEST_HANDLE_T *)&request->sci_request_handle
+		(struct scic_sds_request **)&request->sci_request_handle
 		);
 
 	if (status != SCI_SUCCESS) {

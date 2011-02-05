@@ -450,41 +450,29 @@ enum sci_status scic_sds_stp_soft_reset_request_construct(
 	return SCI_SUCCESS;
 }
 
-/*
- * ****************************************************************************
- * * SCIC Interface Implementation
- * **************************************************************************** */
 
 void scic_stp_io_request_set_ncq_tag(
-	SCI_IO_REQUEST_HANDLE_T scic_io_request,
+	struct scic_sds_request *req,
 	u16 ncq_tag)
 {
 	/**
 	 * @note This could be made to return an error to the user if the user
 	 *       attempts to set the NCQ tag in the wrong state.
 	 */
-	struct scic_sds_request *this_request = (struct scic_sds_request *)scic_io_request;
-
-	this_request->task_context_buffer->type.stp.ncq_tag = ncq_tag;
+	req->task_context_buffer->type.stp.ncq_tag = ncq_tag;
 }
 
-/* --------------------------------------------------------------------------- */
 
 void *scic_stp_io_request_get_h2d_reg_address(
-	SCI_IO_REQUEST_HANDLE_T scic_io_request
-	) {
-	struct scic_sds_request *this_request = (struct scic_sds_request *)scic_io_request;
-
-	return this_request->command_buffer;
+	struct scic_sds_request *req)
+{
+	return req->command_buffer;
 }
 
-/* --------------------------------------------------------------------------- */
 
 void *scic_stp_io_request_get_d2h_reg_address(
-	SCI_IO_REQUEST_HANDLE_T scic_io_request
-	) {
-	struct scic_sds_stp_request *this_request = (struct scic_sds_stp_request *)scic_io_request;
-
-	return &this_request->d2h_reg_fis;
+	struct scic_sds_request *req)
+{
+	return &((struct scic_sds_stp_request *)req)->d2h_reg_fis;
 }
 

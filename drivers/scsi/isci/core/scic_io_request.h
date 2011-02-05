@@ -68,6 +68,7 @@
 #include "sci_status.h"
 #include "intel_sas.h"
 
+struct scic_sds_request;
 
 /**
  * struct scic_io_parameters - This structure contains additional optional
@@ -324,7 +325,7 @@ enum sci_status scic_io_request_construct(
 	u16 io_tag,
 	void *user_io_request_object,
 	void *scic_io_request_memory,
-	SCI_IO_REQUEST_HANDLE_T *new_scic_io_request_handle);
+	struct scic_sds_request **new_scic_io_request_handle);
 
 /**
  * scic_io_request_construct_basic_ssp() - This method is called by the SCI
@@ -343,7 +344,7 @@ enum sci_status scic_io_request_construct(
  * information.
  */
 enum sci_status scic_io_request_construct_basic_ssp(
-	SCI_IO_REQUEST_HANDLE_T scic_io_request);
+	struct scic_sds_request *scic_io_request);
 
 
 
@@ -366,7 +367,7 @@ enum sci_status scic_io_request_construct_basic_ssp(
  * information.
  */
 enum sci_status scic_io_request_construct_basic_sata(
-	SCI_IO_REQUEST_HANDLE_T scic_io_request);
+	struct scic_sds_request *scic_io_request);
 
 
 
@@ -388,7 +389,7 @@ enum sci_status scic_io_request_construct_basic_sata(
  * information.
  */
 enum sci_status scic_io_request_construct_smp(
-	SCI_IO_REQUEST_HANDLE_T scic_io_request);
+	struct scic_sds_request *scic_io_request);
 
 
 
@@ -403,7 +404,7 @@ enum sci_status scic_io_request_construct_smp(
  * status.
  */
 u32 scic_request_get_controller_status(
-	SCI_IO_REQUEST_HANDLE_T io_request);
+	struct scic_sds_request *io_request);
 
 
 
@@ -416,7 +417,7 @@ u32 scic_request_get_controller_status(
  * The address of the SSP/SMP command information unit.
  */
 void *scic_io_request_get_command_iu_address(
-	SCI_IO_REQUEST_HANDLE_T scic_io_request);
+	struct scic_sds_request *scic_io_request);
 
 /**
  * scic_io_request_get_response_iu_address() - This method will return the
@@ -429,7 +430,7 @@ void *scic_io_request_get_command_iu_address(
  * The address of the SSP/SMP response information unit.
  */
 void *scic_io_request_get_response_iu_address(
-	SCI_IO_REQUEST_HANDLE_T scic_io_request);
+	struct scic_sds_request *scic_io_request);
 
 /**
  * scic_io_request_get_io_tag() - This method will return the IO tag utilized
@@ -443,7 +444,7 @@ void *scic_io_request_get_response_iu_address(
  * legitimate tag.
  */
 u16 scic_io_request_get_io_tag(
-	SCI_IO_REQUEST_HANDLE_T scic_io_request);
+	struct scic_sds_request *scic_io_request);
 
 
 /**
@@ -459,7 +460,7 @@ u16 scic_io_request_get_io_tag(
  * none This function is only valid for SATA NCQ requests.
  */
 void scic_stp_io_request_set_ncq_tag(
-	SCI_IO_REQUEST_HANDLE_T scic_io_request,
+	struct scic_sds_request *scic_io_request,
 	u16 ncq_tag);
 
 /**
@@ -473,7 +474,7 @@ void scic_stp_io_request_set_ncq_tag(
  * object. This function is only valid for SATA requests.
  */
 void *scic_stp_io_request_get_h2d_reg_address(
-	SCI_IO_REQUEST_HANDLE_T scic_io_request);
+	struct scic_sds_request *scic_io_request);
 
 /**
  * scic_stp_io_request_get_d2h_reg_address() - This method will return the
@@ -486,7 +487,7 @@ void *scic_stp_io_request_get_h2d_reg_address(
  * function is only valid for SATA requests.
  */
 void *scic_stp_io_request_get_d2h_reg_address(
-	SCI_IO_REQUEST_HANDLE_T scic_io_request);
+	struct scic_sds_request *scic_io_request);
 
 
 /**
@@ -502,7 +503,7 @@ void *scic_stp_io_request_get_d2h_reg_address(
  * equal to the specified length in the io request
  */
 u32 scic_io_request_get_number_of_bytes_transferred(
-	SCI_IO_REQUEST_HANDLE_T scic_io_request);
+	struct scic_sds_request *scic_io_request);
 
 
 #endif  /* _SCIC_IO_REQUEST_H_ */

@@ -800,7 +800,7 @@ enum sci_status scic_io_request_construct(
 	u16 io_tag,
 	void *user_io_request_object,
 	void *scic_io_request_memory,
-	SCI_IO_REQUEST_HANDLE_T *new_scic_io_request_handle)
+	struct scic_sds_request **new_scic_io_request_handle)
 {
 	enum sci_status status = SCI_SUCCESS;
 	struct scic_sds_request *this_request;
@@ -905,31 +905,26 @@ enum sci_status scic_task_request_construct(
 }
 
 
-/* --------------------------------------------------------------------------- */
-
 enum sci_status scic_io_request_construct_basic_ssp(
-	SCI_IO_REQUEST_HANDLE_T scic_io_request)
+	struct scic_sds_request *sci_req)
 {
 	void *os_handle;
-	struct scic_sds_request *this_request;
 
-	this_request = (struct scic_sds_request *)scic_io_request;
+	sci_req->protocol = SCIC_SSP_PROTOCOL;
 
-	this_request->protocol = SCIC_SSP_PROTOCOL;
-
-	os_handle = scic_sds_request_get_user_request(this_request);
+	os_handle = scic_sds_request_get_user_request(sci_req);
 
 	scu_ssp_io_request_construct_task_context(
-		this_request,
+		sci_req,
 		scic_cb_io_request_get_data_direction(os_handle),
 		scic_cb_io_request_get_transfer_length(os_handle)
 		);
 
 
-	scic_sds_io_request_build_ssp_command_iu(this_request);
+	scic_sds_io_request_build_ssp_command_iu(sci_req);
 
 	sci_base_state_machine_change_state(
-		&this_request->parent.state_machine,
+		&sci_req->parent.state_machine,
 		SCI_BASE_REQUEST_STATE_CONSTRUCTED
 		);
 
@@ -955,32 +950,30 @@ enum sci_status scic_task_request_construct_ssp(
 }
 
 
-/* --------------------------------------------------------------------------- */
-
 enum sci_status scic_io_request_construct_basic_sata(
-	SCI_IO_REQUEST_HANDLE_T scic_io_request)
+	struct scic_sds_request *sci_req)
 {
 	enum sci_status status;
-	struct scic_sds_request *this_request;
 	struct scic_sds_stp_request *this_stp_request;
 	u8 sat_protocol;
 	u32 transfer_length;
 	SCI_IO_REQUEST_DATA_DIRECTION data_direction;
 	bool copy_rx_frame = false;
 
-	this_request = (struct scic_sds_request *)scic_io_request;
-	this_stp_request = (struct scic_sds_stp_request *)this_request;
+	this_stp_request = (struct scic_sds_stp_request *)sci_req;
 
-	this_request->protocol = SCIC_STP_PROTOCOL;
+	sci_req->protocol = SCIC_STP_PROTOCOL;
 
-	transfer_length = scic_cb_io_request_get_transfer_length(this_request->user_request);
-	data_direction = scic_cb_io_request_get_data_direction(this_request->user_request);
+	transfer_length =
+		scic_cb_io_request_get_transfer_length(sci_req->user_request);
+	data_direction =
+		scic_cb_io_request_get_data_direction(sci_req->user_request);
 
-	sat_protocol = scic_cb_request_get_sat_protocol(this_request->user_request);
+	sat_protocol = scic_cb_request_get_sat_protocol(sci_req->user_request);
 	copy_rx_frame = scic_cb_io_request_do_copy_rx_frames(this_stp_request->parent.user_request);
 
 	status = scic_io_request_construct_sata(
-		this_request,
+		sci_req,
 		sat_protocol,
 		transfer_length,
 		data_direction,
@@ -989,7 +982,7 @@ enum sci_status scic_io_request_construct_basic_sata(
 
 	if (status == SCI_SUCCESS)
 		sci_base_state_machine_change_state(
-			&this_request->parent.state_machine,
+			&sci_req->parent.state_machine,
 			SCI_BASE_REQUEST_STATE_CONSTRUCTED
 			);
 
@@ -1032,56 +1025,38 @@ enum sci_status scic_task_request_construct_sata(
 
 
 u16 scic_io_request_get_io_tag(
-	SCI_IO_REQUEST_HANDLE_T scic_io_request)
+	struct scic_sds_request *sci_req)
 {
-	struct scic_sds_request *this_request;
-
-	this_request = (struct scic_sds_request *)scic_io_request;
-
-	return this_request->io_tag;
+	return sci_req->io_tag;
 }
 
-/* --------------------------------------------------------------------------- */
 
 u32 scic_request_get_controller_status(
-	SCI_IO_REQUEST_HANDLE_T io_request)
+	struct scic_sds_request *sci_req)
 {
-	struct scic_sds_request *this_request = (struct scic_sds_request *)io_request;
-
-	return this_request->scu_status;
+	return sci_req->scu_status;
 }
-
-
-/* --------------------------------------------------------------------------- */
 
 
 void *scic_io_request_get_command_iu_address(
-	SCI_IO_REQUEST_HANDLE_T scic_io_request
-	) {
-	struct scic_sds_request *this_request = (struct scic_sds_request *)scic_io_request;
-
-	return this_request->command_buffer;
+	struct scic_sds_request *sci_req)
+{
+	return sci_req->command_buffer;
 }
 
-/* --------------------------------------------------------------------------- */
 
 void *scic_io_request_get_response_iu_address(
-	SCI_IO_REQUEST_HANDLE_T scic_io_request
-	) {
-	struct scic_sds_request *this_request = (struct scic_sds_request *)scic_io_request;
-
-	return this_request->response_buffer;
+	struct scic_sds_request *sci_req)
+{
+	return sci_req->response_buffer;
 }
 
-/* --------------------------------------------------------------------------- */
+
 #define SCU_TASK_CONTEXT_SRAM 0x200000
 u32 scic_io_request_get_number_of_bytes_transferred(
-	SCI_IO_REQUEST_HANDLE_T scic_io_request)
+	struct scic_sds_request *scic_sds_request)
 {
 	u32 ret_val = 0;
-	struct scic_sds_request *scic_sds_request;
-
-	scic_sds_request = (struct scic_sds_request *)scic_io_request;
 
 	if (SMU_AMR_READ(scic_sds_request->owning_controller) == 0) {
 		/*
@@ -1102,6 +1077,7 @@ u32 scic_io_request_get_number_of_bytes_transferred(
 
 	return ret_val;
 }
+
 
 /*
  * ****************************************************************************

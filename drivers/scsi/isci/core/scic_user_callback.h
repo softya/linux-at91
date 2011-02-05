@@ -178,7 +178,7 @@ void scic_cb_controller_stop_complete(
 void scic_cb_io_request_complete(
 	SCI_CONTROLLER_HANDLE_T controller,
 	SCI_REMOTE_DEVICE_HANDLE_T remote_device,
-	SCI_IO_REQUEST_HANDLE_T io_request,
+	struct scic_sds_request *io_request,
 	enum sci_io_status completion_status);
 
 /**
@@ -216,7 +216,7 @@ void scic_cb_task_request_complete(
  */
 void scic_cb_io_request_get_physical_address(
 	SCI_CONTROLLER_HANDLE_T controller,
-	SCI_IO_REQUEST_HANDLE_T io_request,
+	struct scic_sds_request *io_request,
 	void *virtual_address,
 	dma_addr_t *physical_address);
 #endif /* SCI_GET_PHYSICAL_ADDRESS_OPTIMIZATION_ENABLED */
