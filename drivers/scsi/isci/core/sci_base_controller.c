@@ -68,12 +68,14 @@
  * * P U B L I C   M E T H O D S
  * ****************************************************************************** */
 
-SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T sci_controller_get_memory_descriptor_list_handle(
+struct sci_base_memory_descriptor_list *
+sci_controller_get_memory_descriptor_list_handle(
 	SCI_CONTROLLER_HANDLE_T controller)
 {
 	struct sci_base_controller *this_controller = (struct sci_base_controller *)controller;
 
-	return (SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T)&this_controller->mdl;
+	return (struct sci_base_memory_descriptor_list *)
+		&this_controller->mdl;
 }
 
 /*
@@ -86,7 +88,7 @@ void sci_base_controller_construct(
 	const struct sci_base_state *state_table,
 	struct sci_physical_memory_descriptor *mdes,
 	u32 mde_count,
-	SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T next_mdl)
+	struct sci_base_memory_descriptor_list *next_mdl)
 {
 	sci_base_object_construct((struct sci_base_object *)this_controller);
 

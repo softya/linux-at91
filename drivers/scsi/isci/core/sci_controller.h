@@ -66,6 +66,7 @@
 
 #include "sci_types.h"
 
+struct sci_base_memory_descriptor_list;
 
 #define SCI_CONTROLLER_INVALID_IO_TAG 0xFFFF
 
@@ -89,7 +90,8 @@
  * sci_controller_initialize() routine. A pointer to a physical memory
  * descriptor array.
  */
-SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T sci_controller_get_memory_descriptor_list_handle(
+struct sci_base_memory_descriptor_list *
+	sci_controller_get_memory_descriptor_list_handle(
 	SCI_CONTROLLER_HANDLE_T controller);
 
 

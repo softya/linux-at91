@@ -64,12 +64,6 @@
 #define SCI_INVALID_HANDLE 0x0
 
 /**
- * The SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T will be utilized by SCI users as an
- *    opaque handle for the SCI MEMORY DESCRIPTOR LIST object.
- */
-typedef void *SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T;
-
-/**
  * The SCI_CONTROLLER_HANDLE_T will be utilized by SCI users as an opaque
  *    handle for all SCI Controller objects.
  */

@@ -71,6 +71,8 @@
 #include "sci_base_memory_descriptor_list.h"
 #include "sci_base_state_machine.h"
 
+struct sci_base_memory_descriptor_list;
+
 /**
  * enum sci_base_controller_states - This enumeration depicts all the states
  *    for the common controller state machine.
@@ -293,6 +295,6 @@ void sci_base_controller_construct(
 	const struct sci_base_state *state_table,
 	struct sci_physical_memory_descriptor *mdes,
 	u32 mde_count,
-	SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T next_mdl);
+	struct sci_base_memory_descriptor_list *next_mdl);
 
 #endif /* _SCI_BASE_CONTROLLER_H_ */

@@ -97,7 +97,7 @@ struct sci_base_memory_descriptor_list {
 	 * together if desired.  This field will be initialized to
 	 * SCI_INVALID_HANDLE.
 	 */
-	SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T next_mdl;
+	struct sci_base_memory_descriptor_list *next_mdl;
 
 };
 
@@ -117,7 +117,7 @@ void sci_base_mdl_construct(
 	struct sci_base_memory_descriptor_list *mdl,
 	struct sci_physical_memory_descriptor *mde_array,
 	u32 mde_array_length,
-	SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T next_mdl);
+	struct sci_base_memory_descriptor_list *next_mdl);
 
 /**
  * sci_base_mde_construct() -

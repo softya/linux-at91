@@ -69,10 +69,8 @@
  * ****************************************************************************** */
 
 void sci_mdl_first_entry(
-	SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T mdl)
+	struct sci_base_memory_descriptor_list *base_mdl)
 {
-	struct sci_base_memory_descriptor_list *base_mdl = (struct sci_base_memory_descriptor_list *)mdl;
-
 	base_mdl->next_index = 0;
 
 	/*
@@ -82,13 +80,10 @@ void sci_mdl_first_entry(
 		sci_mdl_first_entry(base_mdl->next_mdl);
 }
 
-/* --------------------------------------------------------------------------- */
 
 void sci_mdl_next_entry(
-	SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T mdl)
+	struct sci_base_memory_descriptor_list *base_mdl)
 {
-	struct sci_base_memory_descriptor_list *base_mdl = (struct sci_base_memory_descriptor_list *)mdl;
-
 	/*
 	 * If there is at least one more entry left in the array, then change
 	 * the next pointer to it. */
@@ -103,13 +98,10 @@ void sci_mdl_next_entry(
 	}
 }
 
-/* --------------------------------------------------------------------------- */
 
 struct sci_physical_memory_descriptor *sci_mdl_get_current_entry(
-	SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T mdl
-	) {
-	struct sci_base_memory_descriptor_list *base_mdl = (struct sci_base_memory_descriptor_list *)mdl;
-
+	struct sci_base_memory_descriptor_list *base_mdl)
+{
 	if (base_mdl->next_index < base_mdl->length)
 		return &base_mdl->mde_array[base_mdl->next_index];
 	else if (base_mdl->next_index == base_mdl->length) {
@@ -132,7 +124,7 @@ void sci_base_mdl_construct(
 	struct sci_base_memory_descriptor_list *mdl,
 	struct sci_physical_memory_descriptor *mde_array,
 	u32 mde_array_length,
-	SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T next_mdl)
+	struct sci_base_memory_descriptor_list *next_mdl)
 {
 	mdl->length     = mde_array_length;
 	mdl->mde_array  = mde_array;

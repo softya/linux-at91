@@ -330,7 +330,7 @@ static int isci_host_mdl_allocate_coherent(
 	struct coherent_memory_info *mdl_struct;
 	u32 size = 0;
 
-	SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T mdl_handle
+	struct sci_base_memory_descriptor_list *mdl_handle
 		= sci_controller_get_memory_descriptor_list_handle(
 		isci_host->core_controller);
 

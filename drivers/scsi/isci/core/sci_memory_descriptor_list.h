@@ -66,6 +66,8 @@
 
 #include "sci_types.h"
 
+struct sci_base_memory_descriptor_list;
+
 /**
  *
  *
@@ -137,7 +139,7 @@ struct sci_physical_memory_descriptor {
  *
  */
 void sci_mdl_first_entry(
-	SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T mdl);
+	struct sci_base_memory_descriptor_list *mdl);
 
 /**
  * sci_mdl_next_entry() - This method simply updates the "current" pointer to
@@ -148,7 +150,7 @@ void sci_mdl_first_entry(
  * none.
  */
 void sci_mdl_next_entry(
-	SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T mdl);
+	struct sci_base_memory_descriptor_list *mdl);
 
 /**
  * sci_mdl_get_current_entry() - This method simply returns the current memory
@@ -160,7 +162,7 @@ void sci_mdl_next_entry(
  * the MDL. NULL This value is returned if there are no descriptors in the list.
  */
 struct sci_physical_memory_descriptor *sci_mdl_get_current_entry(
-	SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T mdl);
+	struct sci_base_memory_descriptor_list *mdl);
 
 
 #endif  /* _SCI_MEMORY_DESCRIPTOR_LIST_H_ */
