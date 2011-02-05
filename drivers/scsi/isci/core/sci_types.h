@@ -58,98 +58,54 @@
 
 #include <linux/string.h>
 
-/**
- * This file contains all of the basic data types utilized by an SCI user or
- *    implementor.
- *
- *
- */
-
 #define sci_cb_make_physical_address(physical_addr, addr_upper, addr_lower) \
 	((physical_addr) = (addr_lower) | ((u64)addr_upper) << 32)
 
-/**
- *
- *
- * This constant defines the value utilized by SCI Components to indicate an
- * invalid handle.
- */
 #define SCI_INVALID_HANDLE 0x0
 
 /**
  * This typedef just provides an opaque handle for all SCI objects.
- *
- * SCI_OBJECT_HANDLE_T
  */
 typedef void *SCI_OBJECT_HANDLE_T;
 
 /**
  * The SCI_IO_REQUEST_HANDLE_T will be utilized by SCI users as an opaque
  *    handle for the various SCI IO Request objects.
- *
- * SCI_IO_REQUEST_HANDLE_T
  */
 typedef void *SCI_IO_REQUEST_HANDLE_T;
 
 /**
  * The SCI_TASK_REQUEST_HANDLE_T will be utilized by SCI users as an opaque
  *    handle for the various SCI Task Management Request objects.
- *
- * SCI_TASK_REQUEST_HANDLE_T
  */
 typedef void *SCI_TASK_REQUEST_HANDLE_T;
 
 /**
  * This typedef just provides an opaque handle for all SCI Phy objects.
- *
- * SCI_PHY_HANDLE_T
  */
 typedef void *SCI_PHY_HANDLE_T;
 
 /**
  * The SCI_REMOTE_DEVICE_HANDLE_T will be utilized by SCI users as an opaque
  *    handle for the SCI remote device object.
- *
- * SCI_REMOTE_DEVICE_HANDLE_T
  */
 typedef void *SCI_REMOTE_DEVICE_HANDLE_T;
 
 /**
- * This typedef just provides an opaque handle for all SCI Domain objects.
- *
- * SCI_DOMAIN_HANDLE_T
- */
-typedef void *SCI_DOMAIN_HANDLE_T;
-
-/**
  * This typedef just provides an opaque handle for all SCI SAS or SATA Port
  *    objects.
- *
- * SCI_PORT_HANDLE_T
  */
 typedef void *SCI_PORT_HANDLE_T;
 
 /**
  * The SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T will be utilized by SCI users as an
  *    opaque handle for the SCI MEMORY DESCRIPTOR LIST object.
- *
- * SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T
  */
 typedef void *SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T;
 
 /**
- * The SCI_LOCK_HANDLE_T will be utilized by SCI users as an opaque handle for
- *    the SCI LOCK object.  A lock denotes a critical code section of some form.
- *
- * SCI_LOCK_HANDLE_T
- */
-typedef void *SCI_LOCK_HANDLE_T;
-
-/**
  * The SCI_CONTROLLER_HANDLE_T will be utilized by SCI users as an opaque
  *    handle for all SCI Controller objects.
- *
- * SCI_CONTROLLER_HANDLE_T
  */
 typedef void *SCI_CONTROLLER_HANDLE_T;
 struct scic_sds_controller;
@@ -163,99 +119,25 @@ struct scic_sds_controller;
 typedef void *SCI_LIBRARY_HANDLE_T;
 
 /**
- * The SCI_ITERATOR_T will be utilized by SCI users as an opaque handle for the
- *    SCI Iterator object.
- *
- * SCI_ITERATOR_HANDLE_T
- */
-typedef void *SCI_ITERATOR_HANDLE_T;
-
-/**
  * This callback defines the format of all other timer callback methods that
  *    are to be implemented by an SCI user, including the method that will be
  *    invoked as a result of timer expiration. Parameters: value passed into
  *    the callback represents the cookie supplied by the SCI component when the
  *    timer was created. Return: - None
- *
- * SCI_TIMER_CALLBACK_T
  */
 typedef void (*SCI_TIMER_CALLBACK_T)(void *);
 
-/**
- * This enumeration is provided so the SCI User can communicate the data
- *    direction for an IO request.
- *
- *
- */
 typedef enum {
-	/**
-	 * The data direction for the request is in (a read operation)
-	 * This is also the value to use for an io request that has no specific
-	 * data direction.
-	 */
-	SCI_IO_REQUEST_DATA_IN = 0,
-
-	/**
-	 * The data direction for the request is out (a write operation)
-	 */
-	SCI_IO_REQUEST_DATA_OUT,
-
-	/**
-	 * There is no data transfer for the associated request.
-	 */
+	SCI_IO_REQUEST_DATA_IN = 0,	/* Read operation */
+	SCI_IO_REQUEST_DATA_OUT,	/* Write operation */
 	SCI_IO_REQUEST_NO_DATA
-
 } SCI_IO_REQUEST_DATA_DIRECTION;
 
-/**
- * enum SCI_LOCK_LEVEL - This enumeration defines the various lock levels
- *    utilized by the SCI component.  These lock levels help inform users, of
- *    the library, about what APIs must be protected from other APIs. The
- *    higher the lock level the more restricted the access.  For example, APIs
- *    specifying lock level 5 are allowed to be executed while an API of lock
- *    level 4 is on-going, but the converse is not true.
- *
- *
- */
-typedef enum {
-	/**
-	 * This value indicates there is no lock level required.  This is
-	 * primarily utilized for situations in which there is a true critical
-	 * code section that merely needs to protect against access to a
-	 * region of memory.
-	 */
-	SCI_LOCK_LEVEL_NONE,
 
-	SCI_LOCK_LEVEL_1,
-	SCI_LOCK_LEVEL_2,
-	SCI_LOCK_LEVEL_3,
-	SCI_LOCK_LEVEL_4,
-	SCI_LOCK_LEVEL_5
-
-} SCI_LOCK_LEVEL;
-
-/**
- * enum _SCI_CONTROLLER_MODE - This enumeration is utilized to indicate the
- *    operating mode in which the SCI component should function.
- *
- *
- */
 enum sci_controller_mode {
-	/**
-	 * This enumerant specifies that the SCI component be optimized to
-	 * perform as fast as possible without concern for the amount of
-	 * memory being utilized.
-	 */
-	SCI_MODE_SPEED,
-
-	/**
-	 * This enumerant specifies that the SCI component be optimized to
-	 * save memory space without concern for performance of the system.
-	 */
-	SCI_MODE_SIZE
-
+	SCI_MODE_SPEED,		/* Optimized for performance */
+	SCI_MODE_SIZE		/* Optimized for memory use */
 };
-
 
 #endif  /* _SCI_TYPES_H_ */
 
