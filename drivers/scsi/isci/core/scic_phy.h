@@ -71,6 +71,7 @@
 #include "intel_sas.h"
 
 struct scic_sds_phy;
+struct scic_sds_port;
 
 /**
  * struct scic_phy_properties - This structure defines the properties common to
@@ -84,7 +85,7 @@ struct scic_phy_properties {
 	 * supplied phy.  This field may be set to SCI_INVALID_HANDLE
 	 * if the phy is not currently contained in a port.
 	 */
-	SCI_PORT_HANDLE_T owning_port;
+	struct scic_sds_port *owning_port;
 
 	/**
 	 * This field specifies the link rate at which the phy is

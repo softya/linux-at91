@@ -702,7 +702,7 @@ u32 scic_cb_stp_packet_io_request_get_cdb_length(
  */
 void scic_cb_port_stop_complete(
 	SCI_CONTROLLER_HANDLE_T controller,
-	SCI_PORT_HANDLE_T port,
+	struct scic_sds_port *port,
 	enum sci_status completion_status)
 {
 	pr_warn("%s:************************************************\n",
@@ -723,7 +723,7 @@ void scic_cb_port_stop_complete(
  */
 void scic_cb_port_hard_reset_complete(
 	SCI_CONTROLLER_HANDLE_T controller,
-	SCI_PORT_HANDLE_T port,
+	struct scic_sds_port *port,
 	enum sci_status completion_status)
 {
 	struct isci_port *isci_port
@@ -743,7 +743,7 @@ void scic_cb_port_hard_reset_complete(
  */
 void scic_cb_port_ready(
 	SCI_CONTROLLER_HANDLE_T controller,
-	SCI_PORT_HANDLE_T port)
+	struct scic_sds_port *port)
 {
 	struct isci_port *isci_port;
 	struct isci_host *isci_host;
@@ -771,7 +771,7 @@ void scic_cb_port_ready(
  */
 void scic_cb_port_not_ready(
 	SCI_CONTROLLER_HANDLE_T controller,
-	SCI_PORT_HANDLE_T port,
+	struct scic_sds_port *port,
 	u32 reason_code)
 {
 	struct isci_port *isci_port;
@@ -804,7 +804,7 @@ void scic_cb_port_not_ready(
  */
 void scic_cb_port_invalid_link_up(
 	SCI_CONTROLLER_HANDLE_T controller,
-	SCI_PORT_HANDLE_T port,
+	struct scic_sds_port *port,
 	struct scic_sds_phy *phy)
 {
 	pr_warn("%s:************************************************\n",
@@ -825,7 +825,7 @@ void scic_cb_port_invalid_link_up(
  */
 void scic_cb_port_bc_change_primitive_received(
 	SCI_CONTROLLER_HANDLE_T controller,
-	SCI_PORT_HANDLE_T port,
+	struct scic_sds_port *port,
 	struct scic_sds_phy *phy)
 {
 	struct isci_host *isci_host;
@@ -857,7 +857,7 @@ void scic_cb_port_bc_change_primitive_received(
  */
 void scic_cb_port_link_up(
 	SCI_CONTROLLER_HANDLE_T controller,
-	SCI_PORT_HANDLE_T port,
+	struct scic_sds_port *port,
 	struct scic_sds_phy *phy)
 {
 	struct isci_host *isci_host;
@@ -887,7 +887,7 @@ void scic_cb_port_link_up(
  */
 void scic_cb_port_link_down(
 	SCI_CONTROLLER_HANDLE_T controller,
-	SCI_PORT_HANDLE_T port,
+	struct scic_sds_port *port,
 	struct scic_sds_phy *phy)
 {
 	struct isci_host *isci_host;

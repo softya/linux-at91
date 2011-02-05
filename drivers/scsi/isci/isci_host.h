@@ -271,7 +271,7 @@ void isci_host_deinit(
 
 void isci_host_port_link_up(
 	struct isci_host *,
-	SCI_PORT_HANDLE_T,
+	struct scic_sds_port *,
 	struct scic_sds_phy *);
 int isci_host_dev_found(struct domain_device *);
 

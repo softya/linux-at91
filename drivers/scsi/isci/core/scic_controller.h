@@ -71,6 +71,7 @@
 
 struct scic_sds_request;
 struct scic_sds_phy;
+struct scic_sds_port;
 
 /**
  * enum _SCIC_INTERRUPT_TYPE - This enumeration depicts the various types of
@@ -461,7 +462,7 @@ enum sci_status scic_controller_complete_io(
 enum sci_status scic_controller_get_port_handle(
 	SCI_CONTROLLER_HANDLE_T controller,
 	u8 port_index,
-	SCI_PORT_HANDLE_T *port_handle);
+	struct scic_sds_port **port_handle);
 
 /**
  * scic_controller_get_phy_handle() - This method simply provides the user with

@@ -68,6 +68,8 @@
 #include "sci_status.h"
 #include "intel_sas.h"
 
+struct scic_sds_port;
+
 enum SCIC_PORT_NOT_READY_REASON_CODE {
 	SCIC_PORT_NOT_READY_NO_ACTIVE_PHYS,
 	SCIC_PORT_NOT_READY_HARD_RESET_REQUESTED,
@@ -143,7 +145,7 @@ struct scic_port_properties {
  * returned, no data is copied to the properties output parameter.
  */
 enum sci_status scic_port_get_properties(
-	SCI_PORT_HANDLE_T port,
+	struct scic_sds_port *port,
 	struct scic_port_properties *properties);
 
 
@@ -161,7 +163,7 @@ enum sci_status scic_port_get_properties(
  * can't be completed due to the state of port.
  */
 enum sci_status scic_port_start(
-	SCI_PORT_HANDLE_T port);
+	struct scic_sds_port *port);
 
 /**
  * scic_port_stop() - This method will make the port no longer ready for
@@ -176,7 +178,7 @@ enum sci_status scic_port_start(
  * stop operation can't be completed due to the state of port.
  */
 enum sci_status scic_port_stop(
-	SCI_PORT_HANDLE_T port);
+	struct scic_sds_port *port);
 
 /**
  * scic_port_hard_reset() - This method will request the SCI implementation to
@@ -193,7 +195,7 @@ enum sci_status scic_port_stop(
  * This value is returned if the hard reset operation started successfully.
  */
 enum sci_status scic_port_hard_reset(
-	SCI_PORT_HANDLE_T port,
+	struct scic_sds_port *port,
 	u32 reset_timeout);
 
 /**
@@ -204,7 +206,7 @@ enum sci_status scic_port_hard_reset(
  *
  */
 void scic_port_enable_broadcast_change_notification(
-	SCI_PORT_HANDLE_T port);
+	struct scic_sds_port *port);
 
 
 #endif  /* _SCIC_PORT_H_ */

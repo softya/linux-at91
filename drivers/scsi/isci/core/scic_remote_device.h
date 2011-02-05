@@ -68,6 +68,7 @@
 #include "sci_status.h"
 #include "intel_sas.h"
 
+struct scic_sds_port;
 
 /**
  *

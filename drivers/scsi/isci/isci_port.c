@@ -89,7 +89,7 @@ void isci_port_init(
 	struct isci_host *isci_host,
 	int index)
 {
-	SCI_PORT_HANDLE_T scic_port;
+	struct scic_sds_port *scic_port;
 	SCI_CONTROLLER_HANDLE_T controller = isci_host->core_controller;
 
 	INIT_LIST_HEAD(&isci_port->remote_dev_list);
@@ -135,7 +135,7 @@ static void isci_port_change_state(
 
 void isci_port_bc_change_received(
 	struct isci_host *isci_host,
-	SCI_PORT_HANDLE_T port,
+	struct scic_sds_port *port,
 	struct scic_sds_phy *phy)
 {
 	struct isci_phy *isci_phy =
@@ -166,7 +166,7 @@ void isci_port_bc_change_received(
  */
 void isci_port_link_up(
 	struct isci_host *isci_host,
-	SCI_PORT_HANDLE_T port,
+	struct scic_sds_port *port,
 	struct scic_sds_phy *phy)
 {
 	unsigned long flags;

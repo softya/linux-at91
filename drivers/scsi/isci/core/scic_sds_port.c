@@ -639,64 +639,44 @@ void scic_sds_port_general_link_up_handler(
 	}
 }
 
-/* --------------------------------------------------------------------------- */
 
-
-/* --------------------------------------------------------------------------- */
-
-
-/* --------------------------------------------------------------------------- */
-
-enum sci_status scic_port_start(SCI_PORT_HANDLE_T handle)
+enum sci_status scic_port_start(struct scic_sds_port *port)
 {
-	struct scic_sds_port *this_port = (struct scic_sds_port *)handle;
-
-	return this_port->state_handlers->parent.start_handler(&this_port->parent);
+	return port->state_handlers->parent.start_handler(&port->parent);
 }
 
-/* --------------------------------------------------------------------------- */
 
-enum sci_status scic_port_stop(SCI_PORT_HANDLE_T handle)
+enum sci_status scic_port_stop(struct scic_sds_port *port)
 {
-	struct scic_sds_port *this_port = (struct scic_sds_port *)handle;
-
-	return this_port->state_handlers->parent.stop_handler(&this_port->parent);
+	return port->state_handlers->parent.stop_handler(&port->parent);
 }
 
-/* --------------------------------------------------------------------------- */
 
 enum sci_status scic_port_get_properties(
-	SCI_PORT_HANDLE_T port,
-	struct scic_port_properties *properties)
+	struct scic_sds_port *port,
+	struct scic_port_properties *prop)
 {
-	struct scic_sds_port *this_port = (struct scic_sds_port *)port;
-
 	if ((port == SCI_INVALID_HANDLE) ||
-	    (this_port->logical_port_index == SCIC_SDS_DUMMY_PORT))
+	    (port->logical_port_index == SCIC_SDS_DUMMY_PORT))
 		return SCI_FAILURE_INVALID_PORT;
 
-	properties->index    = this_port->logical_port_index;
-	properties->phy_mask = scic_sds_port_get_phys(this_port);
-	scic_sds_port_get_sas_address(this_port, &properties->local.sas_address);
-	scic_sds_port_get_protocols(this_port, &properties->local.protocols);
-	scic_sds_port_get_attached_sas_address(this_port, &properties->remote.sas_address);
-	scic_sds_port_get_attached_protocols(this_port, &properties->remote.protocols);
+	prop->index    = port->logical_port_index;
+	prop->phy_mask = scic_sds_port_get_phys(port);
+	scic_sds_port_get_sas_address(port, &prop->local.sas_address);
+	scic_sds_port_get_protocols(port, &prop->local.protocols);
+	scic_sds_port_get_attached_sas_address(port, &prop->remote.sas_address);
+	scic_sds_port_get_attached_protocols(port, &prop->remote.protocols);
 
 	return SCI_SUCCESS;
 }
 
-/* --------------------------------------------------------------------------- */
 
 enum sci_status scic_port_hard_reset(
-	SCI_PORT_HANDLE_T handle,
+	struct scic_sds_port *port,
 	u32 reset_timeout)
 {
-	struct scic_sds_port *this_port = (struct scic_sds_port *)handle;
-
-	return this_port->state_handlers->parent.reset_handler(
-		       &this_port->parent,
-		       reset_timeout
-		       );
+	return port->state_handlers->parent.reset_handler(
+		       &port->parent, reset_timeout);
 }
 
 /**
@@ -1084,16 +1064,15 @@ void scic_sds_port_broadcast_change_received(
  *
  */
 void scic_port_enable_broadcast_change_notification(
-	SCI_PORT_HANDLE_T port)
+	struct scic_sds_port *port)
 {
-	struct scic_sds_port *this_port = (struct scic_sds_port *)port;
 	struct scic_sds_phy *phy;
 	u32 register_value;
 	u8 index;
 
 	/* Loop through all of the phys to enable BCN. */
 	for (index = 0; index < SCI_MAX_PHYS; index++) {
-		phy = this_port->phy_table[index];
+		phy = port->phy_table[index];
 		if (phy != NULL) {
 			register_value = SCU_SAS_LLCTL_READ(phy);
 

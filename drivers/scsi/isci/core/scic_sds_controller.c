@@ -2811,7 +2811,7 @@ enum sci_status scic_controller_complete_task(
 enum sci_status scic_controller_get_port_handle(
 	SCI_CONTROLLER_HANDLE_T controller,
 	u8 port_index,
-	SCI_PORT_HANDLE_T *port_handle)
+	struct scic_sds_port **port_handle)
 {
 	struct scic_sds_controller *this_controller;
 

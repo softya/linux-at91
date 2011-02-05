@@ -70,12 +70,6 @@
 typedef void *SCI_REMOTE_DEVICE_HANDLE_T;
 
 /**
- * This typedef just provides an opaque handle for all SCI SAS or SATA Port
- *    objects.
- */
-typedef void *SCI_PORT_HANDLE_T;
-
-/**
  * The SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T will be utilized by SCI users as an
  *    opaque handle for the SCI MEMORY DESCRIPTOR LIST object.
  */

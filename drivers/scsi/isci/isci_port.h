@@ -85,7 +85,7 @@ enum isci_status {
  */
 struct isci_port {
 
-	SCI_PORT_HANDLE_T sci_port_handle;
+	struct scic_sds_port *sci_port_handle;
 
 	enum isci_status status;
 	struct isci_host *isci_host;
@@ -115,12 +115,12 @@ void isci_port_deformed(
 
 void isci_port_bc_change_received(
 	struct isci_host *isci_host,
-	SCI_PORT_HANDLE_T port,
+	struct scic_sds_port *port,
 	struct scic_sds_phy *phy);
 
 void isci_port_link_up(
 	struct isci_host *isci_host,
-	SCI_PORT_HANDLE_T port,
+	struct scic_sds_port *port,
 	struct scic_sds_phy *phy);
 
 void isci_port_link_down(

@@ -68,6 +68,7 @@
 #include "sci_base_phy.h"
 #include "scu_registers.h"
 
+struct scic_sds_port;
 /**
  *
  *
@@ -402,7 +403,7 @@ void scic_sds_phy_construct(
 	struct scic_sds_port *owning_port,
 	u8 phy_index);
 
-SCI_PORT_HANDLE_T scic_sds_phy_get_port(
+struct scic_sds_port *scic_sds_phy_get_port(
 	struct scic_sds_phy *this_phy);
 
 void scic_sds_phy_set_port(

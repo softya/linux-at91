@@ -124,10 +124,10 @@ static s32 sci_sas_address_compare(
  */
 static struct scic_sds_port *scic_sds_port_configuration_agent_find_port(
 	struct scic_sds_controller *controller,
-	struct scic_sds_phy *phy
-	) {
+	struct scic_sds_phy *phy)
+{
 	u8 port_index;
-	SCI_PORT_HANDLE_T port_handle;
+	struct scic_sds_port *port_handle;
 	struct sci_sas_address port_sas_address;
 	struct sci_sas_address port_attached_device_address;
 	struct sci_sas_address phy_sas_address;
@@ -568,7 +568,7 @@ static void scic_sds_apc_agent_configure_ports(
 	u8 port_index;
 	enum sci_status status;
 	struct scic_sds_port *port;
-	SCI_PORT_HANDLE_T port_handle;
+	struct scic_sds_port *port_handle;
 	enum SCIC_SDS_APC_ACTIVITY apc_activity = SCIC_SDS_APC_SKIP_PHY;
 
 	port = scic_sds_port_configuration_agent_find_port(controller, phy);

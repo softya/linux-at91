@@ -550,7 +550,7 @@ int isci_host_init(struct isci_host *isci_host)
 	int index = 0;
 	enum sci_status status;
 	struct scic_sds_controller *controller;
-	SCI_PORT_HANDLE_T scic_port;
+	struct scic_sds_port *scic_port;
 	struct scic_controller_handler_methods *handlers
 		= &isci_host->scic_irq_handlers[0];
 	union scic_oem_parameters scic_oem_params;

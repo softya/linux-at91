@@ -419,7 +419,7 @@ void scic_sds_phy_construct(
  * port (i.e. it's contained in the dummy port). !SCI_INVALID_HANDLE All other
  * values indicate a handle/pointer to the port containing the phy.
  */
-SCI_PORT_HANDLE_T scic_sds_phy_get_port(
+struct scic_sds_port *scic_sds_phy_get_port(
 	struct scic_sds_phy *this_phy)
 {
 	if (scic_sds_port_get_index(this_phy->owning_port) == SCIC_SDS_DUMMY_PORT)

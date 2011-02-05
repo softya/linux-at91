@@ -69,6 +69,7 @@
 
 struct scic_sds_request;
 struct scic_sds_phy;
+struct scic_sds_port;
 
 /**
  * scic_cb_timer_create() - This callback method asks the user to create a
@@ -522,7 +523,7 @@ void *scic_cb_get_virtual_address(
  */
 void scic_cb_port_stop_complete(
 	SCI_CONTROLLER_HANDLE_T controller,
-	SCI_PORT_HANDLE_T port,
+	struct scic_sds_port *port,
 	enum sci_status completion_status);
 
 /**
@@ -539,7 +540,7 @@ void scic_cb_port_stop_complete(
  */
 void scic_cb_port_hard_reset_complete(
 	SCI_CONTROLLER_HANDLE_T controller,
-	SCI_PORT_HANDLE_T port,
+	struct scic_sds_port *port,
 	enum sci_status completion_status);
 
 /**
@@ -553,7 +554,7 @@ void scic_cb_port_hard_reset_complete(
  */
 void scic_cb_port_ready(
 	SCI_CONTROLLER_HANDLE_T controller,
-	SCI_PORT_HANDLE_T port);
+	struct scic_sds_port *port);
 
 /**
  * scic_cb_port_not_ready() - This method informs the user that the port is now
@@ -568,7 +569,7 @@ void scic_cb_port_ready(
  */
 void scic_cb_port_not_ready(
 	SCI_CONTROLLER_HANDLE_T controller,
-	SCI_PORT_HANDLE_T port,
+	struct scic_sds_port *port,
 	u32 reason_code);
 
 /**
@@ -586,7 +587,7 @@ void scic_cb_port_not_ready(
  */
 void scic_cb_port_invalid_link_up(
 	SCI_CONTROLLER_HANDLE_T controller,
-	SCI_PORT_HANDLE_T port,
+	struct scic_sds_port *port,
 	struct scic_sds_phy *phy);
 
 /**
@@ -603,7 +604,7 @@ void scic_cb_port_invalid_link_up(
  */
 void scic_cb_port_bc_change_primitive_received(
 	SCI_CONTROLLER_HANDLE_T controller,
-	SCI_PORT_HANDLE_T port,
+	struct scic_sds_port *port,
 	struct scic_sds_phy *phy);
 
 
@@ -624,7 +625,7 @@ void scic_cb_port_bc_change_primitive_received(
  */
 void scic_cb_port_link_up(
 	SCI_CONTROLLER_HANDLE_T controller,
-	SCI_PORT_HANDLE_T port,
+	struct scic_sds_port *port,
 	struct scic_sds_phy *phy);
 
 /**
@@ -642,7 +643,7 @@ void scic_cb_port_link_up(
  */
 void scic_cb_port_link_down(
 	SCI_CONTROLLER_HANDLE_T controller,
-	SCI_PORT_HANDLE_T port,
+	struct scic_sds_port *port,
 	struct scic_sds_phy *phy);
 
 /**
