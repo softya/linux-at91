@@ -859,7 +859,7 @@ enum sci_status scic_task_request_construct(
 	u16 io_tag,
 	void *user_io_request_object,
 	void *scic_task_request_memory,
-	SCI_TASK_REQUEST_HANDLE_T *new_scic_task_request_handle)
+	struct scic_sds_request **new_scic_task_request_handle)
 {
 	enum sci_status status = SCI_SUCCESS;
 	struct scic_sds_request *this_request = (struct scic_sds_request *)
@@ -936,23 +936,18 @@ enum sci_status scic_io_request_construct_basic_ssp(
 	return SCI_SUCCESS;
 }
 
-/* --------------------------------------------------------------------------- */
-
 
 enum sci_status scic_task_request_construct_ssp(
-	SCI_TASK_REQUEST_HANDLE_T scic_task_request)
+	struct scic_sds_request *sci_req)
 {
-	struct scic_sds_request *this_request = (struct scic_sds_request *)
-					   scic_task_request;
-
 	/* Construct the SSP Task SCU Task Context */
-	scu_ssp_task_request_construct_task_context(this_request);
+	scu_ssp_task_request_construct_task_context(sci_req);
 
 	/* Fill in the SSP Task IU */
-	scic_sds_task_request_build_ssp_task_iu(this_request);
+	scic_sds_task_request_build_ssp_task_iu(sci_req);
 
 	sci_base_state_machine_change_state(
-		&this_request->parent.state_machine,
+		&sci_req->parent.state_machine,
 		SCI_BASE_REQUEST_STATE_CONSTRUCTED
 		);
 
@@ -1001,33 +996,25 @@ enum sci_status scic_io_request_construct_basic_sata(
 	return status;
 }
 
-/* --------------------------------------------------------------------------- */
-
 
 enum sci_status scic_task_request_construct_sata(
-	SCI_TASK_REQUEST_HANDLE_T scic_task_request)
+	struct scic_sds_request *sci_req)
 {
 	enum sci_status status;
-	struct scic_sds_request *this_request;
-	u8 sat_protocol;
-
-	this_request = (struct scic_sds_request *)scic_task_request;
-
-	sat_protocol =
-		scic_cb_request_get_sat_protocol(this_request->user_request);
+	u8 sat_protocol = scic_cb_request_get_sat_protocol(sci_req->user_request);
 
 	switch (sat_protocol) {
 	case SAT_PROTOCOL_ATA_HARD_RESET:
 	case SAT_PROTOCOL_SOFT_RESET:
-		status = scic_sds_stp_soft_reset_request_construct(this_request);
+		status = scic_sds_stp_soft_reset_request_construct(sci_req);
 		break;
 
 	default:
-		dev_err(scic_to_dev(this_request->owning_controller),
+		dev_err(scic_to_dev(sci_req->owning_controller),
 			"%s: SCIC IO Request 0x%p received un-handled SAT "
 			"Protocl %d.\n",
 			__func__,
-			this_request,
+			sci_req,
 			sat_protocol);
 
 		status = SCI_FAILURE;
@@ -1036,18 +1023,13 @@ enum sci_status scic_task_request_construct_sata(
 
 	if (status == SCI_SUCCESS)
 		sci_base_state_machine_change_state(
-			&this_request->parent.state_machine,
+			&sci_req->parent.state_machine,
 			SCI_BASE_REQUEST_STATE_CONSTRUCTED
 			);
 
 	return status;
 }
 
-
-/* --------------------------------------------------------------------------- */
-
-
-/* --------------------------------------------------------------------------- */
 
 u16 scic_io_request_get_io_tag(
 	SCI_IO_REQUEST_HANDLE_T scic_io_request)

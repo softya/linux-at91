@@ -93,7 +93,7 @@ enum task_type {
  */
 struct isci_request {
 
-	SCI_TASK_REQUEST_HANDLE_T sci_request_handle;
+	struct scic_sds_request *sci_request_handle;
 
 	enum isci_request_status status;
 	enum task_type ttype;

@@ -2748,7 +2748,7 @@ enum sci_status scic_controller_complete_io(
 enum sci_task_status scic_controller_start_task(
 	SCI_CONTROLLER_HANDLE_T controller,
 	SCI_REMOTE_DEVICE_HANDLE_T remote_device,
-	SCI_TASK_REQUEST_HANDLE_T task_request,
+	struct scic_sds_request *task_request,
 	u16 task_tag)
 {
 	u32 state;
@@ -2779,7 +2779,7 @@ enum sci_task_status scic_controller_start_task(
 enum sci_status scic_controller_complete_task(
 	SCI_CONTROLLER_HANDLE_T controller,
 	SCI_REMOTE_DEVICE_HANDLE_T remote_device,
-	SCI_TASK_REQUEST_HANDLE_T task_request)
+	struct scic_sds_request *task_request)
 {
 	u32 state;
 	struct scic_sds_controller *scic;

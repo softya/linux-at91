@@ -67,6 +67,7 @@
 #include "sci_types.h"
 #include "sci_status.h"
 
+struct scic_sds_request;
 
 /**
  * scic_cb_timer_create() - This callback method asks the user to create a
@@ -196,7 +197,7 @@ void scic_cb_io_request_complete(
 void scic_cb_task_request_complete(
 	SCI_CONTROLLER_HANDLE_T controller,
 	SCI_REMOTE_DEVICE_HANDLE_T remote_device,
-	SCI_TASK_REQUEST_HANDLE_T task_request,
+	struct scic_sds_request *task_request,
 	enum sci_task_status completion_status);
 
 #ifndef SCI_GET_PHYSICAL_ADDRESS_OPTIMIZATION_ENABLED

@@ -270,7 +270,7 @@ void scic_cb_io_request_complete(
 void scic_cb_task_request_complete(
 	SCI_CONTROLLER_HANDLE_T controller,
 	SCI_REMOTE_DEVICE_HANDLE_T remote_device,
-	SCI_TASK_REQUEST_HANDLE_T scic_task_request,
+	struct scic_sds_request *scic_task_request,
 	enum sci_task_status completion_status)
 {
 	struct isci_request *request;

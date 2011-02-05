@@ -70,12 +70,6 @@
 typedef void *SCI_IO_REQUEST_HANDLE_T;
 
 /**
- * The SCI_TASK_REQUEST_HANDLE_T will be utilized by SCI users as an opaque
- *    handle for the various SCI Task Management Request objects.
- */
-typedef void *SCI_TASK_REQUEST_HANDLE_T;
-
-/**
  * This typedef just provides an opaque handle for all SCI Phy objects.
  */
 typedef void *SCI_PHY_HANDLE_T;

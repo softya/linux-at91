@@ -68,6 +68,7 @@
 #include "sci_types.h"
 #include "sci_status.h"
 
+struct scic_sds_request;
 
 
 /**
@@ -107,7 +108,7 @@ enum sci_status scic_task_request_construct(
 	u16 io_tag,
 	void *user_task_request_object,
 	void *scic_task_request_memory,
-	SCI_TASK_REQUEST_HANDLE_T *new_scic_task_request_handle);
+	struct scic_sds_request **new_scic_task_request_handle);
 
 /**
  * scic_task_request_construct_ssp() - This method is called by the SCI user to
@@ -122,7 +123,7 @@ enum sci_status scic_task_request_construct(
  * This value is returned if the task request was successfully built.
  */
 enum sci_status scic_task_request_construct_ssp(
-	SCI_TASK_REQUEST_HANDLE_T scic_task_request);
+	struct scic_sds_request *scic_task_request);
 
 /**
  * scic_task_request_construct_sata() - This method is called by the SCI user
@@ -137,7 +138,7 @@ enum sci_status scic_task_request_construct_ssp(
  * This value is returned if the task request was successfully built.
  */
 enum sci_status scic_task_request_construct_sata(
-	SCI_TASK_REQUEST_HANDLE_T scic_task_request_handle);
+	struct scic_sds_request *scic_task_request_handle);
 
 
 

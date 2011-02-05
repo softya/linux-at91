@@ -69,6 +69,7 @@
 #include "sci_controller.h"
 #include "scic_config_parameters.h"
 
+struct scic_sds_request;
 
 /**
  * enum _SCIC_INTERRUPT_TYPE - This enumeration depicts the various types of
@@ -368,7 +369,7 @@ enum sci_io_status scic_controller_start_io(
 enum sci_task_status scic_controller_start_task(
 	SCI_CONTROLLER_HANDLE_T controller,
 	SCI_REMOTE_DEVICE_HANDLE_T remote_device,
-	SCI_TASK_REQUEST_HANDLE_T task_request,
+	struct scic_sds_request *task_request,
 	u16 io_tag);
 
 /**
@@ -388,7 +389,7 @@ enum sci_task_status scic_controller_start_task(
 enum sci_status scic_controller_complete_task(
 	SCI_CONTROLLER_HANDLE_T controller,
 	SCI_REMOTE_DEVICE_HANDLE_T remote_device,
-	SCI_TASK_REQUEST_HANDLE_T task_request);
+	struct scic_sds_request *task_request);
 
 
 /**
