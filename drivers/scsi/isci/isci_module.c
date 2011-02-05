@@ -234,7 +234,7 @@ void scic_cb_controller_stop_complete(
  */
 void scic_cb_io_request_complete(
 	SCI_CONTROLLER_HANDLE_T controller,
-	SCI_REMOTE_DEVICE_HANDLE_T remote_device,
+	struct scic_sds_remote_device *remote_device,
 	struct scic_sds_request *scic_io_request,
 	enum sci_io_status completion_status)
 {
@@ -269,7 +269,7 @@ void scic_cb_io_request_complete(
  */
 void scic_cb_task_request_complete(
 	SCI_CONTROLLER_HANDLE_T controller,
-	SCI_REMOTE_DEVICE_HANDLE_T remote_device,
+	struct scic_sds_remote_device *remote_device,
 	struct scic_sds_request *scic_task_request,
 	enum sci_task_status completion_status)
 {
@@ -922,7 +922,7 @@ void scic_cb_port_link_down(
  */
 void scic_cb_remote_device_start_complete(
 	SCI_CONTROLLER_HANDLE_T controller,
-	SCI_REMOTE_DEVICE_HANDLE_T remote_device,
+	struct scic_sds_remote_device *remote_device,
 	enum sci_status completion_status)
 {
 	struct isci_host *isci_host;
@@ -957,7 +957,7 @@ void scic_cb_remote_device_start_complete(
  */
 void scic_cb_remote_device_stop_complete(
 	SCI_CONTROLLER_HANDLE_T controller,
-	SCI_REMOTE_DEVICE_HANDLE_T remote_device,
+	struct scic_sds_remote_device *remote_device,
 	enum sci_status completion_status)
 {
 	struct isci_host *isci_host;
@@ -990,7 +990,7 @@ void scic_cb_remote_device_stop_complete(
  */
 void scic_cb_remote_device_ready(
 	SCI_CONTROLLER_HANDLE_T controller,
-	SCI_REMOTE_DEVICE_HANDLE_T remote_device)
+	struct scic_sds_remote_device *remote_device)
 {
 	struct isci_remote_device *isci_device =
 		(struct isci_remote_device *)
@@ -1016,7 +1016,7 @@ void scic_cb_remote_device_ready(
  */
 void scic_cb_remote_device_not_ready(
 	SCI_CONTROLLER_HANDLE_T controller,
-	SCI_REMOTE_DEVICE_HANDLE_T remote_device,
+	struct scic_sds_remote_device *remote_device,
 	u32 reason_code)
 {
 	struct isci_remote_device *isci_device =

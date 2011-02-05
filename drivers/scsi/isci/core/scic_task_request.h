@@ -69,6 +69,7 @@
 #include "sci_status.h"
 
 struct scic_sds_request;
+struct scic_sds_remote_device;
 
 
 /**
@@ -104,7 +105,7 @@ struct scic_sds_request;
  */
 enum sci_status scic_task_request_construct(
 	SCI_CONTROLLER_HANDLE_T scic_controller,
-	SCI_REMOTE_DEVICE_HANDLE_T scic_remote_device,
+	struct scic_sds_remote_device *scic_remote_device,
 	u16 io_tag,
 	void *user_task_request_object,
 	void *scic_task_request_memory,

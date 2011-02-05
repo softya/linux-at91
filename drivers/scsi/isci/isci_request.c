@@ -184,7 +184,8 @@ static enum sci_status isci_io_request_build(
 	struct smp_discover_response_protocols dev_protocols;
 	enum sci_status status = SCI_SUCCESS;
 	struct sas_task *task = isci_request_access_task(request);
-	SCI_REMOTE_DEVICE_HANDLE_T sci_device = isci_device->sci_device_handle;
+	struct scic_sds_remote_device *sci_device =
+		isci_device->sci_device_handle;
 
 	dev_dbg(&isci_host->pdev->dev,
 		"%s: isci_device = 0x%p; request = %p, "
@@ -405,7 +406,7 @@ int isci_request_execute(
 	gfp_t gfp_flags)
 {
 	int ret = 0;
-	SCI_REMOTE_DEVICE_HANDLE_T sci_device;
+	struct scic_sds_remote_device *sci_device;
 	enum sci_status status = SCI_FAILURE_UNSUPPORTED_PROTOCOL;
 	struct isci_remote_device *isci_device;
 	struct isci_request *request;

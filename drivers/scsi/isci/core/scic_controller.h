@@ -72,6 +72,7 @@
 struct scic_sds_request;
 struct scic_sds_phy;
 struct scic_sds_port;
+struct scic_sds_remote_device;
 
 /**
  * enum _SCIC_INTERRUPT_TYPE - This enumeration depicts the various types of
@@ -335,7 +336,7 @@ enum sci_status scic_controller_reset(
  */
 enum sci_io_status scic_controller_start_io(
 	SCI_CONTROLLER_HANDLE_T controller,
-	SCI_REMOTE_DEVICE_HANDLE_T remote_device,
+	struct scic_sds_remote_device *remote_device,
 	struct scic_sds_request *io_request,
 	u16 io_tag);
 
@@ -370,7 +371,7 @@ enum sci_io_status scic_controller_start_io(
  */
 enum sci_task_status scic_controller_start_task(
 	SCI_CONTROLLER_HANDLE_T controller,
-	SCI_REMOTE_DEVICE_HANDLE_T remote_device,
+	struct scic_sds_remote_device *remote_device,
 	struct scic_sds_request *task_request,
 	u16 io_tag);
 
@@ -390,7 +391,7 @@ enum sci_task_status scic_controller_start_task(
  */
 enum sci_status scic_controller_complete_task(
 	SCI_CONTROLLER_HANDLE_T controller,
-	SCI_REMOTE_DEVICE_HANDLE_T remote_device,
+	struct scic_sds_remote_device *remote_device,
 	struct scic_sds_request *task_request);
 
 
@@ -412,7 +413,7 @@ enum sci_status scic_controller_complete_task(
  */
 enum sci_status scic_controller_terminate_request(
 	SCI_CONTROLLER_HANDLE_T controller,
-	SCI_REMOTE_DEVICE_HANDLE_T remote_device,
+	struct scic_sds_remote_device *remote_device,
 	struct scic_sds_request *request);
 
 /**
@@ -439,7 +440,7 @@ enum sci_status scic_controller_terminate_request(
  */
 enum sci_status scic_controller_complete_io(
 	SCI_CONTROLLER_HANDLE_T controller,
-	SCI_REMOTE_DEVICE_HANDLE_T remote_device,
+	struct scic_sds_remote_device *remote_device,
 	struct scic_sds_request *io_request);
 
 

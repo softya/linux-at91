@@ -112,78 +112,68 @@ void scic_remote_device_construct(struct scic_sds_port *sci_port,
 	sci_object_set_association(sci_dev->rnc, sci_dev);
 }
 
-/* --------------------------------------------------------------------------- */
 
 enum sci_status scic_remote_device_da_construct(
-	SCI_REMOTE_DEVICE_HANDLE_T remote_device)
+	struct scic_sds_remote_device *sci_dev)
 {
 	enum sci_status status;
 	u16 remote_node_index;
-	struct scic_sds_remote_device *this_device = (struct scic_sds_remote_device *)
-						remote_device;
 	struct sci_sas_identify_address_frame_protocols protocols;
 
 	/*
 	 * This information is request to determine how many remote node context
-	 * entries will be needed to store the remote node. */
-	scic_sds_port_get_attached_protocols(this_device->owning_port, &protocols);
-	this_device->target_protocols.u.all = protocols.u.all;
-	this_device->is_direct_attached = true;
+	 * entries will be needed to store the remote node.
+	 */
+	scic_sds_port_get_attached_protocols(sci_dev->owning_port, &protocols);
+	sci_dev->target_protocols.u.all = protocols.u.all;
+	sci_dev->is_direct_attached = true;
 #if !defined(DISABLE_ATAPI)
-	this_device->is_atapi = scic_sds_remote_device_is_atapi(this_device);
+	sci_dev->is_atapi = scic_sds_remote_device_is_atapi(sci_dev);
 #endif
 
 	status = scic_sds_controller_allocate_remote_node_context(
-		this_device->owning_port->owning_controller,
-		this_device,
-		&remote_node_index
-		);
+		sci_dev->owning_port->owning_controller,
+		sci_dev,
+		&remote_node_index);
 
 	if (status == SCI_SUCCESS) {
 		scic_sds_remote_node_context_set_remote_node_index(
-			this_device->rnc, remote_node_index
-			);
+			sci_dev->rnc, remote_node_index);
 
 		scic_sds_port_get_attached_sas_address(
-			this_device->owning_port, &this_device->device_address
-			);
+			sci_dev->owning_port, &sci_dev->device_address);
 
-		if (this_device->target_protocols.u.bits.attached_ssp_target) {
-			this_device->has_ready_substate_machine = false;
-		} else if (this_device->target_protocols.u.bits.attached_stp_target) {
-			this_device->has_ready_substate_machine = true;
+		if (sci_dev->target_protocols.u.bits.attached_ssp_target) {
+			sci_dev->has_ready_substate_machine = false;
+		} else if (sci_dev->target_protocols.u.bits.attached_stp_target) {
+			sci_dev->has_ready_substate_machine = true;
 
 			sci_base_state_machine_construct(
-				&this_device->ready_substate_machine,
-				&this_device->parent.parent,
+				&sci_dev->ready_substate_machine,
+				&sci_dev->parent.parent,
 				scic_sds_stp_remote_device_ready_substate_table,
-				SCIC_SDS_STP_REMOTE_DEVICE_READY_SUBSTATE_IDLE
-				);
-		} else if (this_device->target_protocols.u.bits.attached_smp_target) {
-			this_device->has_ready_substate_machine = true;
+				SCIC_SDS_STP_REMOTE_DEVICE_READY_SUBSTATE_IDLE);
+		} else if (sci_dev->target_protocols.u.bits.attached_smp_target) {
+			sci_dev->has_ready_substate_machine = true;
 
 			/* add the SMP ready substate machine construction here */
 			sci_base_state_machine_construct(
-				&this_device->ready_substate_machine,
-				&this_device->parent.parent,
+				&sci_dev->ready_substate_machine,
+				&sci_dev->parent.parent,
 				scic_sds_smp_remote_device_ready_substate_table,
-				SCIC_SDS_SMP_REMOTE_DEVICE_READY_SUBSTATE_IDLE
-				);
+				SCIC_SDS_SMP_REMOTE_DEVICE_READY_SUBSTATE_IDLE);
 		}
 
-		this_device->connection_rate = scic_sds_port_get_max_allowed_speed(
-			this_device->owning_port
-			);
+		sci_dev->connection_rate = scic_sds_port_get_max_allowed_speed(
+			sci_dev->owning_port);
 
 		/* / @todo Should I assign the port width by reading all of the phys on the port? */
-		this_device->device_port_width = 1;
+		sci_dev->device_port_width = 1;
 	}
 
 	return status;
 }
 
-
-/* --------------------------------------------------------------------------- */
 
 static void scic_sds_remote_device_get_info_from_smp_discover_response(
 	struct scic_sds_remote_device *this_device,
@@ -200,53 +190,41 @@ static void scic_sds_remote_device_get_info_from_smp_discover_response(
 }
 
 
-/* --------------------------------------------------------------------------- */
-
 enum sci_status scic_remote_device_ea_construct(
-	SCI_REMOTE_DEVICE_HANDLE_T remote_device,
+	struct scic_sds_remote_device *sci_dev,
 	struct smp_response_discover *discover_response)
 {
 	enum sci_status status;
-
-	struct scic_sds_remote_device *this_device;
 	struct scic_sds_controller *the_controller;
 
-	this_device = (struct scic_sds_remote_device *)remote_device;
-
-	the_controller = scic_sds_port_get_controller(this_device->owning_port);
+	the_controller = scic_sds_port_get_controller(sci_dev->owning_port);
 
 	scic_sds_remote_device_get_info_from_smp_discover_response(
-		this_device, discover_response
-		);
+		sci_dev, discover_response);
 
 	status = scic_sds_controller_allocate_remote_node_context(
-		the_controller,
-		this_device,
-		&this_device->rnc->remote_node_index
-		);
+		the_controller, sci_dev, &sci_dev->rnc->remote_node_index);
 
 	if (status == SCI_SUCCESS) {
-		if (this_device->target_protocols.u.bits.attached_ssp_target) {
-			this_device->has_ready_substate_machine = false;
-		} else if (this_device->target_protocols.u.bits.attached_smp_target) {
-			this_device->has_ready_substate_machine = true;
+		if (sci_dev->target_protocols.u.bits.attached_ssp_target) {
+			sci_dev->has_ready_substate_machine = false;
+		} else if (sci_dev->target_protocols.u.bits.attached_smp_target) {
+			sci_dev->has_ready_substate_machine = true;
 
 			/* add the SMP ready substate machine construction here */
 			sci_base_state_machine_construct(
-				&this_device->ready_substate_machine,
-				&this_device->parent.parent,
+				&sci_dev->ready_substate_machine,
+				&sci_dev->parent.parent,
 				scic_sds_smp_remote_device_ready_substate_table,
-				SCIC_SDS_SMP_REMOTE_DEVICE_READY_SUBSTATE_IDLE
-				);
-		} else if (this_device->target_protocols.u.bits.attached_stp_target) {
-			this_device->has_ready_substate_machine = true;
+				SCIC_SDS_SMP_REMOTE_DEVICE_READY_SUBSTATE_IDLE);
+		} else if (sci_dev->target_protocols.u.bits.attached_stp_target) {
+			sci_dev->has_ready_substate_machine = true;
 
 			sci_base_state_machine_construct(
-				&this_device->ready_substate_machine,
-				&this_device->parent.parent,
+				&sci_dev->ready_substate_machine,
+				&sci_dev->parent.parent,
 				scic_sds_stp_remote_device_ready_substate_table,
-				SCIC_SDS_STP_REMOTE_DEVICE_READY_SUBSTATE_IDLE
-				);
+				SCIC_SDS_STP_REMOTE_DEVICE_READY_SUBSTATE_IDLE);
 		}
 
 		/*
@@ -256,131 +234,73 @@ enum sci_status scic_remote_device_ea_construct(
 		 * connection the logical link rate is that same as the
 		 * physical.  Furthermore, the SAS-2 and SAS-1.1 fields overlay
 		 * one another, so this code works for both situations. */
-		this_device->connection_rate = min_t(u16,
-			scic_sds_port_get_max_allowed_speed(this_device->owning_port),
+		sci_dev->connection_rate = min_t(u16,
+			scic_sds_port_get_max_allowed_speed(sci_dev->owning_port),
 			discover_response->u2.sas1_1.negotiated_physical_link_rate
 			);
 
 		/* / @todo Should I assign the port width by reading all of the phys on the port? */
-		this_device->device_port_width = 1;
+		sci_dev->device_port_width = 1;
 	}
 
 	return status;
 }
 
-/* --------------------------------------------------------------------------- */
-
 enum sci_status scic_remote_device_destruct(
-	SCI_REMOTE_DEVICE_HANDLE_T remote_device)
+	struct scic_sds_remote_device *sci_dev)
 {
-	struct scic_sds_remote_device *this_device;
-
-	this_device = (struct scic_sds_remote_device *)remote_device;
-
-	return this_device->state_handlers->parent.destruct_handler(&this_device->parent);
+	return sci_dev->state_handlers->parent.destruct_handler(&sci_dev->parent);
 }
 
-/* --------------------------------------------------------------------------- */
 
 enum sci_status scic_remote_device_start(
-	SCI_REMOTE_DEVICE_HANDLE_T remote_device,
+	struct scic_sds_remote_device *sci_dev,
 	u32 timeout)
 {
-	struct scic_sds_remote_device *this_device;
-
-	this_device = (struct scic_sds_remote_device *)remote_device;
-
-	return this_device->state_handlers->parent.start_handler(&this_device->parent);
+	return sci_dev->state_handlers->parent.start_handler(&sci_dev->parent);
 }
 
-/* --------------------------------------------------------------------------- */
 
 enum sci_status scic_remote_device_stop(
-	SCI_REMOTE_DEVICE_HANDLE_T remote_device,
+	struct scic_sds_remote_device *sci_dev,
 	u32 timeout)
 {
-	struct scic_sds_remote_device *this_device;
-
-	this_device = (struct scic_sds_remote_device *)remote_device;
-
-	return this_device->state_handlers->parent.stop_handler(&this_device->parent);
+	return sci_dev->state_handlers->parent.stop_handler(&sci_dev->parent);
 }
 
-/**
- *
- * @this_device: The remote device for which the reset is being requested.
- *
- * This method invokes the remote device reset handler. enum sci_status
- */
+
 enum sci_status scic_remote_device_reset(
-	SCI_REMOTE_DEVICE_HANDLE_T remote_device)
+	struct scic_sds_remote_device *sci_dev)
 {
-	struct scic_sds_remote_device *this_device;
-
-	this_device = (struct scic_sds_remote_device *)remote_device;
-
-	return this_device->state_handlers->parent.reset_handler(&this_device->parent);
+	return sci_dev->state_handlers->parent.reset_handler(&sci_dev->parent);
 }
 
-/**
- *
- * @this_device: The remote device for which the reset is being requested.
- *
- * This method invokes the remote device reset handler. enum sci_status
- */
+
 enum sci_status scic_remote_device_reset_complete(
-	SCI_REMOTE_DEVICE_HANDLE_T remote_device)
+	struct scic_sds_remote_device *sci_dev)
 {
-	struct scic_sds_remote_device *this_device;
-
-	this_device = (struct scic_sds_remote_device *)remote_device;
-
-	return this_device->state_handlers->parent.reset_complete_handler(&this_device->parent);
+	return sci_dev->state_handlers->parent.reset_complete_handler(&sci_dev->parent);
 }
 
-/**
- *
- * @this_device: The remote device for which the reset is being requested.
- *
- * This method invokes the remote device reset handler. enum sci_status
- */
-
-/* --------------------------------------------------------------------------- */
-
-
-/* --------------------------------------------------------------------------- */
 
 enum sci_sas_link_rate scic_remote_device_get_connection_rate(
-	SCI_REMOTE_DEVICE_HANDLE_T remote_device)
+	struct scic_sds_remote_device *sci_dev)
 {
-	struct scic_sds_remote_device *this_device;
-
-	this_device = (struct scic_sds_remote_device *)remote_device;
-
-	return this_device->connection_rate;
+	return sci_dev->connection_rate;
 }
 
-/* --------------------------------------------------------------------------- */
 
 void scic_remote_device_get_protocols(
-	SCI_REMOTE_DEVICE_HANDLE_T remote_device,
-	struct smp_discover_response_protocols *protocols)
+	struct scic_sds_remote_device *sci_dev,
+	struct smp_discover_response_protocols *pr)
 {
-	struct scic_sds_remote_device *this_device = (struct scic_sds_remote_device *)
-						remote_device;
-
-	protocols->u.all = this_device->target_protocols.u.all;
+	pr->u.all = sci_dev->target_protocols.u.all;
 }
 
-/* --------------------------------------------------------------------------- */
-
-
-/* --------------------------------------------------------------------------- */
 #if !defined(DISABLE_ATAPI)
-bool scic_remote_device_is_atapi(
-	SCI_REMOTE_DEVICE_HANDLE_T device_handle)
+bool scic_remote_device_is_atapi(struct scic_sds_remote_device *sci_dev)
 {
-	return ((struct scic_sds_remote_device *)device_handle)->is_atapi;
+	return sci_dev->is_atapi;
 }
 #endif
 
@@ -398,21 +318,6 @@ bool scic_remote_device_is_atapi(
 #define SCIC_SDS_REMOTE_DEVICE_MINIMUM_TIMER_COUNT (0)
 #define SCIC_SDS_REMOTE_DEVICE_MAXIMUM_TIMER_COUNT (SCI_MAX_REMOTE_DEVICES)
 
-/**
- * This method returns the minimum number of timers required for all remote
- *    devices.
- *
- * u32
- */
-
-/**
- * This method returns the maximum number of timers requried for all remote
- *    devices.
- *
- * u32
- */
-
-/* --------------------------------------------------------------------------- */
 
 /**
  *

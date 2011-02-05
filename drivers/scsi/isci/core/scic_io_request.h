@@ -69,6 +69,7 @@
 #include "intel_sas.h"
 
 struct scic_sds_request;
+struct scic_sds_remote_device;
 
 /**
  * struct scic_io_parameters - This structure contains additional optional
@@ -321,7 +322,7 @@ u32 scic_io_request_get_object_size(
  */
 enum sci_status scic_io_request_construct(
 	SCI_CONTROLLER_HANDLE_T scic_controller,
-	SCI_REMOTE_DEVICE_HANDLE_T scic_remote_device,
+	struct scic_sds_remote_device *scic_remote_device,
 	u16 io_tag,
 	void *user_io_request_object,
 	void *scic_io_request_memory,

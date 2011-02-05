@@ -796,7 +796,7 @@ u32 scic_io_request_get_object_size(void)
 
 enum sci_status scic_io_request_construct(
 	SCI_CONTROLLER_HANDLE_T scic_controller,
-	SCI_REMOTE_DEVICE_HANDLE_T scic_remote_device,
+	struct scic_sds_remote_device *scic_remote_device,
 	u16 io_tag,
 	void *user_io_request_object,
 	void *scic_io_request_memory,
@@ -855,7 +855,7 @@ enum sci_status scic_io_request_construct(
 
 enum sci_status scic_task_request_construct(
 	SCI_CONTROLLER_HANDLE_T controller,
-	SCI_REMOTE_DEVICE_HANDLE_T remote_device,
+	struct scic_sds_remote_device *remote_device,
 	u16 io_tag,
 	void *user_io_request_object,
 	void *scic_task_request_memory,

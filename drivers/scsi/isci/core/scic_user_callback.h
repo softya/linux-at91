@@ -70,6 +70,7 @@
 struct scic_sds_request;
 struct scic_sds_phy;
 struct scic_sds_port;
+struct scic_sds_remote_device;
 
 /**
  * scic_cb_timer_create() - This callback method asks the user to create a
@@ -179,7 +180,7 @@ void scic_cb_controller_stop_complete(
  */
 void scic_cb_io_request_complete(
 	SCI_CONTROLLER_HANDLE_T controller,
-	SCI_REMOTE_DEVICE_HANDLE_T remote_device,
+	struct scic_sds_remote_device *remote_device,
 	struct scic_sds_request *io_request,
 	enum sci_io_status completion_status);
 
@@ -198,7 +199,7 @@ void scic_cb_io_request_complete(
  */
 void scic_cb_task_request_complete(
 	SCI_CONTROLLER_HANDLE_T controller,
-	SCI_REMOTE_DEVICE_HANDLE_T remote_device,
+	struct scic_sds_remote_device *remote_device,
 	struct scic_sds_request *task_request,
 	enum sci_task_status completion_status);
 
@@ -659,7 +660,7 @@ void scic_cb_port_link_down(
  */
 void scic_cb_remote_device_start_complete(
 	SCI_CONTROLLER_HANDLE_T controller,
-	SCI_REMOTE_DEVICE_HANDLE_T remote_device,
+	struct scic_sds_remote_device *remote_device,
 	enum sci_status completion_status);
 
 /**
@@ -675,7 +676,7 @@ void scic_cb_remote_device_start_complete(
  */
 void scic_cb_remote_device_stop_complete(
 	SCI_CONTROLLER_HANDLE_T controller,
-	SCI_REMOTE_DEVICE_HANDLE_T remote_device,
+	struct scic_sds_remote_device *remote_device,
 	enum sci_status completion_status);
 
 /**
@@ -689,7 +690,7 @@ void scic_cb_remote_device_stop_complete(
  */
 void scic_cb_remote_device_ready(
 	SCI_CONTROLLER_HANDLE_T controller,
-	SCI_REMOTE_DEVICE_HANDLE_T remote_device);
+	struct scic_sds_remote_device *remote_device);
 
 /**
  * scic_cb_remote_device_not_ready() - This user callback method will inform
@@ -705,7 +706,7 @@ void scic_cb_remote_device_ready(
  */
 void scic_cb_remote_device_not_ready(
 	SCI_CONTROLLER_HANDLE_T controller,
-	SCI_REMOTE_DEVICE_HANDLE_T remote_device,
+	struct scic_sds_remote_device *remote_device,
 	u32 reason_code);
 
 #if !defined(DISABLE_ATAPI)

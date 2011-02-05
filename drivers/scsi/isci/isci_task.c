@@ -283,7 +283,7 @@ static enum sci_status isci_task_request_build(
 	struct isci_request **isci_request,
 	struct isci_tmf *isci_tmf)
 {
-	SCI_REMOTE_DEVICE_HANDLE_T sci_device;
+	struct scic_sds_remote_device *sci_device;
 	enum sci_status status = SCI_FAILURE;
 	struct isci_request *request;
 	struct isci_remote_device *isci_device;
@@ -443,7 +443,7 @@ int isci_task_execute_tmf(
 {
 	DECLARE_COMPLETION_ONSTACK(completion);
 	enum sci_status status = SCI_FAILURE;
-	SCI_REMOTE_DEVICE_HANDLE_T sci_device;
+	struct scic_sds_remote_device *sci_device;
 	struct isci_remote_device *isci_device = tmf->device;
 	struct isci_request *request;
 	int ret = TMF_RESP_FUNC_FAILED;

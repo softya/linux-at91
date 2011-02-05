@@ -69,6 +69,7 @@
 #include "intel_sas.h"
 
 struct scic_sds_port;
+struct scic_sds_remote_device;
 
 /**
  *
@@ -134,7 +135,7 @@ void scic_remote_device_construct(struct scic_sds_port *sci_port,
  * additional remote devices.
  */
 enum sci_status scic_remote_device_da_construct(
-	SCI_REMOTE_DEVICE_HANDLE_T remote_device);
+	struct scic_sds_remote_device *remote_device);
 
 /**
  * scic_remote_device_ea_construct() - This method will construct an
@@ -159,7 +160,7 @@ enum sci_status scic_remote_device_da_construct(
  * additional remote devices.
  */
 enum sci_status scic_remote_device_ea_construct(
-	SCI_REMOTE_DEVICE_HANDLE_T remote_device,
+	struct scic_sds_remote_device *remote_device,
 	struct smp_response_discover *discover_response);
 
 /**
@@ -177,7 +178,7 @@ enum sci_status scic_remote_device_ea_construct(
  * valid, etc.).
  */
 enum sci_status scic_remote_device_destruct(
-	SCI_REMOTE_DEVICE_HANDLE_T remote_device);
+	struct scic_sds_remote_device *remote_device);
 
 
 
@@ -197,7 +198,7 @@ enum sci_status scic_remote_device_destruct(
  * the device when there have been no phys added to it.
  */
 enum sci_status scic_remote_device_start(
-	SCI_REMOTE_DEVICE_HANDLE_T remote_device,
+	struct scic_sds_remote_device *remote_device,
 	u32 timeout);
 
 /**
@@ -213,7 +214,7 @@ enum sci_status scic_remote_device_start(
  * successfully stopped.
  */
 enum sci_status scic_remote_device_stop(
-	SCI_REMOTE_DEVICE_HANDLE_T remote_device,
+	struct scic_sds_remote_device *remote_device,
 	u32 timeout);
 
 /**
@@ -229,7 +230,7 @@ enum sci_status scic_remote_device_stop(
  * started.
  */
 enum sci_status scic_remote_device_reset(
-	SCI_REMOTE_DEVICE_HANDLE_T remote_device);
+	struct scic_sds_remote_device *remote_device);
 
 /**
  * scic_remote_device_reset_complete() - This method informs the device object
@@ -242,7 +243,7 @@ enum sci_status scic_remote_device_reset(
  * is resuming operation.
  */
 enum sci_status scic_remote_device_reset_complete(
-	SCI_REMOTE_DEVICE_HANDLE_T remote_device);
+	struct scic_sds_remote_device *remote_device);
 
 
 
@@ -255,7 +256,7 @@ enum sci_status scic_remote_device_reset_complete(
  * Return the link rate at which we transfer for the supplied remote device.
  */
 enum sci_sas_link_rate scic_remote_device_get_connection_rate(
-	SCI_REMOTE_DEVICE_HANDLE_T remote_device);
+	struct scic_sds_remote_device *remote_device);
 
 /**
  * scic_remote_device_get_protocols() - This method will indicate which
@@ -270,7 +271,7 @@ enum sci_sas_link_rate scic_remote_device_get_connection_rate(
  * part of a bit mask in order to allow for multi-protocol support.
  */
 void scic_remote_device_get_protocols(
-	SCI_REMOTE_DEVICE_HANDLE_T remote_device,
+	struct scic_sds_remote_device *remote_device,
 	struct smp_discover_response_protocols *protocols);
 
 
@@ -284,7 +285,7 @@ void scic_remote_device_get_protocols(
  * or an ATAPI device. bool Indicate a device is ATAPI device or not.
  */
 bool scic_remote_device_is_atapi(
-	SCI_REMOTE_DEVICE_HANDLE_T device_handle);
+	struct scic_sds_remote_device *device_handle);
 #else /* !defined(DISABLE_ATAPI) */
 #define scic_remote_device_is_atapi(device_handle) false
 #endif /* !defined(DISABLE_ATAPI) */
