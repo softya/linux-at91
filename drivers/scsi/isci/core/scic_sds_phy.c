@@ -683,25 +683,19 @@ enum sci_status scic_sds_phy_consume_power_handler(
  * ***************************************************************************** */
 
 
-/* --------------------------------------------------------------------------- */
-
 enum sci_status scic_sas_phy_get_properties(
-	SCI_PHY_HANDLE_T phy,
+	struct scic_sds_phy *sci_phy,
 	struct scic_sas_phy_properties *properties)
 {
-	struct scic_sds_phy *this_phy;
-
-	this_phy = (struct scic_sds_phy *)phy;
-
-	if (this_phy->protocol == SCIC_SDS_PHY_PROTOCOL_SAS) {
+	if (sci_phy->protocol == SCIC_SDS_PHY_PROTOCOL_SAS) {
 		memcpy(
 			&properties->received_iaf,
-			&this_phy->phy_type.sas.identify_address_frame_buffer,
+			&sci_phy->phy_type.sas.identify_address_frame_buffer,
 			sizeof(struct sci_sas_identify_address_frame)
 			);
 
 		properties->received_capabilities.u.all
-			= SCU_SAS_RECPHYCAP_READ(this_phy);
+			= SCU_SAS_RECPHYCAP_READ(sci_phy);
 
 		return SCI_SUCCESS;
 	}
@@ -709,20 +703,15 @@ enum sci_status scic_sas_phy_get_properties(
 	return SCI_FAILURE;
 }
 
-/* --------------------------------------------------------------------------- */
 
 enum sci_status scic_sata_phy_get_properties(
-	SCI_PHY_HANDLE_T phy,
+	struct scic_sds_phy *sci_phy,
 	struct scic_sata_phy_properties *properties)
 {
-	struct scic_sds_phy *this_phy;
-
-	this_phy = (struct scic_sds_phy *)phy;
-
-	if (this_phy->protocol == SCIC_SDS_PHY_PROTOCOL_SATA) {
+	if (sci_phy->protocol == SCIC_SDS_PHY_PROTOCOL_SATA) {
 		memcpy(
 			&properties->signature_fis,
-			&this_phy->phy_type.sata.signature_fis_buffer,
+			&sci_phy->phy_type.sata.signature_fis_buffer,
 			sizeof(struct sata_fis_reg_d2h)
 			);
 
@@ -734,23 +723,3 @@ enum sci_status scic_sata_phy_get_properties(
 
 	return SCI_FAILURE;
 }
-
-/* --------------------------------------------------------------------------- */
-
-
-
-
-/* --------------------------------------------------------------------------- */
-
-
-
-/* --------------------------------------------------------------------------- */
-
-
-/* --------------------------------------------------------------------------- */
-
-
-/* --------------------------------------------------------------------------- */
-
-
-

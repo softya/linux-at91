@@ -88,7 +88,7 @@ void isci_phy_init(
 	int index)
 {
 	SCI_CONTROLLER_HANDLE_T controller = isci_host->core_controller;
-	SCI_PHY_HANDLE_T scic_phy;
+	struct scic_sds_phy *scic_phy;
 	union scic_oem_parameters oem_parameters;
 	enum sci_status status = SCI_SUCCESS;
 

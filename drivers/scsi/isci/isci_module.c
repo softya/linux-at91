@@ -805,7 +805,7 @@ void scic_cb_port_not_ready(
 void scic_cb_port_invalid_link_up(
 	SCI_CONTROLLER_HANDLE_T controller,
 	SCI_PORT_HANDLE_T port,
-	SCI_PHY_HANDLE_T phy)
+	struct scic_sds_phy *phy)
 {
 	pr_warn("%s:************************************************\n",
 		__func__);
@@ -826,7 +826,7 @@ void scic_cb_port_invalid_link_up(
 void scic_cb_port_bc_change_primitive_recieved(
 	SCI_CONTROLLER_HANDLE_T controller,
 	SCI_PORT_HANDLE_T port,
-	SCI_PHY_HANDLE_T phy)
+	struct scic_sds_phy *phy)
 {
 	struct isci_host *isci_host;
 
@@ -858,7 +858,7 @@ void scic_cb_port_bc_change_primitive_recieved(
 void scic_cb_port_link_up(
 	SCI_CONTROLLER_HANDLE_T controller,
 	SCI_PORT_HANDLE_T port,
-	SCI_PHY_HANDLE_T phy)
+	struct scic_sds_phy *phy)
 {
 	struct isci_host *isci_host;
 
@@ -888,7 +888,7 @@ void scic_cb_port_link_up(
 void scic_cb_port_link_down(
 	SCI_CONTROLLER_HANDLE_T controller,
 	SCI_PORT_HANDLE_T port,
-	SCI_PHY_HANDLE_T phy)
+	struct scic_sds_phy *phy)
 {
 	struct isci_host *isci_host;
 	struct isci_phy *isci_phy;

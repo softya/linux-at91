@@ -71,8 +71,7 @@
 
 struct isci_phy {
 
-	SCI_PHY_HANDLE_T sci_phy_handle;
-/*	SCI_PORT_HANDLE_T sci_port_handle; */
+	struct scic_sds_phy *sci_phy_handle;
 
 	struct asd_sas_phy sas_phy;
 	struct sas_identify_frame *frame;

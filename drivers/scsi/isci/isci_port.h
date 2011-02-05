@@ -116,12 +116,12 @@ void isci_port_deformed(
 void isci_port_bc_change_recieved(
 	struct isci_host *isci_host,
 	SCI_PORT_HANDLE_T port,
-	SCI_PHY_HANDLE_T phy);
+	struct scic_sds_phy *phy);
 
 void isci_port_link_up(
 	struct isci_host *isci_host,
 	SCI_PORT_HANDLE_T port,
-	SCI_PHY_HANDLE_T phy);
+	struct scic_sds_phy *phy);
 
 void isci_port_link_down(
 	struct isci_host *isci_host,

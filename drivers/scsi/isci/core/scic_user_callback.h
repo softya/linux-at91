@@ -68,6 +68,7 @@
 #include "sci_status.h"
 
 struct scic_sds_request;
+struct scic_sds_phy;
 
 /**
  * scic_cb_timer_create() - This callback method asks the user to create a
@@ -586,7 +587,7 @@ void scic_cb_port_not_ready(
 void scic_cb_port_invalid_link_up(
 	SCI_CONTROLLER_HANDLE_T controller,
 	SCI_PORT_HANDLE_T port,
-	SCI_PHY_HANDLE_T phy);
+	struct scic_sds_phy *phy);
 
 /**
  * scic_cb_port_bc_change_primitive_recieved() - This callback method informs
@@ -603,7 +604,7 @@ void scic_cb_port_invalid_link_up(
 void scic_cb_port_bc_change_primitive_recieved(
 	SCI_CONTROLLER_HANDLE_T controller,
 	SCI_PORT_HANDLE_T port,
-	SCI_PHY_HANDLE_T phy);
+	struct scic_sds_phy *phy);
 
 
 
@@ -624,7 +625,7 @@ void scic_cb_port_bc_change_primitive_recieved(
 void scic_cb_port_link_up(
 	SCI_CONTROLLER_HANDLE_T controller,
 	SCI_PORT_HANDLE_T port,
-	SCI_PHY_HANDLE_T phy);
+	struct scic_sds_phy *phy);
 
 /**
  * scic_cb_port_link_down() - This callback method informs the user that a phy
@@ -642,7 +643,7 @@ void scic_cb_port_link_up(
 void scic_cb_port_link_down(
 	SCI_CONTROLLER_HANDLE_T controller,
 	SCI_PORT_HANDLE_T port,
-	SCI_PHY_HANDLE_T phy);
+	struct scic_sds_phy *phy);
 
 /**
  * scic_cb_remote_device_start_complete() - This user callback method will

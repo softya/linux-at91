@@ -272,7 +272,7 @@ void isci_host_deinit(
 void isci_host_port_link_up(
 	struct isci_host *,
 	SCI_PORT_HANDLE_T,
-	SCI_PHY_HANDLE_T);
+	struct scic_sds_phy *);
 int isci_host_dev_found(struct domain_device *);
 
 void isci_host_remote_device_start_complete(

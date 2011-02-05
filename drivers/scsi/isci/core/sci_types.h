@@ -64,11 +64,6 @@
 #define SCI_INVALID_HANDLE 0x0
 
 /**
- * This typedef just provides an opaque handle for all SCI Phy objects.
- */
-typedef void *SCI_PHY_HANDLE_T;
-
-/**
  * The SCI_REMOTE_DEVICE_HANDLE_T will be utilized by SCI users as an opaque
  *    handle for the SCI remote device object.
  */

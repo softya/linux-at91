@@ -136,7 +136,7 @@ static void isci_port_change_state(
 void isci_port_bc_change_recieved(
 	struct isci_host *isci_host,
 	SCI_PORT_HANDLE_T port,
-	SCI_PHY_HANDLE_T phy)
+	struct scic_sds_phy *phy)
 {
 	struct isci_phy *isci_phy =
 		(struct isci_phy *)sci_object_get_association(phy);
@@ -167,7 +167,7 @@ void isci_port_bc_change_recieved(
 void isci_port_link_up(
 	struct isci_host *isci_host,
 	SCI_PORT_HANDLE_T port,
-	SCI_PHY_HANDLE_T phy)
+	struct scic_sds_phy *phy)
 {
 	unsigned long flags;
 	struct scic_port_properties properties;

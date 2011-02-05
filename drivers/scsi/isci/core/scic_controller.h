@@ -70,6 +70,7 @@
 #include "scic_config_parameters.h"
 
 struct scic_sds_request;
+struct scic_sds_phy;
 
 /**
  * enum _SCIC_INTERRUPT_TYPE - This enumeration depicts the various types of
@@ -479,7 +480,7 @@ enum sci_status scic_controller_get_port_handle(
 enum sci_status scic_controller_get_phy_handle(
 	SCI_CONTROLLER_HANDLE_T controller,
 	u8 phy_index,
-	SCI_PHY_HANDLE_T *phy_handle);
+	struct scic_sds_phy **phy_handle);
 
 /**
  * scic_controller_allocate_io_tag() - This method will allocate a tag from the

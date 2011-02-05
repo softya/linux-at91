@@ -70,6 +70,7 @@
 #include "intel_sata.h"
 #include "intel_sas.h"
 
+struct scic_sds_phy;
 
 /**
  * struct scic_phy_properties - This structure defines the properties common to
@@ -270,7 +271,7 @@ enum scic_phy_counter_id {
  * the SAS properties are not successfully retrieved (e.g. It's not a SAS Phy).
  */
 enum sci_status scic_sas_phy_get_properties(
-	SCI_PHY_HANDLE_T phy,
+	struct scic_sds_phy *phy,
 	struct scic_sas_phy_properties *properties);
 
 /**
@@ -288,7 +289,7 @@ enum sci_status scic_sas_phy_get_properties(
  * Phy).
  */
 enum sci_status scic_sata_phy_get_properties(
-	SCI_PHY_HANDLE_T phy,
+	struct scic_sds_phy *phy,
 	struct scic_sata_phy_properties *properties);
 
 
