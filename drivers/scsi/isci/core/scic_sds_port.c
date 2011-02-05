@@ -1071,7 +1071,7 @@ void scic_sds_port_broadcast_change_received(
 	struct scic_sds_phy *this_phy)
 {
 	/* notify the user. */
-	scic_cb_port_bc_change_primitive_recieved(
+	scic_cb_port_bc_change_primitive_received(
 		this_port->owning_controller, this_port, this_phy
 		);
 }

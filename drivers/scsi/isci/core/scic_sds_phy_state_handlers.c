@@ -192,7 +192,7 @@ enum sci_status scic_sds_phy_default_frame_handler(
 	u32 frame_index)
 {
 	dev_warn(sciphy_to_dev(this_phy),
-		 "%s: SCIC Phy 0x%p recieved unexpected frame data %d "
+		 "%s: SCIC Phy 0x%p received unexpected frame data %d "
 		 "while in state %d\n",
 		 __func__,
 		 this_phy,
@@ -401,7 +401,7 @@ static enum sci_status scic_sds_phy_ready_state_event_handler(
 
 	default:
 		dev_warn(sciphy_to_dev(this_phy),
-			 "%sP SCIC PHY 0x%p ready state machine recieved "
+			 "%sP SCIC PHY 0x%p ready state machine received "
 			 "unexpected event_code %x\n",
 			 __func__,
 			 this_phy,
@@ -443,7 +443,7 @@ static enum sci_status scic_sds_phy_resetting_state_event_handler(
 
 	default:
 		dev_warn(sciphy_to_dev(this_phy),
-			 "%s: SCIC PHY 0x%p resetting state machine recieved "
+			 "%s: SCIC PHY 0x%p resetting state machine received "
 			 "unexpected event_code %x\n",
 			 __func__,
 			 this_phy,

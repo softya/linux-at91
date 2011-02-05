@@ -812,7 +812,7 @@ void scic_cb_port_invalid_link_up(
 }
 
 /**
- * scic_cb_port_bc_change_primitive_recieved() - This callback method informs
+ * scic_cb_port_bc_change_primitive_received() - This callback method informs
  *    the user that a broadcast change primitive was received.
  * @controller: This parameter represents the controller which contains the
  *    port.
@@ -823,7 +823,7 @@ void scic_cb_port_invalid_link_up(
  * @phy: This parameter specifies the phy on which the primitive was received.
  *
  */
-void scic_cb_port_bc_change_primitive_recieved(
+void scic_cb_port_bc_change_primitive_received(
 	SCI_CONTROLLER_HANDLE_T controller,
 	SCI_PORT_HANDLE_T port,
 	struct scic_sds_phy *phy)
@@ -835,7 +835,7 @@ void scic_cb_port_bc_change_primitive_recieved(
 
 	dev_dbg(&isci_host->pdev->dev,
 		"%s: port = %p, phy = %p\n", __func__, port, phy);
-	isci_port_bc_change_recieved(isci_host, port, phy);
+	isci_port_bc_change_received(isci_host, port, phy);
 }
 
 

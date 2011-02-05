@@ -133,7 +133,7 @@ static void isci_port_change_state(
 	spin_unlock_irqrestore(&isci_port->state_lock, flags);
 }
 
-void isci_port_bc_change_recieved(
+void isci_port_bc_change_received(
 	struct isci_host *isci_host,
 	SCI_PORT_HANDLE_T port,
 	struct scic_sds_phy *phy)

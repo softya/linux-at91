@@ -113,7 +113,7 @@ void isci_port_formed(
 void isci_port_deformed(
 	struct asd_sas_phy *);
 
-void isci_port_bc_change_recieved(
+void isci_port_bc_change_received(
 	struct isci_host *isci_host,
 	SCI_PORT_HANDLE_T port,
 	struct scic_sds_phy *phy);

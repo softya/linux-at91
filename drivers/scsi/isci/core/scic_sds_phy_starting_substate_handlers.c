@@ -203,7 +203,7 @@ static enum sci_status scic_sds_phy_starting_substate_await_ossp_event_handler(
 
 	default:
 		dev_warn(sciphy_to_dev(this_phy),
-			 "%s: PHY starting substate machine recieved "
+			 "%s: PHY starting substate machine received "
 			 "unexpected event_code %x\n",
 			 __func__,
 			 event_code);
@@ -277,7 +277,7 @@ static enum sci_status scic_sds_phy_starting_substate_await_sas_phy_speed_event_
 
 	default:
 		dev_warn(sciphy_to_dev(this_phy),
-			 "%s: PHY starting substate machine recieved "
+			 "%s: PHY starting substate machine received "
 			 "unexpected event_code %x\n",
 			 __func__,
 			 event_code);
@@ -331,7 +331,7 @@ static enum sci_status scic_sds_phy_starting_substate_await_iaf_uf_event_handler
 
 	default:
 		dev_warn(sciphy_to_dev(this_phy),
-			 "%s: PHY starting substate machine recieved "
+			 "%s: PHY starting substate machine received "
 			 "unexpected event_code %x\n",
 			 __func__,
 			 event_code);
@@ -369,7 +369,7 @@ static enum sci_status scic_sds_phy_starting_substate_await_sas_power_event_hand
 
 	default:
 		dev_warn(sciphy_to_dev(this_phy),
-			"%s: PHY starting substate machine recieved unexpected "
+			"%s: PHY starting substate machine received unexpected "
 			"event_code %x\n",
 			__func__,
 			event_code);
@@ -418,7 +418,7 @@ static enum sci_status scic_sds_phy_starting_substate_await_sata_power_event_han
 
 	default:
 		dev_warn(sciphy_to_dev(this_phy),
-			 "%s: PHY starting substate machine recieved "
+			 "%s: PHY starting substate machine received "
 			 "unexpected event_code %x\n",
 			 __func__,
 			 event_code);
@@ -480,7 +480,7 @@ static enum sci_status scic_sds_phy_starting_substate_await_sata_phy_event_handl
 
 	default:
 		dev_warn(sciphy_to_dev(this_phy),
-			 "%s: PHY starting substate machine recieved "
+			 "%s: PHY starting substate machine received "
 			 "unexpected event_code %x\n",
 			 __func__,
 			 event_code);
@@ -559,7 +559,7 @@ static enum sci_status scic_sds_phy_starting_substate_await_sata_speed_event_han
 
 	default:
 		dev_warn(sciphy_to_dev(this_phy),
-			 "%s: PHY starting substate machine recieved "
+			 "%s: PHY starting substate machine received "
 			 "unexpected event_code %x\n",
 			 __func__,
 			 event_code);
@@ -607,7 +607,7 @@ static enum sci_status scic_sds_phy_starting_substate_await_sig_fis_event_handle
 
 	default:
 		dev_warn(sciphy_to_dev(this_phy),
-			 "%s: PHY starting substate machine recieved "
+			 "%s: PHY starting substate machine received "
 			 "unexpected event_code %x\n",
 			 __func__,
 			 event_code);
@@ -693,7 +693,7 @@ static enum sci_status scic_sds_phy_starting_substate_await_iaf_uf_frame_handler
 		result = SCI_SUCCESS;
 	} else
 		dev_warn(sciphy_to_dev(this_phy),
-			"%s: PHY starting substate machine recieved "
+			"%s: PHY starting substate machine received "
 			"unexpected frame id %x\n",
 			__func__,
 			frame_index);
@@ -765,7 +765,7 @@ static enum sci_status scic_sds_phy_starting_substate_await_sig_fis_frame_handle
 		result = SCI_SUCCESS;
 	} else
 		dev_warn(sciphy_to_dev(this_phy),
-			 "%s: PHY starting substate machine recieved "
+			 "%s: PHY starting substate machine received "
 			 "unexpected frame id %x\n",
 			 __func__,
 			 frame_index);

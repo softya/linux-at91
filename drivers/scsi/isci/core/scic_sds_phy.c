@@ -638,7 +638,7 @@ enum sci_status scic_sds_phy_reset(
 }
 
 /**
- * This method will process the event code recieved.
+ * This method will process the event code received.
  * @this_phy:
  * @event_code:
  *
@@ -652,7 +652,7 @@ enum sci_status scic_sds_phy_event_handler(
 }
 
 /**
- * This method will process the frame index recieved.
+ * This method will process the frame index received.
  * @this_phy:
  * @frame_index:
  *

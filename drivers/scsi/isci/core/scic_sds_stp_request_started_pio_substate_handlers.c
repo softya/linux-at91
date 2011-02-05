@@ -605,7 +605,10 @@ static enum sci_status scic_sds_stp_request_pio_data_out_await_data_transmit_com
 					all_frames_transferred = true;
 			}
 		} else if (this_scic_sds_stp_request->type.pio.pio_transfer_bytes == 0) {
-			/* this will happen if the all data is written at the first time after the pio setup fis is recieved */
+			/*
+			 * this will happen if the all data is written at the
+			 * first time after the pio setup fis is received
+			 */
 			all_frames_transferred  = true;
 		}
 

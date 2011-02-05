@@ -402,7 +402,7 @@ enum sci_status scic_sds_request_started_state_abort_handler(
  *    SCIC_SDS_IO_REQUEST_T::status field.
  * @this_request: This parameter specifies the request for which a completion
  *    occurred.
- * @completion_code: This parameter specifies the completion code recieved from
+ * @completion_code: This parameter specifies the completion code received from
  *    the SCU.
  *
  */
