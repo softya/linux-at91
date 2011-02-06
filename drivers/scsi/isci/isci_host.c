@@ -1,0 +1,864 @@
+/*
+ * This file is provided under a dual BSD/GPLv2 license.  When using or
+ * redistributing this file, you may do so under either license.
+ *
+ * GPL LICENSE SUMMARY
+ *
+ * Copyright(c) 2008 - 2011 Intel Corporation. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St - Fifth Floor, Boston, MA 02110-1301 USA.
+ * The full GNU General Public License is included in this distribution
+ * in the file called LICENSE.GPL.
+ *
+ * BSD LICENSE
+ *
+ * Copyright(c) 2008 - 2011 Intel Corporation. All rights reserved.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ *   * Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *   * Redistributions in binary form must reproduce the above copyright
+ *     notice, this list of conditions and the following disclaimer in
+ *     the documentation and/or other materials provided with the
+ *     distribution.
+ *   * Neither the name of Intel Corporation nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+/**
+ * This file contains the host adapter implementation.
+ *
+ * isci_host.c
+ */
+
+
+#include "isci_module.h"
+#include "scic_io_request.h"
+#include "scic_remote_device.h"
+#include "scic_port.h"
+
+#include "isci_port.h"
+#include "isci_request.h"
+#include "isci_host.h"
+
+/**
+ * isci_isr() - This function is the interrupt service routine for the
+ *    controller. It schedules the tasklet and returns.
+ * @vec: This parameter specifies the interrupt vector.
+ * @data: This parameter specifies the ISCI host object.
+ *
+ * IRQ_HANDLED if out interrupt otherwise, IRQ_NONE
+ */
+irqreturn_t isci_isr(
+	int vec,
+	void *data)
+{
+	struct isci_host *isci_host
+		= (struct isci_host *)data;
+	struct scic_controller_handler_methods *handlers
+		= &isci_host->scic_irq_handlers[SCI_MSIX_NORMAL_VECTOR];
+	irqreturn_t ret
+		= IRQ_NONE;
+
+	if (isci_host_get_state(isci_host) != isci_starting
+	    && handlers->interrupt_handler) {
+
+		if (handlers->interrupt_handler(isci_host->core_controller)) {
+			if (isci_host_get_state(isci_host) != isci_stopped) {
+				tasklet_schedule(
+					&isci_host->completion_tasklet);
+			} else {
+				isci_logger(trace, "controller stopped\n", 0);
+			}
+			ret = IRQ_HANDLED;
+		}
+	} else
+		isci_logger(warning,
+			    "get_handler_methods failed, "
+			    "isci_host->status = 0x%x\n",
+			    isci_host_get_state(isci_host)
+			    );
+
+	return ret;
+}
+
+/**
+ * isci_legacy_isr() - This function is the legacy interrupt service routine
+ *    for the controller. It schedules the tasklet and returns.
+ * @vec: This parameter specifies the interrupt vector.
+ * @data: This parameter specifies the PCI function that generated the legacy
+ *    interrupt.
+ *
+ * IRQ_HANDLED if out interrupt otherwise, IRQ_NONE
+ */
+irqreturn_t isci_legacy_isr(
+	int vec,
+	void *data)
+{
+	struct isci_pci_func *isci_pci = (struct isci_pci_func *)data;
+	struct isci_host *isci_host;
+	struct scic_controller_handler_methods *handlers;
+	int count;
+	irqreturn_t ret = IRQ_NONE;
+
+	/*
+	 *  Since this is a legacy interrupt, either or both
+	 *  controllers could have triggered it.  Thus, we have to call
+	 *  the legacy interrupt handler for all controllers on the
+	 *  PCI function.
+	 */
+	for (count = 0; count < isci_pci->controller_count; count++) {
+		isci_host = &(isci_pci->ctrl[count]);
+
+		handlers = &isci_host->scic_irq_handlers[SCI_MSIX_NORMAL_VECTOR];
+
+		if (isci_host_get_state(isci_host) != isci_starting
+		    && handlers->interrupt_handler) {
+
+			if (handlers->interrupt_handler(isci_host->core_controller)) {
+				if (isci_host_get_state(isci_host) != isci_stopped) {
+					tasklet_schedule(
+						&isci_host->completion_tasklet);
+				} else {
+					isci_logger(trace, "controller stopped\n", 0);
+				}
+				ret = IRQ_HANDLED;
+			}
+		} else
+			isci_logger(warning,
+				    "get_handler_methods failed, "
+				    "isci_host->status = 0x%x\n",
+				    isci_host_get_state(isci_host)
+				    );
+	}
+	return ret;
+}
+
+
+/**
+ * isci_host_start_complete() - This function is called by the core library,
+ *    through the ISCI Module, to indicate controller start status.
+ * @isci_host: This parameter specifies the ISCI host object
+ * @completion_status: This parameter specifies the completion status from the
+ *    core library.
+ *
+ */
+void isci_host_start_complete(
+	struct isci_host *isci_host,
+	enum sci_status completion_status)
+{
+	isci_logger(trace, "\n", 0);
+
+	if (completion_status == SCI_SUCCESS) {
+		isci_logger(trace, "completion_status == SCI_SUCCESS\n", 0);
+		isci_host_change_state(isci_host, isci_ready);
+		complete_all(&isci_host->start_complete);
+	} else
+		isci_logger(error,
+			    "controller start failed with "
+			    "completion_status = 0x%x;",
+			    completion_status
+			    );
+
+}
+
+
+
+/**
+ * isci_host_scan_finished() - This function is one of the SCSI Host Template
+ *    functions. The SCSI midlayer calls this function during a target scan,
+ *    approx. once every 10 millisecs.
+ * @shost: This parameter specifies the SCSI host being scanned
+ * @time: This parameter specifies the number of ticks since the scan started.
+ *
+ * scan status, zero indicates the SCSI midlayer should continue to poll,
+ * otherwise assume controller is ready.
+ */
+int isci_host_scan_finished(
+	struct Scsi_Host *shost,
+	unsigned long time)
+{
+	struct isci_host *isci_host
+		= isci_host_from_sas_ha(SHOST_TO_SAS_HA(shost));
+
+	struct scic_controller_handler_methods *handlers
+		= &isci_host->scic_irq_handlers[SCI_MSIX_NORMAL_VECTOR];
+
+	isci_logger(trace, "\n", 0);
+
+	if (handlers->interrupt_handler == NULL) {
+		isci_logger(error,
+			    "scic_controller_get_handler_methods failed\n", 0);
+		return 1;
+	}
+
+	/**
+	 * check interrupt_handler's status and call completion_handler if true,
+	 * link_up events should be coming from the scu core lib, as phy's come
+	 * online. for each link_up from the core, call
+	 * get_received_identify_address_frame, copy the frame into the
+	 * sas_phy object and call libsas notify_port_event(PORTE_BYTES_DMAED).
+	 * continue to return zero from thee scan_finished routine until
+	 * the scic_cb_controller_start_complete() call comes from the core.
+	 **/
+	if (handlers->interrupt_handler(isci_host->core_controller))
+		handlers->completion_handler(isci_host->core_controller);
+
+	if (isci_starting == isci_host_get_state(isci_host)
+	    && time < (HZ * 10)) {
+		isci_logger(trace,
+			    "isci_host->status = %d, time = %ld\n",
+			    isci_host_get_state(isci_host), time
+			    );
+		return 0;
+	}
+
+
+	isci_logger(trace,
+		    "isci_host->status = %d, time = %ld\n",
+		    isci_host_get_state(isci_host), time
+		    );
+
+	scic_controller_enable_interrupts(isci_host->core_controller);
+
+	return 1;
+
+}
+
+
+/**
+ * isci_host_scan_start() - This function is one of the SCSI Host Template
+ *    function, called by the SCSI mid layer berfore a target scan begins. The
+ *    core library controller start routine is called from here.
+ * @shost: This parameter specifies the SCSI host to be scanned
+ *
+ */
+void isci_host_scan_start(struct Scsi_Host *shost)
+{
+	struct isci_host *isci_host;
+
+	isci_host = isci_host_from_sas_ha(SHOST_TO_SAS_HA(shost));
+	isci_host_change_state(isci_host, isci_starting);
+
+	scic_controller_disable_interrupts(isci_host->core_controller);
+	init_completion(&isci_host->start_complete);
+	scic_controller_start(
+		isci_host->core_controller,
+		scic_controller_get_suggested_start_timeout(
+			isci_host->core_controller)
+		);
+
+}
+
+
+
+void isci_host_stop_complete(
+	struct isci_host *isci_host,
+	enum sci_status completion_status)
+{
+	isci_host_change_state(isci_host, isci_stopped);
+	scic_controller_disable_interrupts(
+		isci_host->core_controller
+		);
+	complete(&isci_host->stop_complete);
+}
+
+static struct coherent_memory_info *isci_host_alloc_mdl_struct(
+	struct isci_host *isci_host,
+	u32 size)
+{
+	struct coherent_memory_info *mdl_struct;
+	void *uncached_address = NULL;
+
+	mdl_struct = kzalloc(sizeof(*mdl_struct), GFP_KERNEL);
+
+	if (NULL == mdl_struct) {
+		return NULL;
+	}
+
+	INIT_LIST_HEAD(&mdl_struct->node);
+
+	uncached_address =
+		pci_alloc_consistent(
+			isci_host->pdev,
+			size, &mdl_struct->dma_handle
+			);
+
+	if (NULL == uncached_address) {
+		kfree(mdl_struct);
+		return NULL;
+	}
+
+	/* memset the whole memory area. */
+	memset((char *)uncached_address, 0, size);
+	mdl_struct->vaddr = uncached_address;
+	mdl_struct->size = (size_t)size;
+
+	return mdl_struct;
+}
+
+static void isci_host_build_mde(
+	struct sci_physical_memory_descriptor *mde_struct,
+	struct coherent_memory_info *mdl_struct)
+{
+	unsigned long address = 0;
+	dma_addr_t dma_addr = 0;
+
+	address = (unsigned long)mdl_struct->vaddr;
+	dma_addr = mdl_struct->dma_handle;
+
+	/* to satisfy the alignment. */
+	if ((address % mde_struct->constant_memory_alignment) != 0) {
+		int align_offset
+			= (mde_struct->constant_memory_alignment
+			   - (address % mde_struct->constant_memory_alignment));
+		address += align_offset;
+		dma_addr += align_offset;
+	}
+
+	mde_struct->virtual_address = (void *)address;
+	mde_struct->physical_address = dma_addr;
+	mdl_struct->mde = mde_struct;
+}
+
+static int isci_host_mdl_allocate_coherent(
+	struct isci_host *isci_host)
+{
+	struct sci_physical_memory_descriptor *current_mde;
+	struct coherent_memory_info *mdl_struct;
+	u32 size = 0;
+	int ret = 0;
+
+
+	SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T mdl_handle
+		= sci_controller_get_memory_descriptor_list_handle(
+		isci_host->core_controller);
+
+	sci_mdl_first_entry(mdl_handle);
+
+	current_mde = sci_mdl_get_current_entry(mdl_handle);
+
+	while (current_mde != NULL) {
+
+		size = (current_mde->constant_memory_size
+			+ current_mde->constant_memory_alignment);
+
+		mdl_struct = isci_host_alloc_mdl_struct(isci_host, size);
+
+		if (NULL == mdl_struct) {
+			ret = -ENOMEM;
+			goto nomem_out;
+		}
+
+		list_add_tail(&mdl_struct->node, &isci_host->mdl_struct_list);
+
+		isci_host_build_mde(current_mde, mdl_struct);
+
+		sci_mdl_next_entry(mdl_handle);
+		current_mde = sci_mdl_get_current_entry(mdl_handle);
+	}
+	goto out;
+
+ nomem_out:
+
+	isci_host_mdl_deallocate_coherent(isci_host);
+
+ out:
+	return ret;
+}
+
+/**
+ * isci_host_mdl_deallocate_coherent() - This function is called by the pci
+ *    remove function to free dma coherent memory allocated for this ISCI Host
+ *    object
+ * @isci_host: This parameter specifies the ISCI host object that allocated the
+ *    memory.
+ *
+ */
+void isci_host_mdl_deallocate_coherent(
+	struct isci_host *isci_host)
+{
+	struct coherent_memory_info *mdl_struct, *temp_mdl;
+
+	list_for_each_entry_safe(
+		mdl_struct,
+		temp_mdl,
+		&isci_host->mdl_struct_list,
+		node
+		) {
+		pci_free_consistent(
+			isci_host->pdev,
+			mdl_struct->size,
+			mdl_struct->vaddr,
+			mdl_struct->dma_handle
+			);
+		mdl_struct->mde->virtual_address = NULL;
+		mdl_struct->mde->physical_address = 0;
+		list_del(&mdl_struct->node);
+		kfree(mdl_struct);
+	}
+
+}
+
+
+
+/**
+ * isci_host_pci_get_bar() - This function is called by the core library,
+ *    through the ISCI Module, to get contents of the specified BAR.
+ * @isci_host: This parameter specifies the ISCI host object
+ * @bar_num: This parameter specifies the BAR requested.
+ *
+ * virtual address contained in the BAR
+ */
+void *isci_host_pci_get_bar(
+	struct isci_host *isci_host,
+	unsigned int bar_num)
+{
+	void *address = NULL;
+
+	isci_logger(trace,
+		    "isci_host = %p, bar_num = %d\n",
+		    isci_host,
+		    bar_num
+		    );
+
+	BUG_ON(bar_num >= SCI_PCI_BAR_COUNT);
+
+	if (SCI_PCI_BAR_COUNT > bar_num)
+		address = (void *)isci_host->parent_pci_function->pci_bar[bar_num].virt_addr;
+
+	isci_logger(trace, "address = %p\n", address);
+
+	return address;
+}
+
+/**
+ * isci_host_completion_routine() - This function is the delayed service
+ *    routine that calls the sci core library's completion handler. It's
+ *    scheduled as a tasklet from the interrupt service routine when interrupts
+ *    in use, or set as the timeout function in polled mode.
+ * @data: This parameter specifies the ISCI host object
+ *
+ */
+static void isci_host_completion_routine(unsigned long data)
+{
+	struct isci_host *isci_host = (struct isci_host *)data;
+	struct scic_controller_handler_methods *handlers
+		= &isci_host->scic_irq_handlers[SCI_MSIX_NORMAL_VECTOR];
+	struct list_head completed_request_list;
+	struct list_head aborted_request_list;
+	struct list_head *current_position;
+	struct list_head *next_position;
+	struct isci_request *request;
+	struct isci_request *next_request;
+	struct sas_task *task;
+
+	INIT_LIST_HEAD(&completed_request_list);
+	INIT_LIST_HEAD(&aborted_request_list);
+
+	spin_lock_irq(&isci_host->scic_lock);
+
+	if (handlers->completion_handler) {
+		handlers->completion_handler(
+			isci_host->core_controller
+			);
+	}
+	/* Take the lists of completed I/Os from the host. */
+	list_splice_init(&isci_host->requests_to_complete,
+			 &completed_request_list);
+
+	list_splice_init(&isci_host->requests_to_abort,
+			 &aborted_request_list);
+
+	spin_unlock_irq(&isci_host->scic_lock);
+
+	/* Process any completions in the lists. */
+	list_for_each_safe(current_position, next_position,
+			   &completed_request_list) {
+
+		request = list_entry(current_position, struct isci_request,
+				     completed_node);
+		task = isci_request_access_task(request);
+
+		/* Normal notification (task_done) */
+		isci_logger(trace, "Normal - request/task = %p/%p\n",
+			    request, task);
+
+		task->task_done(task);
+		task->lldd_task = NULL;
+
+		/* Free the request object. */
+		isci_request_free(isci_host, request);
+	}
+	list_for_each_entry_safe(request, next_request, &aborted_request_list,
+				 completed_node) {
+
+		task = isci_request_access_task(request);
+
+		/* Use sas_task_abort */
+		isci_logger(warning, "Error - request/task = %p/%p\n",
+			    request, task);
+
+		/* Put the task into the abort path. */
+		sas_task_abort(task);
+	}
+
+}
+
+void isci_host_deinit(
+	struct isci_host *isci_host)
+{
+	int i;
+
+	isci_logger(trace, "\n", 0);
+	isci_host_change_state(isci_host, isci_stopping);
+	for (i = 0; i < SCI_MAX_PORTS; i++) {
+		struct isci_port *port = &isci_host->isci_ports[i];
+		struct isci_remote_device *device, *tmpdev;
+		list_for_each_entry_safe(device, tmpdev,
+					 &port->remote_dev_list, node) {
+			isci_remote_device_change_state(device, isci_stopping);
+			isci_remote_device_stop(device);
+		}
+	}
+
+	/* stop the comtroller and wait for completion.  */
+	init_completion(&isci_host->stop_complete);
+	scic_controller_stop(
+		isci_host->core_controller,
+		SCIC_CONTROLLER_STOP_TIMEOUT
+		);
+	wait_for_completion(&isci_host->stop_complete);
+	/* next, reset the controller.           */
+	scic_controller_reset(isci_host->core_controller);
+
+	/* destroy remote device and request memory queues. */
+	kmem_cache_destroy(isci_host->rem_device_cache);
+	dma_pool_destroy(isci_host->request_object_dma_pool);
+
+}
+
+/**
+ * isci_host_init_controller_names() - This method will initialize the names
+ *    used during initialization for the cache and dma pools.
+ * @sci_host: This parameter specifies the host adapter structure.
+ *
+ *
+ */
+void isci_host_init_controller_names(
+	struct isci_host *isci_host,
+	unsigned int controller_idx)
+{
+	isci_host->controller_id = controller_idx;
+
+	/* Create the controller's unique name. */
+	sprintf(isci_host->ha_name, ISCI_HA_NAME_FMT, controller_idx);
+	sprintf(isci_host->cache_name, ISCI_CACHE_NAME_FMT, controller_idx);
+	sprintf(isci_host->dma_pool_name, ISCI_DMAPOOL_NAME_FMT,
+		controller_idx);
+
+	isci_logger(trace, "isci_host %p\n"
+		    "   ha_name = %s\n"
+		    "   cache_name = %s\n"
+		    "   dma_pool_name = %s\n",
+		    isci_host, isci_host->ha_name,
+		    isci_host->cache_name, isci_host->dma_pool_name, 0);
+}
+
+#define SCI_MAX_TIMER_COUNT 25
+
+/**
+ * isci_host_init() - This function intializes a newly created host adapter
+ *    object.
+ * @isci_host: This parameter specifies the ISCI host object
+ *
+ */
+int isci_host_init(
+	struct pci_dev *pci_device,
+	struct isci_host *isci_host)
+{
+	int err = 0;
+	int index = 0;
+	enum sci_status status;
+	SCI_CONTROLLER_HANDLE_T controller;
+	SCI_PORT_HANDLE_T scic_port;
+	struct scic_controller_handler_methods *handlers
+		= &isci_host->scic_irq_handlers[0];
+	union scic_oem_parameters scic_oem_params;
+	union scic_user_parameters scic_user_params;
+
+	/*------------- SCIC controller Initialization Stuff ----------------
+	 * alloc and intialize timers, add to timer_list
+	 */
+	INIT_LIST_HEAD(&isci_host->timer_list_struct.timers);
+	isci_timer_list_construct(
+		&isci_host->timer_list_struct,
+		SCI_MAX_TIMER_COUNT
+		);
+
+	/*
+	 * call scic_library_allocate_controller() to allocate one controller
+	 * from the core. Store core controller handle in isci_host struct.
+	 * call scic_controller_construct();
+	 */
+	status = scic_library_allocate_controller(
+		isci_host->parent_pci_function->core_lib_handle,
+		&controller
+		);
+
+	if (SCI_SUCCESS != status) {
+		isci_logger(error,
+			    "scic_library_allocate_controller failed -"
+			    " status = %x\n",
+			    status
+			    );
+		err = -ENODEV;
+		goto out;
+	}
+
+	isci_host->core_controller = controller;
+	spin_lock_init(&isci_host->state_lock);
+	spin_lock_init(&isci_host->scic_lock);
+	spin_lock_init(&isci_host->queue_lock);
+
+	isci_host_change_state(isci_host, isci_starting);
+	isci_host->can_queue = ISCI_CAN_QUEUE_VAL;
+
+	status = scic_controller_construct(
+		isci_host->parent_pci_function->core_lib_handle,
+		controller
+		);
+
+	if (SCI_SUCCESS != status) {
+		isci_logger(error,
+			    "scic_controller_construct failed - status = %x\n",
+			    status
+			    );
+		err = -ENODEV;
+		goto out;
+	}
+
+
+	isci_host->sas_ha.dev = &isci_host->pdev->dev;
+	isci_host->sas_ha.lldd_ha = isci_host;
+
+	/*----------- SCIC controller Initialization Stuff ------------------
+	 * set association host adapter struct in core controller.
+	 */
+	sci_object_set_association(isci_host->core_controller,
+				   (void *)isci_host
+				   );
+
+	/* grab initial values stored in the controller object for OEM and USER
+	 * parameters */
+	scic_oem_parameters_get(controller, &scic_oem_params);
+	scic_user_parameters_get(controller, &scic_user_params);
+
+#ifdef OEM_PARAM_WORKAROUND
+
+	/* grab any OEM and USER parameters specified at module load */
+	status = isci_module_parse_oem_parameters(&scic_oem_params,
+						  isci_host->controller_id
+						  );
+
+	if (status != SCI_SUCCESS) {
+		printk(KERN_WARNING "%s: isci_module_parse_oem_parameters"
+		       " failed\n", __func__);
+		err = -ENODEV;
+		goto out;
+	}
+
+#else
+
+	printk(KERN_WARNING "%s: WARNING! default OEM configuration being used:"
+	       " 4 narrow ports, and default SAS Addresses\n",
+	       __func__);
+
+#endif  /* OEM_PARAM_WORKAROUND */
+
+	status = isci_module_parse_user_parameters(&scic_user_params,
+						   isci_host->controller_id);
+
+	if (status != SCI_SUCCESS) {
+		printk(KERN_WARNING "%s: isci_module_parse_user_parameters"
+		       " failed\n", __func__);
+		err = -ENODEV;
+		goto out;
+	}
+
+	status = scic_oem_parameters_set(isci_host->core_controller,
+					 &scic_oem_params
+					 );
+
+	if (SCI_SUCCESS != status) {
+		printk(KERN_WARNING "%s: scic_oem_parameters_set failed\n",
+		       __func__
+		       );
+		err = -ENODEV;
+		goto out;
+	}
+
+
+	status = scic_user_parameters_set(isci_host->core_controller,
+					  &scic_user_params
+					  );
+
+	if (SCI_SUCCESS != status) {
+		printk(KERN_WARNING "%s: scic_user_parameters_set failed\n",
+		       __func__
+		       );
+		err = -ENODEV;
+		goto out;
+	}
+
+	status = scic_controller_initialize(isci_host->core_controller);
+	if (SCI_SUCCESS != status) {
+		printk(KERN_WARNING "%s: scic_controller_initialize failed -"
+		       " status = 0x%x\n",
+		       __func__, status
+		       );
+		err = -ENODEV;
+		goto out;
+	}
+
+	/* @todo: use both MSI-X interrupts */
+	if (isci_host->parent_pci_function->msix_int_enabled) {
+		status = scic_controller_get_handler_methods(
+			SCIC_MSIX_INTERRUPT_TYPE,
+			SCI_MSIX_DOUBLE_VECTOR,
+			handlers
+			);
+	} else {
+		status = scic_controller_get_handler_methods(
+			SCIC_LEGACY_LINE_INTERRUPT_TYPE,
+			0,
+			handlers
+			);
+	}
+	if (status != SCI_SUCCESS) {
+		handlers->interrupt_handler = NULL;
+		handlers->completion_handler = NULL;
+		isci_logger(error,
+			    "scic_controller_get_handler_methods failed\n", 0);
+	}
+
+	tasklet_init(&isci_host->completion_tasklet,
+		     isci_host_completion_routine,
+		     (unsigned long)isci_host
+		     );
+
+	INIT_LIST_HEAD(&(isci_host->mdl_struct_list));
+
+	/*
+	 *  If this is the first SCU controller on the PCI device, then
+	 *  link it into the module's pci device list. For dual controller
+	 *  PCI functions, we only want to link its pci device object once.
+	 *  The check here insures that we don't try to link in the pci
+	 *  device object redundantly for the second controller.
+	 */
+	if ((isci_host) == &(isci_host->parent_pci_function->ctrl[0]))
+		list_add_tail(&(isci_host->parent_pci_function->node),
+			      &(isci_host->parent->pci_devices));
+	INIT_LIST_HEAD(&isci_host->requests_to_complete);
+	INIT_LIST_HEAD(&isci_host->requests_to_abort);
+
+	/* populate mdl with dma memory. scu_mdl_allocate_coherent() */
+	err = isci_host_mdl_allocate_coherent(isci_host);
+
+	if (err)
+		goto err_out;
+
+	isci_host->rem_device_cache
+		= kmem_cache_create(
+		isci_host->cache_name,
+		sizeof(struct isci_remote_device) +
+		scic_remote_device_get_object_size(),
+		0,
+		SLAB_HWCACHE_ALIGN,
+		NULL
+		);
+
+	if (!isci_host->rem_device_cache) {
+		err = -ENOMEM;
+		goto err_out;
+	}
+
+	/*
+	 * keep the pool alloc size around, will use it for a bounds checking
+	 * when trying to convert virtual addresses to physical addresses
+	 */
+	isci_host->dma_pool_alloc_size = sizeof(struct isci_request) +
+					 scic_io_request_get_object_size();
+	isci_host->request_object_dma_pool
+		= dma_pool_create(
+		isci_host->dma_pool_name,
+		&isci_host->pdev->dev,
+		isci_host->dma_pool_alloc_size,
+		SLAB_HWCACHE_ALIGN,
+		0
+		);
+
+	if (!isci_host->request_object_dma_pool) {
+		err = -ENOMEM;
+		goto req_obj_err_out;
+	}
+
+	for (index = 0; index < SCI_MAX_PORTS; index++) {
+		isci_port_init(&isci_host->isci_ports[index],
+			       isci_host, index);
+	}
+
+	for (index = 0; index < SCI_MAX_PHYS; index++)
+		isci_phy_init(&isci_host->phys[index], isci_host, index);
+
+	/* Why are we doing this? Is this even necessary? */
+	memcpy(&isci_host->sas_addr[0], &isci_host->phys[0].sas_addr[0],
+	       SAS_ADDR_SIZE);
+
+	/* Start the ports */
+	for (index = 0; index < SCI_MAX_PORTS; index++) {
+
+		scic_controller_get_port_handle(controller, index, &scic_port);
+		scic_port_start(scic_port);
+	}
+
+	goto out;
+
+/* SPB_Debug: destroy request object cache */
+ req_obj_err_out:
+/* SPB_Debug: destroy remote object cache */
+ err_out:
+/* SPB_Debug: undo controller init, construct and alloc, remove from parent
+ * controller list. */
+ out:
+	return err;
+
+}
