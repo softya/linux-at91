@@ -798,7 +798,8 @@ static void isci_task_save_for_upper_layer_completion(
 
 	task_notification_selection
 		= isci_task_set_completion_status(task, response, status,
-						  task_notification_selection);
+						  task_notification_selection,
+						  request->status);
 
 	/* Tasks aborted specifically by a call to the lldd_abort_task
 	 * function should not be completed to the host in the regular path.
