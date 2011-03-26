@@ -61,6 +61,7 @@
 #include "port.h"
 #include "request.h"
 #include "host.h"
+#include "probe_roms.h"
 
 irqreturn_t isci_msix_isr(int vec, void *data)
 {
@@ -412,13 +413,40 @@ static void __iomem *smu_base(struct isci_host *isci_host)
 	return pcim_iomap_table(pdev)[SCI_SMU_BAR * 2] + SCI_SMU_BAR_SIZE * id;
 }
 
+static void isci_user_parameters_get(
+		struct isci_host *isci_host,
+		union scic_user_parameters *scic_user_params)
+{
+	struct scic_sds_user_parameters *u = &scic_user_params->sds1;
+	int i;
+
+	for (i = 0; i < SCI_MAX_PHYS; i++) {
+		struct sci_phy_user_params *u_phy = &u->phys[i];
+
+		u_phy->max_speed_generation = phy_gen;
+
+		/* we are not exporting these for now */
+		u_phy->align_insertion_frequency = 0x7f;
+		u_phy->in_connection_align_insertion_frequency = 0xff;
+		u_phy->notify_enable_spin_up_insertion_frequency = 0x33;
+	}
+
+	u->stp_inactivity_timeout = stp_inactive_to;
+	u->ssp_inactivity_timeout = ssp_inactive_to;
+	u->stp_max_occupancy_timeout = stp_max_occ_to;
+	u->ssp_max_occupancy_timeout = ssp_max_occ_to;
+	u->no_outbound_task_timeout = no_outbound_task_to;
+	u->max_number_concurrent_device_spin_up = max_concurr_spinup;
+}
+
 int isci_host_init(struct isci_host *isci_host)
 {
 	int err = 0, i;
 	enum sci_status status;
 	struct scic_sds_controller *controller;
-	union scic_oem_parameters scic_oem_params;
+	union scic_oem_parameters oem;
 	union scic_user_parameters scic_user_params;
+	struct isci_pci_info *pci_info = to_pci_info(isci_host->pdev);
 
 	isci_timer_list_construct(isci_host);
 
@@ -433,6 +461,7 @@ int isci_host_init(struct isci_host *isci_host)
 	}
 
 	isci_host->core_controller = controller;
+	sci_object_set_association(isci_host->core_controller, isci_host);
 	spin_lock_init(&isci_host->state_lock);
 	spin_lock_init(&isci_host->scic_lock);
 	spin_lock_init(&isci_host->queue_lock);
@@ -455,56 +484,40 @@ int isci_host_init(struct isci_host *isci_host)
 	isci_host->sas_ha.dev = &isci_host->pdev->dev;
 	isci_host->sas_ha.lldd_ha = isci_host;
 
-	/*----------- SCIC controller Initialization Stuff ------------------
-	 * set association host adapter struct in core controller.
+	/*
+	 * grab initial values stored in the controller object for OEM and USER
+	 * parameters
 	 */
-	sci_object_set_association(isci_host->core_controller,
-				   (void *)isci_host);
+	isci_user_parameters_get(isci_host, &scic_user_params);
+	status = scic_user_parameters_set(isci_host->core_controller,
+					  &scic_user_params);
+	if (status != SCI_SUCCESS) {
+		dev_warn(&isci_host->pdev->dev,
+			 "%s: scic_user_parameters_set failed\n",
+			 __func__);
+		return -ENODEV;
+	}
 
-	/* grab initial values stored in the controller object for OEM and USER
-	 * parameters */
-	scic_oem_parameters_get(controller, &scic_oem_params);
-	scic_user_parameters_get(controller, &scic_user_params);
+	scic_oem_parameters_get(controller, &oem);
 
-	if (isci_firmware) {
-		/* grab any OEM and USER parameters specified in binary blob */
-		status = isci_parse_oem_parameters(&scic_oem_params,
-						   isci_host->id,
-						   isci_firmware);
+	/* grab any OEM parameters specified in orom */
+	if (pci_info->orom) {
+		status = isci_parse_oem_parameters(&oem,
+						   pci_info->orom,
+						   isci_host->id);
 		if (status != SCI_SUCCESS) {
 			dev_warn(&isci_host->pdev->dev,
 				 "parsing firmware oem parameters failed\n");
 			return -EINVAL;
 		}
+	}
 
-		status = isci_parse_user_parameters(&scic_user_params,
-						    isci_host->id,
-						    isci_firmware);
-		if (status != SCI_SUCCESS) {
-			dev_warn(&isci_host->pdev->dev,
-				 "%s: isci_parse_user_parameters"
-				 " failed\n", __func__);
-			return -EINVAL;
-		}
-	} else {
-		status = scic_oem_parameters_set(isci_host->core_controller,
-						 &scic_oem_params);
-		if (status != SCI_SUCCESS) {
-			dev_warn(&isci_host->pdev->dev,
-				 "%s: scic_oem_parameters_set failed\n",
-				 __func__);
-			return -ENODEV;
-		}
-
-
-		status = scic_user_parameters_set(isci_host->core_controller,
-						  &scic_user_params);
-		if (status != SCI_SUCCESS) {
-			dev_warn(&isci_host->pdev->dev,
-				 "%s: scic_user_parameters_set failed\n",
-				 __func__);
-			return -ENODEV;
-		}
+	status = scic_oem_parameters_set(isci_host->core_controller, &oem);
+	if (status != SCI_SUCCESS) {
+		dev_warn(&isci_host->pdev->dev,
+				"%s: scic_oem_parameters_set failed\n",
+				__func__);
+		return -ENODEV;
 	}
 
 	tasklet_init(&isci_host->completion_tasklet,

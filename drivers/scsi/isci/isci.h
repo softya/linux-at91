@@ -61,7 +61,6 @@
 #include <linux/types.h>
 #include <linux/spinlock.h>
 #include <linux/interrupt.h>
-#include <linux/firmware.h>
 #include <linux/bug.h>
 #include <scsi/libsas.h>
 #include <scsi/scsi.h>
@@ -76,33 +75,13 @@
 #include "task.h"
 #include "sata.h"
 
-extern struct isci_firmware *isci_firmware;
-
-#define ISCI_FW_NAME		"isci/isci_firmware.bin"
-
-#define ISCI_FIRMWARE_MIN_SIZE	149
-
-#define ISCI_FW_IDSIZE		12
-#define ISCI_FW_VER_OFS		ISCI_FW_IDSIZE
-#define ISCI_FW_SUBVER_OFS	ISCI_FW_VER_OFS + 1
-#define ISCI_FW_DATA_OFS	ISCI_FW_SUBVER_OFS + 1
-
-#define ISCI_FW_HDR_PHYMASK	0x1
-#define ISCI_FW_HDR_PHYGEN	0x2
-#define ISCI_FW_HDR_SASADDR	0x3
-#define ISCI_FW_HDR_EOF		0xff
-
-struct isci_firmware {
-	const u8 *id;
-	u8 version;
-	u8 subversion;
-	const u32 *phy_masks;
-	u8 phy_masks_size;
-	const u32 *phy_gens;
-	u8 phy_gens_size;
-	const u64 *sas_addrs;
-	u8 sas_addrs_size;
-};
+extern unsigned char no_outbound_task_to;
+extern u16 ssp_max_occ_to;
+extern u16 stp_max_occ_to;
+extern u16 ssp_inactive_to;
+extern u16 stp_inactive_to;
+extern unsigned char phy_gen;
+extern unsigned char max_concurr_spinup;
 
 irqreturn_t isci_msix_isr(int vec, void *data);
 irqreturn_t isci_intx_isr(int vec, void *data);
@@ -112,15 +91,5 @@ bool scic_sds_controller_isr(struct scic_sds_controller *scic);
 void scic_sds_controller_completion_handler(struct scic_sds_controller *scic);
 bool scic_sds_controller_error_isr(struct scic_sds_controller *scic);
 void scic_sds_controller_error_handler(struct scic_sds_controller *scic);
-
-enum sci_status isci_parse_oem_parameters(
-	union scic_oem_parameters *oem_params,
-	int scu_index,
-	struct isci_firmware *fw);
-
-enum sci_status isci_parse_user_parameters(
-	union scic_user_parameters *user_params,
-	int scu_index,
-	struct isci_firmware *fw);
 
 #endif  /* __ISCI_H__ */
