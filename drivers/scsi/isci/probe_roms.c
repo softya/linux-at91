@@ -175,6 +175,15 @@ struct isci_orom *isci_request_firmware(struct pci_dev *pdev, const struct firmw
 	return orom;
 }
 
+static struct efi *get_efi(void)
+{
+	#ifdef CONFIG_EFI
+	return &efi;
+	#else
+	return NULL;
+	#endif
+}
+
 struct isci_orom *isci_get_efi_var(struct pci_dev *pdev)
 {
 	struct efi_variable *evar;
@@ -208,11 +217,14 @@ struct isci_orom *isci_get_efi_var(struct pci_dev *pdev)
 	evar->VendorGuid = ISCI_EFI_VENDOR_GUID;
 	evar->Attributes = ISCI_EFI_ATTRIBUTES;
 
-	status =  efi.get_variable(evar->VariableName,
-				   &evar->VendorGuid,
-				   &evar->Attributes,
-				   &evar->DataSize,
-				   evar->Data);
+	if (get_efi())
+		status = get_efi()->get_variable(evar->VariableName,
+						 &evar->VendorGuid,
+						 &evar->Attributes,
+						 &evar->DataSize,
+						 evar->Data);
+	else
+		status = EFI_NOT_FOUND;
 
 	if (status != EFI_SUCCESS) {
 		dev_warn(&pdev->dev,
