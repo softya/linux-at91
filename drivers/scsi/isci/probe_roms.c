@@ -28,7 +28,13 @@
 #include <linux/firmware.h>
 #include <linux/uaccess.h>
 #include <linux/efi.h>
-#include <asm/probe_roms.h>
+#ifndef pci_map_biosrom
+/* XXX delete once pci_map_biorom available in the base kernel */
+/* #include <asm/probe_roms.h> */
+#define pci_map_biosrom(p) (NULL)
+#define pci_unmap_biosrom(r)
+#define pci_biosrom_size(p) (0)
+#endif
 
 #include "isci.h"
 #include "task.h"
