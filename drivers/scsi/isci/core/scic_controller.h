@@ -56,8 +56,6 @@
 #ifndef _SCIC_CONTROLLER_H_
 #define _SCIC_CONTROLLER_H_
 
-#include "sci_status.h"
-#include "sci_controller.h"
 #include "scic_config_parameters.h"
 
 struct scic_sds_request;
