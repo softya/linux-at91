@@ -38,7 +38,6 @@
 
 #include "isci.h"
 #include "task.h"
-#include "sci_environment.h"
 #include "probe_roms.h"
 
 struct efi_variable {
