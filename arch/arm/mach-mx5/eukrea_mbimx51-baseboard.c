@@ -31,7 +31,6 @@
 #include "devices.h"
 
 #define MBIMX51_TSC2007_GPIO	IMX_GPIO_NR(3, 30)
-#define MBIMX51_TSC2007_IRQ	(MXC_INTERNAL_IRQS + MBIMX51_TSC2007_GPIO)
 #define MBIMX51_LED0		IMX_GPIO_NR(3, 5)
 #define MBIMX51_LED1		IMX_GPIO_NR(3, 6)
 #define MBIMX51_LED2		IMX_GPIO_NR(3, 7)
@@ -161,7 +160,7 @@ struct tsc2007_platform_data tsc2007_data = {
 static struct i2c_board_info mbimx51_i2c_devices[] = {
 	{
 		I2C_BOARD_INFO("tsc2007", 0x49),
-		.irq  = MBIMX51_TSC2007_IRQ,
+		.irq  = gpio_to_irq(MBIMX51_TSC2007_GPIO),
 		.platform_data = &tsc2007_data,
 	}, {
 		I2C_BOARD_INFO("tlv320aic23", 0x1a),
