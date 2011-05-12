@@ -5319,6 +5319,7 @@ T:	git git://git.kernel.org/pub/scm/linux/kernel/git/broonie/regmap.git
 S:	Supported
 F:	drivers/base/regmap/
 F:	drivers/i2c/i2c-regmap.c
+F:	drivers/spi/spi-regmap.c
 F:	include/linux/regmap.h
 
 RFKILL

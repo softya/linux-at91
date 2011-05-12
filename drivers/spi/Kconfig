@@ -43,11 +43,15 @@ config SPI_MASTER
 #	boolean "SPI Master Support"
 	boolean
 	default SPI
+	select SPI_REGMAP if REGMAP
 	help
 	  If your system has an master-capable SPI controller (which
 	  provides the clock and chipselect), you can enable that
 	  controller and the protocol drivers for the SPI slave chips
 	  that are connected.
+
+config SPI_REGMAP
+	boolean
 
 if SPI_MASTER
 
