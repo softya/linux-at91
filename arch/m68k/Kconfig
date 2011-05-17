@@ -24,6 +24,10 @@ config GENERIC_HWEIGHT
 	bool
 	default y
 
+config GENERIC_FIND_BIT_LE
+	bool
+	default y
+
 config GENERIC_CALIBRATE_DELAY
 	bool
 	default y
