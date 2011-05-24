@@ -51,7 +51,7 @@ const u32 *mxs_get_ocotp(void)
 	/* check both BUSY and ERROR cleared */
 	while ((__raw_readl(ocotp_base) &
 		(BM_OCOTP_CTRL_BUSY | BM_OCOTP_CTRL_ERROR)) && --timeout)
-		cpu_relax();
+		;
 
 	if (unlikely(!timeout))
 		goto error_unlock;
@@ -65,7 +65,7 @@ const u32 *mxs_get_ocotp(void)
 	/* poll BUSY bit becoming cleared */
 	timeout = 0x400;
 	while ((__raw_readl(ocotp_base) & BM_OCOTP_CTRL_BUSY) && --timeout)
-		cpu_relax();
+		;
 
 	if (unlikely(!timeout))
 		goto error_unlock;
