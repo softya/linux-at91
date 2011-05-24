@@ -115,7 +115,7 @@
 #define LCDC_LCDIER_FIFOERRIE		(0x1 << 4)
 #define LCDC_LCDIER_BASEIE		(0x1 << 8)
 #define LCDC_LCDIER_OVR1IE		(0x1 << 9)
-#define LCDC_LCDIER_HEOIE		(0x1 << 11)
+#define LCDC_LCDIER_HEOIE		(0x1 << 10)
 #define LCDC_LCDIER_HCRIE		(0x1 << 12)
 
 #define ATMEL_LCDC_LCDIDR	0x0030
