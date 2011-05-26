@@ -67,15 +67,17 @@ extern char *cifs_compose_mount_options(const char *sb_mountdata,
 extern struct mid_q_entry *AllocMidQEntry(const struct smb_hdr *smb_buffer,
 					struct TCP_Server_Info *server);
 extern void DeleteMidQEntry(struct mid_q_entry *midEntry);
-extern int cifs_call_async(struct TCP_Server_Info *server,
-			   struct smb_hdr *in_buf, mid_callback_t *callback,
-			   void *cbdata);
+extern int cifs_call_async(struct TCP_Server_Info *server, struct kvec *iov,
+			   unsigned int nvec, mid_callback_t *callback,
+			   void *cbdata, bool ignore_pend);
 extern int SendReceive(const unsigned int /* xid */ , struct cifsSesInfo *,
 			struct smb_hdr * /* input */ ,
 			struct smb_hdr * /* out */ ,
 			int * /* bytes returned */ , const int long_op);
 extern int SendReceiveNoRsp(const unsigned int xid, struct cifsSesInfo *ses,
 			struct smb_hdr *in_buf, int flags);
+extern int cifs_check_receive(struct mid_q_entry *mid,
+			struct TCP_Server_Info *server, bool log_error);
 extern int SendReceive2(const unsigned int /* xid */ , struct cifsSesInfo *,
 			struct kvec *, int /* nvec to send */,
 			int * /* type of buf returned */ , const int flags);
@@ -99,7 +101,7 @@ extern int cifs_convert_address(struct sockaddr *dst, const char *src, int len);
 extern int cifs_set_port(struct sockaddr *addr, const unsigned short int port);
 extern int cifs_fill_sockaddr(struct sockaddr *dst, const char *src, int len,
 				const unsigned short int port);
-extern int map_smb_to_linux_error(struct smb_hdr *smb, int logErr);
+extern int map_smb_to_linux_error(struct smb_hdr *smb, bool logErr);
 extern void header_assemble(struct smb_hdr *, char /* command */ ,
 			    const struct cifsTconInfo *, int /* length of
 			    fixed section (word count) in two byte units */);
@@ -148,8 +150,14 @@ extern struct cifs_ntsd *get_cifs_acl(struct cifs_sb_info *, struct inode *,
 extern int set_cifs_acl(struct cifs_ntsd *, __u32, struct inode *,
 				const char *);
 
+extern void cifs_setup_cifs_sb(struct smb_vol *pvolume_info,
+			       struct cifs_sb_info *cifs_sb);
+extern int cifs_match_super(struct super_block *, void *);
+extern void cifs_cleanup_volume_info(struct smb_vol **pvolume_info);
+extern int cifs_setup_volume_info(struct smb_vol **pvolume_info,
+				  char *mount_data, const char *devname);
 extern int cifs_mount(struct super_block *, struct cifs_sb_info *,
-			const char *);
+		      struct smb_vol *, const char *);
 extern int cifs_umount(struct super_block *, struct cifs_sb_info *);
 extern void cifs_dfs_release_automount_timer(void);
 void cifs_proc_init(void);
@@ -434,4 +442,22 @@ extern int mdfour(unsigned char *, unsigned char *, int);
 extern int E_md4hash(const unsigned char *passwd, unsigned char *p16);
 extern int SMBencrypt(unsigned char *passwd, const unsigned char *c8,
 			unsigned char *p24);
+
+/* asynchronous write support */
+struct cifs_writedata {
+	struct kref			refcount;
+	enum writeback_sync_modes	sync_mode;
+	struct work_struct		work;
+	struct cifsFileInfo		*cfile;
+	__u64				offset;
+	unsigned int			bytes;
+	int				result;
+	unsigned int			nr_pages;
+	struct page			*pages[1];
+};
+
+int cifs_async_writev(struct cifs_writedata *wdata);
+struct cifs_writedata *cifs_writedata_alloc(unsigned int nr_pages);
+void cifs_writedata_release(struct kref *refcount);
+
 #endif			/* _CIFSPROTO_H */

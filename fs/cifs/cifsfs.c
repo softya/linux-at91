@@ -104,46 +104,25 @@ cifs_sb_deactive(struct super_block *sb)
 }
 
 static int
-cifs_read_super(struct super_block *sb, void *data,
+cifs_read_super(struct super_block *sb, struct smb_vol *volume_info,
 		const char *devname, int silent)
 {
 	struct inode *inode;
 	struct cifs_sb_info *cifs_sb;
 	int rc = 0;
 
-	/* BB should we make this contingent on mount parm? */
-	sb->s_flags |= MS_NODIRATIME | MS_NOATIME;
-	sb->s_fs_info = kzalloc(sizeof(struct cifs_sb_info), GFP_KERNEL);
 	cifs_sb = CIFS_SB(sb);
-	if (cifs_sb == NULL)
-		return -ENOMEM;
 
 	spin_lock_init(&cifs_sb->tlink_tree_lock);
 	cifs_sb->tlink_tree = RB_ROOT;
 
 	rc = bdi_setup_and_register(&cifs_sb->bdi, "cifs", BDI_CAP_MAP_COPY);
-	if (rc) {
-		kfree(cifs_sb);
+	if (rc)
 		return rc;
-	}
+
 	cifs_sb->bdi.ra_pages = default_backing_dev_info.ra_pages;
 
-	/*
-	 * Copy mount params to sb for use in submounts. Better to do
-	 * the copy here and deal with the error before cleanup gets
-	 * complicated post-mount.
-	 */
-	if (data) {
-		cifs_sb->mountdata = kstrndup(data, PAGE_SIZE, GFP_KERNEL);
-		if (cifs_sb->mountdata == NULL) {
-			bdi_destroy(&cifs_sb->bdi);
-			kfree(sb->s_fs_info);
-			sb->s_fs_info = NULL;
-			return -ENOMEM;
-		}
-	}
-
-	rc = cifs_mount(sb, cifs_sb, devname);
+	rc = cifs_mount(sb, cifs_sb, volume_info, devname);
 
 	if (rc) {
 		if (!silent)
@@ -194,15 +173,7 @@ out_no_root:
 	cifs_umount(sb, cifs_sb);
 
 out_mount_failed:
-	if (cifs_sb) {
-		if (cifs_sb->mountdata) {
-			kfree(cifs_sb->mountdata);
-			cifs_sb->mountdata = NULL;
-		}
-		unload_nls(cifs_sb->local_nls);
-		bdi_destroy(&cifs_sb->bdi);
-		kfree(cifs_sb);
-	}
+	bdi_destroy(&cifs_sb->bdi);
 	return rc;
 }
 
@@ -561,27 +532,72 @@ static const struct super_operations cifs_super_ops = {
 
 static struct dentry *
 cifs_do_mount(struct file_system_type *fs_type,
-	    int flags, const char *dev_name, void *data)
+	      int flags, const char *dev_name, void *data)
 {
 	int rc;
 	struct super_block *sb;
-
-	sb = sget(fs_type, NULL, set_anon_super, NULL);
+	struct cifs_sb_info *cifs_sb;
+	struct smb_vol *volume_info;
+	struct dentry *root;
 
 	cFYI(1, "Devname: %s flags: %d ", dev_name, flags);
 
-	if (IS_ERR(sb))
-		return ERR_CAST(sb);
+	rc = cifs_setup_volume_info(&volume_info, (char *)data, dev_name);
+	if (rc)
+		return ERR_PTR(rc);
+
+	cifs_sb = kzalloc(sizeof(struct cifs_sb_info), GFP_KERNEL);
+	if (cifs_sb == NULL) {
+		root = ERR_PTR(-ENOMEM);
+		goto out;
+	}
+
+	cifs_setup_cifs_sb(volume_info, cifs_sb);
+
+	sb = sget(fs_type, NULL, set_anon_super, NULL);
+	if (IS_ERR(sb)) {
+		kfree(cifs_sb);
+		root = ERR_CAST(sb);
+		goto out;
+	}
+
+	/*
+	 * Copy mount params for use in submounts. Better to do
+	 * the copy here and deal with the error before cleanup gets
+	 * complicated post-mount.
+	 */
+	cifs_sb->mountdata = kstrndup(data, PAGE_SIZE, GFP_KERNEL);
+	if (cifs_sb->mountdata == NULL) {
+		root = ERR_PTR(-ENOMEM);
+		goto err_out;
+	}
 
 	sb->s_flags = flags;
+	/* BB should we make this contingent on mount parm? */
+	sb->s_flags |= MS_NODIRATIME | MS_NOATIME;
+	sb->s_fs_info = cifs_sb;
 
-	rc = cifs_read_super(sb, data, dev_name, flags & MS_SILENT ? 1 : 0);
+	rc = cifs_read_super(sb, volume_info, dev_name,
+			     flags & MS_SILENT ? 1 : 0);
 	if (rc) {
-		deactivate_locked_super(sb);
-		return ERR_PTR(rc);
+		root = ERR_PTR(rc);
+		goto err_out;
 	}
+
 	sb->s_flags |= MS_ACTIVE;
-	return dget(sb->s_root);
+
+	root = dget(sb->s_root);
+out:
+	cifs_cleanup_volume_info(&volume_info);
+	return root;
+
+err_out:
+	kfree(cifs_sb->mountdata);
+	unload_nls(cifs_sb->local_nls);
+	kfree(cifs_sb);
+	deactivate_locked_super(sb);
+	cifs_cleanup_volume_info(&volume_info);
+	return root;
 }
 
 static ssize_t cifs_file_aio_write(struct kiocb *iocb, const struct iovec *iov,
