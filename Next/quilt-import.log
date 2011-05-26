@@ -1,0 +1,36 @@
+Importing i2c based on 2.6.39-git10
+	quilt series is empty
+$ git update-ref refs/heads/quilt/i2c 4a7df24ddc7097cd789a7527187826552ea0765e
+Importing jdelvare-hwmon based on 2.6.39-git10
+$ git clone -s -l -n -q . ../quilt-tmp
+$ cd ../quilt-tmp
+$ git reset --hard 4a7df24ddc7097cd789a7527187826552ea0765e
+HEAD is now at 4a7df24 Merge branch 'for-linus/2640/i2c' of git://git.fluff.org/bjdooks/linux
+$ git quiltimport --author Jean Delvare <khali@linux-fr.org> --patches ../quilt/jdelvare-hwmon
+i8k-avoid-lahf-in-64bit-code.patch
+hwmon-use-set_drvdata-helpers.patch
+hwmon-k10temp-add-support-for-fam15h-bulldozer.patch
+hwmon-add-driver-for-amd-fam15h-power.patch
+hwmon-jc42-change-class.patch
+hwmon-asc7621-drop-duplicate-dependency.patch
+hwmon-f71882fg-01-split-has_beep-in-fan_has_beep-and-temp_has_beep.patch
+hwmon-f71882fg-02-add-support-for-F71808A.patch
+move-acpi-power-meter-to-hwmon.patch
+hwmon-max6650-01-drop-detection.patch
+hwmon-max6650-02-properly-support-MAX6650.patch
+i8k-01-hwmon-integration.patch
+hwmon-sch5627-01-add-sch5627_send_cmd-function.patch
+hwmon-sch5627-02-trigger-vbat-measurements.patch
+use-request_muxed_region-in-it87-hwmon-drivers.patch
+hwmon-abiturugu-depends-on-dmi.patch
+hwmon-add-emc6w201-driver.patch
+$ cd ../next
+$ git fetch -f ../quilt-tmp master:quilt/jdelvare-hwmon
+From ../quilt-tmp
+ + b080616...ebd19e5 master     -> quilt/jdelvare-hwmon  (forced update)
+Importing kernel-doc based on 2.6.39-rc3-git8
+Unchanged quilt series kernel-doc
+Importing rr based on v2.6.39-180-g51509a2
+Unchanged quilt series rr
+Importing device-mapper based on v2.6.39
+Unchanged quilt series device-mapper
