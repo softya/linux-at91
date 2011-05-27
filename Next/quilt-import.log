@@ -1,0 +1,36 @@
+Importing i2c based on 2.6.39-git12
+	quilt series is empty
+$ git update-ref refs/heads/quilt/i2c 4db70f73e56961b9bcdfd0c36c62847a18b7dbb5
+Importing jdelvare-hwmon based on 2.6.39-git12
+	quilt series is empty
+$ git update-ref refs/heads/quilt/jdelvare-hwmon 4db70f73e56961b9bcdfd0c36c62847a18b7dbb5
+Importing kernel-doc based on 2.6.39-rc3-git8
+Unchanged quilt series kernel-doc
+Importing rr based on v2.6.39-180-g51509a2
+$ git clone -s -l -n -q . ../quilt-tmp
+$ cd ../quilt-tmp
+$ git reset --hard 51509a283a908d73b20371addc67ee3ae7189934
+HEAD is now at 51509a2 Merge branch 'for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/rafael/suspend-2.6
+$ git quiltimport --author Rusty Russell <rusty@rustcorp.com.au> --patches ../quilt/rr
+lguest-fix-timer-setup-WARN_ON.patch
+lguest-launcher-move-fix.patch
+lguest-remove-notify-on-empty.patch
+virtio:blk_allow_re_reading_config_space_at_runtime.patch
+virtio:drivers_block_blk_replace_cryptic_number_with_the_macro.patch
+virtio_console-dont-manually-set-features.patch
+virtio:balloon_kill_tell_host_first_logic.patch
+virtio-license-clarification.patch
+virtio:event_index_interface.patch
+virtio:ring_inline_function_to_check_for_events.patch
+virtio:ring_support_event_idx_feature.patch
+misc:vhost_support_event_index.patch
+virtio:test_support_event_index.patch
+virtio:add_api_for_delayed_callbacks.patch
+virtio:net_delay_tx_callbacks.patch
+$ cd ../next
+$ git fetch -f ../quilt-tmp master:quilt/rr
+From ../quilt-tmp
+ + 8089824...10ae9b8 master     -> quilt/rr  (forced update)
+Importing device-mapper based on v2.6.39
+	quilt series is empty
+$ git update-ref refs/heads/quilt/device-mapper 61c4f2c81c61f73549928dfd9f3e8f26aa36a8cf
