@@ -64,6 +64,14 @@ static const unsigned short normal_i2c[] = {
 #define MAX6642_REG_W_REMOTE_HIGH	0x0D
 
 /*
+ * Registers for detection tests. These registers are not present and,
+ * when read, will only return the last valid register read.
+ */
+#define MAX6642_REG_R_DUMMY_1          0x04
+#define MAX6642_REG_R_DUMMY_2          0x06
+#define MAX6642_REG_R_DUMMY_3          0xFF
+
+/*
  * Conversions
  */
 
@@ -126,7 +134,7 @@ static int max6642_detect(struct i2c_client *client,
 			  struct i2c_board_info *info)
 {
 	struct i2c_adapter *adapter = client->adapter;
-	u8 reg_config, reg_status, man_id;
+	u8 reg_config, reg_status, man_id, dummy_reg;
 
 	if (!i2c_check_functionality(adapter, I2C_FUNC_SMBUS_BYTE_DATA))
 		return -ENODEV;
@@ -134,6 +142,19 @@ static int max6642_detect(struct i2c_client *client,
 	/* identification */
 	man_id = i2c_smbus_read_byte_data(client, MAX6642_REG_R_MAN_ID);
 	if (man_id != 0x4D)
+		return -ENODEV;
+
+	/* sanity check */
+	dummy_reg = i2c_smbus_read_byte_data(client, MAX6642_REG_R_DUMMY_1);
+	if (dummy_reg != 0x4D)
+		return -ENODEV;
+
+	dummy_reg = i2c_smbus_read_byte_data(client, MAX6642_REG_R_DUMMY_2);
+	if (dummy_reg != 0x4D)
+		return -ENODEV;
+
+	dummy_reg = i2c_smbus_read_byte_data(client, MAX6642_REG_R_DUMMY_3);
+	if (dummy_reg != 0x4D)
 		return -ENODEV;
 
 	/*
