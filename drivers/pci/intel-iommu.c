@@ -1734,11 +1734,11 @@ static inline int hardware_largepage_caps(struct dmar_domain *domain,
 	   merge them and check both at once. */
 	pfnmerge = iov_pfn | phy_pfn;
 
-	while (support && !(pfnmerge & ~VTD_PAGE_MASK)) {
-		pages >>= 9;
+	while (support && !(pfnmerge & ~VTD_STRIDE_MASK)) {
+		pages >>= VTD_STRIDE_SHIFT;
 		if (!pages)
 			break;
-		pfnmerge >>= 9;
+		pfnmerge >>= VTD_STRIDE_SHIFT;
 		level++;
 		support--;
 	}
