@@ -800,12 +800,12 @@ static struct dma_pte *dma_pfn_level_pte(struct dmar_domain *domain,
 			return pte;
 
 		if (!dma_pte_present(pte)) {
-			*large_page = total - 1;
+			*large_page = total;
 			break;
 		}
 
 		if (pte->val & DMA_PTE_LARGE_PAGE) {
-			*large_page = total - 1;
+			*large_page = total;
 			return pte;
 		}
 
