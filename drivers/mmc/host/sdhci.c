@@ -2676,8 +2676,8 @@ int sdhci_add_host(struct sdhci_host *host)
 	 * Maximum block size. This varies from controller to controller and
 	 * is specified in the capabilities register.
 	 */
-	if (host->ops->get_max_blk_size) {
-		mmc->max_blk_size = host->ops->get_max_blk_size(host);
+	if (host->quirks & SDHCI_QUIRK_FORCE_BLK_SZ_2048) {
+		mmc->max_blk_size = 2;
 	} else {
 		mmc->max_blk_size = (caps[0] & SDHCI_MAX_BLOCK_MASK) >>
 				SDHCI_MAX_BLOCK_SHIFT;
@@ -2693,10 +2693,7 @@ int sdhci_add_host(struct sdhci_host *host)
 	/*
 	 * Maximum block count.
 	 */
-	if (host->ops->get_max_blk_count)
-		mmc->max_blk_count = host->ops->get_max_blk_count(host);
-	else
-		mmc->max_blk_count = 65535;
+	mmc->max_blk_count = (host->quirks & SDHCI_QUIRK_NO_MULTIBLOCK) ? 1 : 65535;
 
 	/*
 	 * Init tasklets.

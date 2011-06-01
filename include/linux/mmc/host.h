@@ -373,4 +373,5 @@ static inline int mmc_host_cmd23(struct mmc_host *host)
 {
 	return host->caps & MMC_CAP_CMD23;
 }
-#endif /* LINUX_MMC_HOST_H */
+#endif
+
