@@ -89,6 +89,12 @@ struct oob_data {
 	u8 randomizer[16];
 };
 
+struct adv_entry {
+	struct list_head list;
+	bdaddr_t bdaddr;
+	u8 bdaddr_type;
+};
+
 #define NUM_REASSEMBLY 4
 struct hci_dev {
 	struct list_head list;
@@ -181,6 +187,9 @@ struct hci_dev {
 
 	struct list_head	remote_oob_data;
 
+	struct list_head	adv_entries;
+	struct timer_list	adv_timer;
+
 	struct hci_dev_stats	stat;
 
 	struct sk_buff_head	driver_init;
@@ -215,6 +224,7 @@ struct hci_conn {
 	spinlock_t	lock;
 
 	bdaddr_t	dst;
+	__u8            dst_type;
 	__u16		handle;
 	__u16		state;
 	__u8		mode;
@@ -313,6 +323,7 @@ void hci_inquiry_cache_update(struct hci_dev *hdev, struct inquiry_data *data);
 /* ----- HCI Connections ----- */
 enum {
 	HCI_CONN_AUTH_PEND,
+	HCI_CONN_REAUTH_PEND,
 	HCI_CONN_ENCRYPT_PEND,
 	HCI_CONN_RSWITCH_PEND,
 	HCI_CONN_MODE_CHANGE_PEND,
@@ -427,7 +438,7 @@ int hci_conn_security(struct hci_conn *conn, __u8 sec_level, __u8 auth_type);
 int hci_conn_change_link_key(struct hci_conn *conn);
 int hci_conn_switch_role(struct hci_conn *conn, __u8 role);
 
-void hci_conn_enter_active_mode(struct hci_conn *conn);
+void hci_conn_enter_active_mode(struct hci_conn *conn, __u8 force_active);
 void hci_conn_enter_sniff_mode(struct hci_conn *conn);
 
 void hci_conn_hold_device(struct hci_conn *conn);
@@ -526,6 +537,12 @@ struct oob_data *hci_find_remote_oob_data(struct hci_dev *hdev,
 int hci_add_remote_oob_data(struct hci_dev *hdev, bdaddr_t *bdaddr, u8 *hash,
 								u8 *randomizer);
 int hci_remove_remote_oob_data(struct hci_dev *hdev, bdaddr_t *bdaddr);
+
+#define ADV_CLEAR_TIMEOUT (3*60*HZ) /* Three minutes */
+int hci_adv_entries_clear(struct hci_dev *hdev);
+struct adv_entry *hci_find_adv_entry(struct hci_dev *hdev, bdaddr_t *bdaddr);
+int hci_add_adv_entry(struct hci_dev *hdev,
+					struct hci_ev_le_advertising_info *ev);
 
 void hci_del_off_timer(struct hci_dev *hdev);
 
