@@ -1604,7 +1604,7 @@ restore_current:
 	retl
 	 nop
 
-#ifdef CONFIG_PCIC_PCI
+#ifdef CONFIG_PCI
 #include <asm/pcic.h>
 
 	.align	4
@@ -1650,7 +1650,7 @@ pcic_nmi_trap_patch:
 	 rd	%psr, %l0
 	.word	0
 
-#endif /* CONFIG_PCIC_PCI */
+#endif /* CONFIG_PCI */
 
 	.globl	flushw_all
 flushw_all:
