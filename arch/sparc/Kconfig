@@ -532,11 +532,6 @@ config PCIC_PCI
 	depends on PCI && !SPARC_LEON
 	default y
 
-config LEON_PCI
-	bool
-	depends on PCI && SPARC_LEON
-	default y
-
 source "drivers/pci/Kconfig"
 
 source "drivers/pcmcia/Kconfig"
