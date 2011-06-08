@@ -1,6 +1,4 @@
 /*
- * linux/arch/arm/mach-ep93xx/gpio.c
- *
  * Generic EP93xx GPIO handling
  *
  * Copyright (c) 2008 Ryan Mallon <ryan@bluewatersys.com>
@@ -13,7 +11,7 @@
  *  published by the Free Software Foundation.
  */
 
-#define pr_fmt(fmt) "ep93xx " KBUILD_MODNAME ": " fmt
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
 #include <linux/init.h>
 #include <linux/module.h>
