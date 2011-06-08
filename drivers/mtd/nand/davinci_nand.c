@@ -581,7 +581,9 @@ static int __init nand_davinci_probe(struct platform_device *pdev)
 	info->chip.chip_delay	= 0;
 	info->chip.select_chip	= nand_davinci_select_chip;
 
-	/* options such as NAND_USE_FLASH_BBT or 16-bit widths */
+	/* options such as NAND_BBT_USE_FLASH */
+	info->chip.bbt_options	= pdata->bbt_options;
+	/* options such as 16-bit widths */
 	info->chip.options	= pdata->options;
 	info->chip.bbt_td	= pdata->bbt_td;
 	info->chip.bbt_md	= pdata->bbt_md;
@@ -751,14 +753,7 @@ syndrome_done:
 	if (ret < 0)
 		goto err_scan;
 
-	if (mtd_has_cmdlinepart()) {
-		static const char *probes[] __initconst = {
-			"cmdlinepart", NULL
-		};
-
-		mtd_parts_nb = parse_mtd_partitions(&info->mtd, probes,
-						    &mtd_parts, 0);
-	}
+	mtd_parts_nb = parse_mtd_partitions(&info->mtd, NULL, &mtd_parts, 0);
 
 	if (mtd_parts_nb <= 0) {
 		mtd_parts = pdata->parts;
