@@ -52,8 +52,6 @@
 static const __devinitconst char gBanner[] = KERN_INFO \
 	"BCM UMI MTD NAND Driver: 1.00\n";
 
-const char *part_probes[] = { "cmdlinepart", NULL };
-
 #if NAND_ECC_BCH
 static uint8_t scan_ff_pattern[] = { 0xff };
 
@@ -474,7 +472,7 @@ static int __devinit bcm_umi_nand_probe(struct platform_device *pdev)
 
 #if NAND_ECC_BCH
 	if (board_mtd->writesize > 512) {
-		if (this->options & NAND_USE_FLASH_BBT)
+		if (this->bbt_options & NAND_BBT_USE_FLASH)
 			largepage_bbt.options = NAND_BBT_SCAN2NDPAGE;
 		this->badblock_pattern = &largepage_bbt;
 	}
@@ -496,9 +494,8 @@ static int __devinit bcm_umi_nand_probe(struct platform_device *pdev)
 		struct mtd_partition *partition_info;
 
 		board_mtd->name = "bcm_umi-nand";
-		nr_partitions =
-		    parse_mtd_partitions(board_mtd, part_probes,
-					 &partition_info, 0);
+		nr_partitions = parse_mtd_partitions(board_mtd, NULL,
+						     &partition_info, 0);
 
 		if (nr_partitions <= 0) {
 			printk(KERN_ERR "BCM UMI NAND: Too few partitions - %d\n",

@@ -686,7 +686,8 @@ static int __devinit cafe_nand_probe(struct pci_dev *pdev,
 	cafe->nand.chip_delay = 0;
 
 	/* Enable the following for a flash based bad block table */
-	cafe->nand.options = NAND_USE_FLASH_BBT | NAND_NO_AUTOINCR | NAND_OWN_BUFFERS;
+	cafe->nand.bbt_options = NAND_BBT_USE_FLASH;
+	cafe->nand.options = NAND_NO_AUTOINCR | NAND_OWN_BUFFERS;
 
 	if (skipbbt) {
 		cafe->nand.options |= NAND_SKIP_BBTSCAN;
@@ -802,9 +803,7 @@ static int __devinit cafe_nand_probe(struct pci_dev *pdev,
 	/* We register the whole device first, separate from the partitions */
 	mtd_device_register(mtd, NULL, 0);
 
-#ifdef CONFIG_MTD_CMDLINE_PARTS
 	mtd->name = "cafe_nand";
-#endif
 	nr_parts = parse_mtd_partitions(mtd, part_probes, &parts, 0);
 	if (nr_parts > 0) {
 		cafe->parts = parts;

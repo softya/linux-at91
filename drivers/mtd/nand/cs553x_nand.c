@@ -239,7 +239,8 @@ static int __init cs553x_init_one(int cs, int mmio, unsigned long adr)
 	this->ecc.correct  = nand_correct_data;
 
 	/* Enable the following for a flash based bad block table */
-	this->options = NAND_USE_FLASH_BBT | NAND_NO_AUTOINCR;
+	this->bbt_options = NAND_BBT_USE_FLASH;
+	this->options = NAND_NO_AUTOINCR;
 
 	/* Scan to find existence of the device */
 	if (nand_scan(new_mtd, 1)) {
@@ -276,8 +277,6 @@ static int is_geode(void)
 
 	return 0;
 }
-
-static const char *part_probes[] = { "cmdlinepart", NULL };
 
 static int __init cs553x_init(void)
 {
@@ -317,9 +316,7 @@ static int __init cs553x_init(void)
 		if (cs553x_mtd[i]) {
 
 			/* If any devices registered, return success. Else the last error. */
-			mtd_parts_nb = parse_mtd_partitions(cs553x_mtd[i], part_probes, &mtd_parts, 0);
-			if (mtd_parts_nb > 0)
-				printk(KERN_NOTICE "Using command line partition definition\n");
+			mtd_parts_nb = parse_mtd_partitions(cs553x_mtd[i], NULL, &mtd_parts, 0);
 			mtd_device_register(cs553x_mtd[i], mtd_parts,
 					    mtd_parts_nb);
 			err = 0;
