@@ -1,0 +1,40 @@
+Importing i2c based on 3.0-rc2
+$ git clone -s -l -n -q . ../quilt-tmp
+$ cd ../quilt-tmp
+$ git reset --hard 59c5f46fbe01a00eedf54a23789634438bb80603
+HEAD is now at 59c5f46 Linux 3.0-rc2
+$ git quiltimport --author Jean Delvare <khali@linux-fr.org> --patches ../quilt/i2c
+i2c-taos-evm-fix-log-messages.patch
+$ cd ../next
+$ git fetch -f ../quilt-tmp master:quilt/i2c
+From ../quilt-tmp
+   59c5f46..6918a13  master     -> quilt/i2c
+Importing jdelvare-hwmon based on 3.0-rc2
+$ cd ../quilt-tmp
+$ git reset --hard 59c5f46fbe01a00eedf54a23789634438bb80603
+HEAD is now at 59c5f46 Linux 3.0-rc2
+$ git quiltimport --author Jean Delvare <khali@linux-fr.org> --patches ../quilt/jdelvare-hwmon
+hwmon-emc6w201-improve-error-handing.patch
+hwmon-reformat-hdegoede-email-address.patch
+hwmon-f71882fg-add-support-for-the-f71869a.patch
+hwmon-vid-fix-typo-in-VIA-CPU-name.patch
+hwmon-factor-out-common-sch56xx-code.patch
+hwmon-new-driver-sch5636.patch
+$ cd ../next
+$ git fetch -f ../quilt-tmp master:quilt/jdelvare-hwmon
+From ../quilt-tmp
+ + 48ea9fa...0dfb8df master     -> quilt/jdelvare-hwmon  (forced update)
+Importing kernel-doc based on 2.6.39
+Unchanged quilt series kernel-doc
+Importing rr based on v3.0-rc2
+$ cd ../quilt-tmp
+$ git reset --hard 59c5f46fbe01a00eedf54a23789634438bb80603
+HEAD is now at 59c5f46 Linux 3.0-rc2
+$ git quiltimport --author Rusty Russell <rusty@rustcorp.com.au> --patches ../quilt/rr
+misc:param_fix_return_value_handling_in_param_set.patch
+$ cd ../next
+$ git fetch -f ../quilt-tmp master:quilt/rr
+From ../quilt-tmp
+ + ef08531...8c391e1 master     -> quilt/rr  (forced update)
+Importing device-mapper based on v2.6.39
+Unchanged quilt series device-mapper
