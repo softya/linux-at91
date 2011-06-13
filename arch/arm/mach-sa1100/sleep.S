@@ -29,12 +29,12 @@
  */
 
 ENTRY(sa1100_cpu_suspend)
-	stmfd	sp!, {r4 - r12, lr}		@ save registers on stack
+	mov	r9, lr
 	mov	r1, r0
 	adr	r3, BSYM(sa1100_finish_suspend)
 	bl	cpu_suspend
 	mcr	p15, 0, r1, c15, c1, 2		@ enable clock switching
-	ldmfd	sp!, {r4 - r12, pc}		@ return to caller
+	mov	pc, r9				@ return to caller
 
 sa1100_finish_suspend:
 	@ disable clock switching
