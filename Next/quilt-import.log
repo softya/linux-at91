@@ -1,0 +1,22 @@
+Importing i2c based on 3.0-rc2
+Unchanged quilt series i2c
+Importing jdelvare-hwmon based on 3.0-rc2
+Unchanged quilt series jdelvare-hwmon
+Importing kernel-doc based on 3.0-rc2
+$ git clone -s -l -n -q . ../quilt-tmp
+$ cd ../quilt-tmp
+$ git reset --hard 59c5f46fbe01a00eedf54a23789634438bb80603
+HEAD is now at 59c5f46 Linux 3.0-rc2
+$ git quiltimport --author Randy Dunlap <randy.dunlap@oracle.com> --patches ../quilt/kernel-doc
+docum-printk-formats-update1.patch
+docum-kmemleak-supp-archs.patch
+docum-cgroupfs-mountpoint.patch
+docum-cgroup-typos.patch
+$ cd ../next
+$ git fetch -f ../quilt-tmp master:quilt/kernel-doc
+From ../quilt-tmp
+ + 9a0531a...628aca2 master     -> quilt/kernel-doc  (forced update)
+Importing rr based on v3.0-rc2
+Unchanged quilt series rr
+Importing device-mapper based on v2.6.39
+Unchanged quilt series device-mapper
