@@ -100,6 +100,7 @@ static char rcu_kthreads_spawnable;
 
 static void rcu_node_kthread_setaffinity(struct rcu_node *rnp, int outgoingcpu);
 static void invoke_rcu_cpu_kthread(void);
+static void __invoke_rcu_cpu_kthread(void);
 
 #define RCU_KTHREAD_PRIO 1	/* RT priority for per-CPU kthreads. */
 
@@ -479,6 +480,56 @@ static int rcu_implicit_dynticks_qs(struct rcu_data *rdp)
 
 #endif /* #ifdef CONFIG_SMP */
 
+#ifdef CONFIG_32BIT
+
+/*
+ * Wrapper function to allow smp_call_function_single() to invoke RCU
+ * core processing on some other CPU.
+ */
+static void invoke_rcu_core_remote(void *unused)
+{
+	invoke_rcu_cpu_kthread();
+}
+
+/*
+ * Check a CPU to see if it is online, in dyntick-idle mode, and
+ * in danger of being too far behind the current grace period.
+ * If so, wake it up so as to make it catch up to the current
+ * grace period.  On a 32-bit system running through 500 grace
+ * periods per second, a given CPU would be awakened about once
+ * every 50 days.  On a 64-bit system, a given CPU would be
+ * awakened about every 500 million years, so we don't bother
+ * in that case.  If you happen to be manufacturing an extremely
+ * durable 64-bit SMP computer system, obtain a patch from the
+ * RCU maintainer.
+ */
+static void rcu_dyntick_kick_cpu(struct rcu_state *rsp)
+{
+	int cpu;
+	struct rcu_data *rdp;
+
+	cpu = rsp->dyntick_ovf_cpu;
+	rdp = per_cpu_ptr(rsp->rda, cpu);
+	if (cpu_online(cpu) && ULONG_CMP_LT(rsp->completed, rdp->completed))
+		if (smp_processor_id() == cpu)
+			invoke_rcu_cpu_kthread();
+		else
+			smp_call_function_single(cpu, invoke_rcu_core_remote,
+						 NULL, 1);
+	cpu = next_cpu(cpu, cpu_online_mask);
+	if (cpu >= NR_CPUS)
+		cpu = first_cpu(cpu_online_mask);
+	rsp->dyntick_ovf_cpu = cpu;
+}
+
+#else /* #ifdef CONFIG_32BIT */
+
+static void rcu_dyntick_kick_cpu(struct rcu_state *rsp)
+{
+}
+
+#endif /* #else #ifdef CONFIG_32BIT */
+
 #else /* #ifdef CONFIG_NO_HZ */
 
 #ifdef CONFIG_SMP
@@ -494,6 +545,10 @@ static int rcu_implicit_dynticks_qs(struct rcu_data *rdp)
 }
 
 #endif /* #ifdef CONFIG_SMP */
+
+static void rcu_dyntick_kick_cpu(struct rcu_state *rsp)
+{
+}
 
 #endif /* #else #ifdef CONFIG_NO_HZ */
 
@@ -828,6 +883,7 @@ rcu_start_gp(struct rcu_state *rsp, unsigned long flags)
 	rsp->signaled = RCU_GP_INIT; /* Hold off force_quiescent_state. */
 	rsp->jiffies_force_qs = jiffies + RCU_JIFFIES_TILL_FORCE_QS;
 	record_gp_stall_check_time(rsp);
+	rcu_dyntick_kick_cpu(rsp);
 
 	/* Special-case the common single-level case. */
 	if (NUM_RCU_NODES == 1) {
@@ -1442,13 +1498,21 @@ __rcu_process_callbacks(struct rcu_state *rsp, struct rcu_data *rdp)
 	}
 
 	/* If there are callbacks ready, invoke them. */
-	rcu_do_batch(rsp, rdp);
+	if (cpu_has_callbacks_ready_to_invoke(rdp))
+		__invoke_rcu_cpu_kthread();
+}
+
+static void rcu_kthread_do_work(void)
+{
+	rcu_do_batch(&rcu_sched_state, &__get_cpu_var(rcu_sched_data));
+	rcu_do_batch(&rcu_bh_state, &__get_cpu_var(rcu_bh_data));
+	rcu_preempt_do_callbacks();
 }
 
 /*
  * Do softirq processing for the current CPU.
  */
-static void rcu_process_callbacks(void)
+static void rcu_process_callbacks(struct softirq_action *unused)
 {
 	__rcu_process_callbacks(&rcu_sched_state,
 				&__get_cpu_var(rcu_sched_data));
@@ -1465,18 +1529,21 @@ static void rcu_process_callbacks(void)
  * the current CPU with interrupts disabled, the rcu_cpu_kthread_task
  * cannot disappear out from under us.
  */
-static void invoke_rcu_cpu_kthread(void)
+static void __invoke_rcu_cpu_kthread(void)
 {
 	unsigned long flags;
 
 	local_irq_save(flags);
 	__this_cpu_write(rcu_cpu_has_work, 1);
-	if (__this_cpu_read(rcu_cpu_kthread_task) == NULL) {
-		local_irq_restore(flags);
-		return;
-	}
-	wake_up_process(__this_cpu_read(rcu_cpu_kthread_task));
+	if (__this_cpu_read(rcu_cpu_kthread_task) != NULL &&
+	    current != __this_cpu_read(rcu_cpu_kthread_task))
+		wake_up_process(__this_cpu_read(rcu_cpu_kthread_task));
 	local_irq_restore(flags);
+}
+
+static void invoke_rcu_cpu_kthread(void)
+{
+	raise_softirq(RCU_SOFTIRQ);
 }
 
 /*
@@ -1613,7 +1680,7 @@ static int rcu_cpu_kthread(void *arg)
 		*workp = 0;
 		local_irq_restore(flags);
 		if (work)
-			rcu_process_callbacks();
+			rcu_kthread_do_work();
 		local_bh_enable();
 		if (*workp != 0)
 			spincnt++;
@@ -1635,6 +1702,20 @@ static int rcu_cpu_kthread(void *arg)
  * to manipulate rcu_cpu_kthread_task.  There might be another CPU
  * attempting to access it during boot, but the locking in kthread_bind()
  * will enforce sufficient ordering.
+ *
+ * Please note that we cannot simply refuse to wake up the per-CPU
+ * kthread because kthreads are created in TASK_UNINTERRUPTIBLE state,
+ * which can result in softlockup complaints if the task ends up being
+ * idle for more than a couple of minutes.
+ *
+ * However, please note also that we cannot bind the per-CPU kthread to its
+ * CPU until that CPU is fully online.  We also cannot wait until the
+ * CPU is fully online before we create its per-CPU kthread, as this would
+ * deadlock the system when CPU notifiers tried waiting for grace
+ * periods.  So we bind the per-CPU kthread to its CPU only if the CPU
+ * is online.  If its CPU is not yet fully online, then the code in
+ * rcu_cpu_kthread() will wait until it is fully online, and then do
+ * the binding.
  */
 static int __cpuinit rcu_spawn_one_cpu_kthread(int cpu)
 {
@@ -1644,15 +1725,20 @@ static int __cpuinit rcu_spawn_one_cpu_kthread(int cpu)
 	if (!rcu_kthreads_spawnable ||
 	    per_cpu(rcu_cpu_kthread_task, cpu) != NULL)
 		return 0;
-	t = kthread_create(rcu_cpu_kthread, (void *)(long)cpu, "rcuc%d", cpu);
+	t = kthread_create_on_node(rcu_cpu_kthread,
+				   (void *)(long)cpu,
+				   cpu_to_node(cpu),
+				   "rcuc%d", cpu);
 	if (IS_ERR(t))
 		return PTR_ERR(t);
-	kthread_bind(t, cpu);
+	if (cpu_online(cpu))
+		kthread_bind(t, cpu);
 	per_cpu(rcu_cpu_kthread_cpu, cpu) = cpu;
 	WARN_ON_ONCE(per_cpu(rcu_cpu_kthread_task, cpu) != NULL);
-	per_cpu(rcu_cpu_kthread_task, cpu) = t;
 	sp.sched_priority = RCU_KTHREAD_PRIO;
 	sched_setscheduler_nocheck(t, SCHED_FIFO, &sp);
+	per_cpu(rcu_cpu_kthread_task, cpu) = t;
+	wake_up_process(t); /* Get to TASK_INTERRUPTIBLE quickly. */
 	return 0;
 }
 
@@ -1759,11 +1845,10 @@ static int __cpuinit rcu_spawn_one_node_kthread(struct rcu_state *rsp,
 		raw_spin_unlock_irqrestore(&rnp->lock, flags);
 		sp.sched_priority = 99;
 		sched_setscheduler_nocheck(t, SCHED_FIFO, &sp);
+		wake_up_process(t); /* get to TASK_INTERRUPTIBLE quickly. */
 	}
 	return rcu_spawn_one_boost_kthread(rsp, rnp, rnp_index);
 }
-
-static void rcu_wake_one_boost_kthread(struct rcu_node *rnp);
 
 /*
  * Spawn all kthreads -- called as soon as the scheduler is running.
@@ -1772,30 +1857,18 @@ static int __init rcu_spawn_kthreads(void)
 {
 	int cpu;
 	struct rcu_node *rnp;
-	struct task_struct *t;
 
 	rcu_kthreads_spawnable = 1;
 	for_each_possible_cpu(cpu) {
 		per_cpu(rcu_cpu_has_work, cpu) = 0;
-		if (cpu_online(cpu)) {
+		if (cpu_online(cpu))
 			(void)rcu_spawn_one_cpu_kthread(cpu);
-			t = per_cpu(rcu_cpu_kthread_task, cpu);
-			if (t)
-				wake_up_process(t);
-		}
 	}
 	rnp = rcu_get_root(rcu_state);
 	(void)rcu_spawn_one_node_kthread(rcu_state, rnp);
-	if (rnp->node_kthread_task)
-		wake_up_process(rnp->node_kthread_task);
 	if (NUM_RCU_NODES > 1) {
-		rcu_for_each_leaf_node(rcu_state, rnp) {
+		rcu_for_each_leaf_node(rcu_state, rnp)
 			(void)rcu_spawn_one_node_kthread(rcu_state, rnp);
-			t = rnp->node_kthread_task;
-			if (t)
-				wake_up_process(t);
-			rcu_wake_one_boost_kthread(rnp);
-		}
 	}
 	return 0;
 }
@@ -1911,18 +1984,9 @@ EXPORT_SYMBOL_GPL(call_rcu_bh);
  */
 void synchronize_sched(void)
 {
-	struct rcu_synchronize rcu;
-
 	if (rcu_blocking_is_gp())
 		return;
-
-	init_rcu_head_on_stack(&rcu.head);
-	init_completion(&rcu.completion);
-	/* Will wake me after RCU finished. */
-	call_rcu_sched(&rcu.head, wakeme_after_rcu);
-	/* Wait for it. */
-	wait_for_completion(&rcu.completion);
-	destroy_rcu_head_on_stack(&rcu.head);
+	wait_rcu_gp(call_rcu_sched);
 }
 EXPORT_SYMBOL_GPL(synchronize_sched);
 
@@ -1937,18 +2001,9 @@ EXPORT_SYMBOL_GPL(synchronize_sched);
  */
 void synchronize_rcu_bh(void)
 {
-	struct rcu_synchronize rcu;
-
 	if (rcu_blocking_is_gp())
 		return;
-
-	init_rcu_head_on_stack(&rcu.head);
-	init_completion(&rcu.completion);
-	/* Will wake me after RCU finished. */
-	call_rcu_bh(&rcu.head, wakeme_after_rcu);
-	/* Wait for it. */
-	wait_for_completion(&rcu.completion);
-	destroy_rcu_head_on_stack(&rcu.head);
+	wait_rcu_gp(call_rcu_bh);
 }
 EXPORT_SYMBOL_GPL(synchronize_rcu_bh);
 
@@ -2221,31 +2276,6 @@ static void __cpuinit rcu_prepare_kthreads(int cpu)
 }
 
 /*
- * kthread_create() creates threads in TASK_UNINTERRUPTIBLE state,
- * but the RCU threads are woken on demand, and if demand is low this
- * could be a while triggering the hung task watchdog.
- *
- * In order to avoid this, poke all tasks once the CPU is fully
- * up and running.
- */
-static void __cpuinit rcu_online_kthreads(int cpu)
-{
-	struct rcu_data *rdp = per_cpu_ptr(rcu_state->rda, cpu);
-	struct rcu_node *rnp = rdp->mynode;
-	struct task_struct *t;
-
-	t = per_cpu(rcu_cpu_kthread_task, cpu);
-	if (t)
-		wake_up_process(t);
-
-	t = rnp->node_kthread_task;
-	if (t)
-		wake_up_process(t);
-
-	rcu_wake_one_boost_kthread(rnp);
-}
-
-/*
  * Handle CPU online/offline notification events.
  */
 static int __cpuinit rcu_cpu_notify(struct notifier_block *self,
@@ -2262,7 +2292,6 @@ static int __cpuinit rcu_cpu_notify(struct notifier_block *self,
 		rcu_prepare_kthreads(cpu);
 		break;
 	case CPU_ONLINE:
-		rcu_online_kthreads(cpu);
 	case CPU_DOWN_FAILED:
 		rcu_node_kthread_setaffinity(rnp, -1);
 		rcu_cpu_kthread_setrt(cpu, 1);
@@ -2410,6 +2439,7 @@ void __init rcu_init(void)
 	rcu_init_one(&rcu_sched_state, &rcu_sched_data);
 	rcu_init_one(&rcu_bh_state, &rcu_bh_data);
 	__rcu_init_preempt();
+	 open_softirq(RCU_SOFTIRQ, rcu_process_callbacks);
 
 	/*
 	 * We don't need protection against CPU-hotplug here because
