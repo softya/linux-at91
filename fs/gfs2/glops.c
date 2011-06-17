@@ -26,6 +26,7 @@
 #include "rgrp.h"
 #include "util.h"
 #include "trans.h"
+#include "dir.h"
 
 /**
  * __gfs2_ail_flush - remove all buffers for a given lock from the AIL
@@ -218,11 +219,14 @@ static void inode_go_inval(struct gfs2_glock *gl, int flags)
 		if (ip) {
 			set_bit(GIF_INVALID, &ip->i_flags);
 			forget_all_cached_acls(&ip->i_inode);
+			gfs2_dir_hash_inval(ip);
 		}
 	}
 
-	if (ip == GFS2_I(gl->gl_sbd->sd_rindex))
+	if (ip == GFS2_I(gl->gl_sbd->sd_rindex)) {
+		gfs2_log_flush(gl->gl_sbd, NULL);
 		gl->gl_sbd->sd_rindex_uptodate = 0;
+	}
 	if (ip && S_ISREG(ip->i_inode.i_mode))
 		truncate_inode_pages(ip->i_inode.i_mapping, 0);
 }
@@ -547,7 +551,6 @@ const struct gfs2_glock_operations gfs2_inode_glops = {
 	.go_lock = inode_go_lock,
 	.go_dump = inode_go_dump,
 	.go_type = LM_TYPE_INODE,
-	.go_min_hold_time = HZ / 5,
 	.go_flags = GLOF_ASPACE,
 };
 
@@ -558,7 +561,6 @@ const struct gfs2_glock_operations gfs2_rgrp_glops = {
 	.go_unlock = rgrp_go_unlock,
 	.go_dump = gfs2_rgrp_dump,
 	.go_type = LM_TYPE_RGRP,
-	.go_min_hold_time = HZ / 5,
 	.go_flags = GLOF_ASPACE,
 };
 
