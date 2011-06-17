@@ -172,12 +172,6 @@ struct scic_sds_request {
 	struct scic_sds_remote_device *target_device;
 
 	/*
-	 * This field is utilized to determine if the SCI user is managing
-	 * the IO tag for this request or if the core is managing it.
-	 */
-	bool was_tag_assigned_by_user;
-
-	/*
 	 * This field indicates the IO tag for this request.  The IO tag is
 	 * comprised of the task_index and a sequence count. The sequence count
 	 * is utilized to help identify tasks from one life to another.
@@ -209,8 +203,7 @@ struct scic_sds_request {
 	 */
 	u32 post_context;
 
-	struct scu_task_context *task_context_buffer;
-	struct scu_task_context tc ____cacheline_aligned;
+	struct scu_task_context *tc;
 
 	/* could be larger with sg chaining */
 	#define SCU_SGL_SIZE ((SCI_MAX_SCATTER_GATHER_ELEMENTS + 1) / 2)
@@ -672,7 +665,7 @@ struct isci_request *isci_request_alloc_tmf(struct isci_host *ihost,
 					    struct isci_tmf *isci_tmf,
 					    gfp_t gfp_flags);
 int isci_request_execute(struct isci_host *ihost, struct isci_remote_device *idev,
-			 struct sas_task *task, gfp_t gfp_flags);
+			 struct sas_task *task, u16 tag, gfp_t gfp_flags);
 void isci_terminate_pending_requests(struct isci_host *ihost,
 				     struct isci_remote_device *idev);
 enum sci_status
