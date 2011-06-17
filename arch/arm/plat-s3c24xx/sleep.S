@@ -48,22 +48,16 @@
 	*/
 
 ENTRY(s3c_cpu_save)
-	stmfd	sp!, { r4 - r12, lr }
-	ldr	r3, =resume_with_mmu
-	bl	cpu_suspend
+	adr	r3, BSYM(s3c24xx_finish_suspend)
+	b	cpu_suspend
 
+s3c24xx_finish_suspend:
 	@@ jump to final code to send system to sleep
 	ldr	r0, =pm_cpu_sleep
 	@@ldr	pc, [ r0 ]
 	ldr	r0, [ r0 ]
 	mov	pc, r0
 	
-	@@ return to the caller, after having the MMU
-	@@ turned on, this restores the last bits from the
-	@@ stack
-resume_with_mmu:
-	ldmfd	sp!, { r4 - r12, pc }
-
 	.ltorg
 
 	/* sleep magic, to allow the bootloader to check for an valid

@@ -33,11 +33,17 @@ ENTRY(pxa3xx_cpu_suspend)
 #ifndef CONFIG_IWMMXT
 	mra	r2, r3, acc0
 #endif
-	stmfd	sp!, {r2 - r12, lr}	@ save registers on stack
+	stmfd	sp!, {r2, r3, lr}	@ save registers on stack
 	mov	r1, r0
-	ldr	r3, =pxa_cpu_resume	@ resume function
+	adr	r3, BSYM(pxa3xx_finish_suspend)
 	bl	cpu_suspend
+	ldmfd	sp!, {r2, r3, lr}
+#ifndef CONFIG_IWMMXT
+	mar	acc0, r2, r3
+#endif
+	mov	pc, lr
 
+pxa3xx_finish_suspend:
 	mov	r0, #0x06		@ S2D3C4 mode
 	mcr	p14, 0, r0, c7, c0, 0	@ enter sleep
 
@@ -58,16 +64,22 @@ ENTRY(pxa27x_cpu_suspend)
 #ifndef CONFIG_IWMMXT
 	mra	r2, r3, acc0
 #endif
-	stmfd	sp!, {r2 - r12, lr}		@ save registers on stack
-	mov	r4, r0				@ save sleep mode
-	ldr	r3, =pxa_cpu_resume		@ resume function
+	stmfd	sp!, {r2, r3, lr}		@ save registers on stack
+	mov	r2, r0				@ save sleep mode
+	adr	r3, BSYM(pxa27x_finish_suspend)
 	bl	cpu_suspend
+	ldmfd	sp!, {r2, r3, lr}
+#ifndef CONFIG_IWMMXT
+	mar	acc0, r2, r3
+#endif
+	mov	pc, lr
 
+pxa27x_finish_suspend:
 	@ Put the processor to sleep
 	@ (also workaround for sighting 28071)
 
 	@ prepare value for sleep mode
-	mov	r1, r4				@ sleep mode
+	mov	r1, r0				@ sleep mode
 
 	@ prepare pointer to physical address 0 (virtual mapping in generic.c)
 	mov	r2, #UNCACHED_PHYS_0
@@ -108,12 +120,13 @@ ENTRY(pxa27x_cpu_suspend)
  */
 
 ENTRY(pxa25x_cpu_suspend)
-	stmfd	sp!, {r2 - r12, lr}		@ save registers on stack
-	mov	r4, r0				@ save sleep mode
-	ldr	r3, =pxa_cpu_resume		@ resume function
-	bl	cpu_suspend
+	mov	r2, r0				@ save sleep mode
+	adr	r3, BSYM(pxa25x_finish_suspend)
+	b	cpu_suspend
+
+pxa25x_finish_suspend:
 	@ prepare value for sleep mode
-	mov	r1, r4				@ sleep mode
+	mov	r1, r0				@ sleep mode
 
 	@ prepare pointer to physical address 0 (virtual mapping in generic.c)
 	mov	r2, #UNCACHED_PHYS_0
@@ -195,16 +208,3 @@ pxa_cpu_do_suspend:
 	mcr	p14, 0, r1, c7, c0, 0		@ PWRMODE
 
 20:	b	20b				@ loop waiting for sleep
-
-/*
- * pxa_cpu_resume()
- *
- * entry point from bootloader into kernel during resume
- */
-	.align 5
-pxa_cpu_resume:
-	ldmfd	sp!, {r2, r3}
-#ifndef CONFIG_IWMMXT
-	mar	acc0, r2, r3
-#endif
-	ldmfd	sp!, {r4 - r12, pc}		@ return to caller

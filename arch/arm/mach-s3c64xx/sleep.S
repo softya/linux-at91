@@ -35,19 +35,14 @@
 	*/
 
 ENTRY(s3c_cpu_save)
-	stmfd	sp!, { r4 - r12, lr }
-	ldr	r3, =resume_with_mmu
-	bl	cpu_suspend
+	adr	r3, BSYM(s3c64xx_finish_suspend)
+	b	cpu_suspend
 
+s3c64xx_finish_suspend:
 	@@ call final suspend code
 	ldr	r0, =pm_cpu_sleep
 	ldr	pc, [r0]
 	
-	@@ return to the caller, after the MMU is turned on.
-	@@ restore the last bits of the stack and return.
-resume_with_mmu:
-	ldmfd	sp!, { r4 - r12, pc }	@ return, from sp from s3c_cpu_save
-
 	/* Sleep magic, the word before the resume entry point so that the
 	 * bootloader can check for a resumeable image. */
 
