@@ -1471,7 +1471,7 @@ static int path_init(int dfd, const char *name, unsigned int flags,
 		if (*name) {
 			if (!inode->i_op->lookup)
 				return -ENOTDIR;
-			retval = inode_permission(inode, MAY_EXEC);
+			retval = exec_permission(inode, 0);
 			if (retval)
 				return retval;
 		}
