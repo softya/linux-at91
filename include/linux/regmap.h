@@ -59,6 +59,8 @@ struct regmap_bus {
 struct regmap *regmap_init(struct device *dev,
 			   const struct regmap_bus *bus,
 			   const struct regmap_config *config);
+struct regmap *regmap_init_i2c(struct device *dev,
+			       const struct regmap_config *config);
 void regmap_exit(struct regmap *map);
 int regmap_write(struct regmap *map, unsigned int reg, unsigned int val);
 int regmap_raw_write(struct regmap *map, unsigned int reg,
