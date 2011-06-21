@@ -52,6 +52,9 @@
 #include <linux/prefetch.h>
 
 #include "rcutree.h"
+#include <trace/events/rcu.h>
+
+#include "rcu.h"
 
 /* Data structures. */
 
@@ -484,6 +487,56 @@ static int rcu_implicit_dynticks_qs(struct rcu_data *rdp)
 
 #endif /* #ifdef CONFIG_SMP */
 
+#ifdef CONFIG_32BIT
+
+/*
+ * Wrapper function to allow smp_call_function_single() to invoke RCU
+ * core processing on some other CPU.
+ */
+static void invoke_rcu_core_remote(void *unused)
+{
+	invoke_rcu_cpu_kthread();
+}
+
+/*
+ * Check a CPU to see if it is online, in dyntick-idle mode, and
+ * in danger of being too far behind the current grace period.
+ * If so, wake it up so as to make it catch up to the current
+ * grace period.  On a 32-bit system running through 500 grace
+ * periods per second, a given CPU would be awakened about once
+ * every 50 days.  On a 64-bit system, a given CPU would be
+ * awakened about every 500 million years, so we don't bother
+ * in that case.  If you happen to be manufacturing an extremely
+ * durable 64-bit SMP computer system, obtain a patch from the
+ * RCU maintainer.
+ */
+static void rcu_dyntick_kick_cpu(struct rcu_state *rsp)
+{
+	int cpu;
+	struct rcu_data *rdp;
+
+	cpu = rsp->dyntick_ovf_cpu;
+	rdp = per_cpu_ptr(rsp->rda, cpu);
+	if (cpu_online(cpu) && ULONG_CMP_LT(rsp->completed, rdp->completed))
+		if (smp_processor_id() == cpu)
+			invoke_rcu_cpu_kthread();
+		else
+			smp_call_function_single(cpu, invoke_rcu_core_remote,
+						 NULL, 1);
+	cpu = next_cpu(cpu, cpu_online_mask);
+	if (cpu >= NR_CPUS)
+		cpu = first_cpu(cpu_online_mask);
+	rsp->dyntick_ovf_cpu = cpu;
+}
+
+#else /* #ifdef CONFIG_32BIT */
+
+static void rcu_dyntick_kick_cpu(struct rcu_state *rsp)
+{
+}
+
+#endif /* #else #ifdef CONFIG_32BIT */
+
 #else /* #ifdef CONFIG_NO_HZ */
 
 #ifdef CONFIG_SMP
@@ -499,6 +552,10 @@ static int rcu_implicit_dynticks_qs(struct rcu_data *rdp)
 }
 
 #endif /* #ifdef CONFIG_SMP */
+
+static void rcu_dyntick_kick_cpu(struct rcu_state *rsp)
+{
+}
 
 #endif /* #else #ifdef CONFIG_NO_HZ */
 
@@ -833,6 +890,7 @@ rcu_start_gp(struct rcu_state *rsp, unsigned long flags)
 	rsp->signaled = RCU_GP_INIT; /* Hold off force_quiescent_state. */
 	rsp->jiffies_force_qs = jiffies + RCU_JIFFIES_TILL_FORCE_QS;
 	record_gp_stall_check_time(rsp);
+	rcu_dyntick_kick_cpu(rsp);
 
 	/* Special-case the common single-level case. */
 	if (NUM_RCU_NODES == 1) {
@@ -1168,17 +1226,22 @@ static void rcu_do_batch(struct rcu_state *rsp, struct rcu_data *rdp)
 {
 	unsigned long flags;
 	struct rcu_head *next, *list, **tail;
-	int count;
+	int bl, count;
 
 	/* If no callbacks are ready, just return.*/
-	if (!cpu_has_callbacks_ready_to_invoke(rdp))
+	if (!cpu_has_callbacks_ready_to_invoke(rdp)) {
+		trace_rcu_batch_start(0, 0);
+		trace_rcu_batch_end(0);
 		return;
+	}
 
 	/*
 	 * Extract the list of ready callbacks, disabling to prevent
 	 * races with call_rcu() from interrupt handlers.
 	 */
 	local_irq_save(flags);
+	bl = rdp->blimit;
+	trace_rcu_batch_start(rdp->qlen, bl);
 	list = rdp->nxtlist;
 	rdp->nxtlist = *rdp->nxttail[RCU_DONE_TAIL];
 	*rdp->nxttail[RCU_DONE_TAIL] = NULL;
@@ -1196,11 +1259,12 @@ static void rcu_do_batch(struct rcu_state *rsp, struct rcu_data *rdp)
 		debug_rcu_head_unqueue(list);
 		__rcu_reclaim(list);
 		list = next;
-		if (++count >= rdp->blimit)
+		if (++count >= bl)
 			break;
 	}
 
 	local_irq_save(flags);
+	trace_rcu_batch_end(count);
 
 	/* Update count, and requeue any remaining callbacks. */
 	rdp->qlen -= count;
@@ -1589,18 +1653,9 @@ EXPORT_SYMBOL_GPL(call_rcu_bh);
  */
 void synchronize_sched(void)
 {
-	struct rcu_synchronize rcu;
-
 	if (rcu_blocking_is_gp())
 		return;
-
-	init_rcu_head_on_stack(&rcu.head);
-	init_completion(&rcu.completion);
-	/* Will wake me after RCU finished. */
-	call_rcu_sched(&rcu.head, wakeme_after_rcu);
-	/* Wait for it. */
-	wait_for_completion(&rcu.completion);
-	destroy_rcu_head_on_stack(&rcu.head);
+	wait_rcu_gp(call_rcu_sched);
 }
 EXPORT_SYMBOL_GPL(synchronize_sched);
 
@@ -1615,18 +1670,9 @@ EXPORT_SYMBOL_GPL(synchronize_sched);
  */
 void synchronize_rcu_bh(void)
 {
-	struct rcu_synchronize rcu;
-
 	if (rcu_blocking_is_gp())
 		return;
-
-	init_rcu_head_on_stack(&rcu.head);
-	init_completion(&rcu.completion);
-	/* Will wake me after RCU finished. */
-	call_rcu_bh(&rcu.head, wakeme_after_rcu);
-	/* Wait for it. */
-	wait_for_completion(&rcu.completion);
-	destroy_rcu_head_on_stack(&rcu.head);
+	wait_rcu_gp(call_rcu_bh);
 }
 EXPORT_SYMBOL_GPL(synchronize_rcu_bh);
 
