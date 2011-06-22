@@ -1467,8 +1467,8 @@ void intel_setup_overlay(struct drm_device *dev)
 out_unpin_bo:
 	i915_gem_object_unpin(reg_bo);
 out_free_bo:
-	mutex_unlock(&dev->struct_mutex);
 	drm_gem_object_unreference(&reg_bo->base);
+	mutex_unlock(&dev->struct_mutex);
 out_free:
 	kfree(overlay);
 	return;
