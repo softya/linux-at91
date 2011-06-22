@@ -1114,26 +1114,7 @@ s32 ixgbe_reinit_fdir_tables_82599(struct ixgbe_hw *hw)
 s32 ixgbe_init_fdir_signature_82599(struct ixgbe_hw *hw, u32 pballoc)
 {
 	u32 fdirctrl = 0;
-	u32 pbsize;
 	int i;
-
-	/*
-	 * Before enabling Flow Director, the Rx Packet Buffer size
-	 * must be reduced.  The new value is the current size minus
-	 * flow director memory usage size.
-	 */
-	pbsize = (1 << (IXGBE_FDIR_PBALLOC_SIZE_SHIFT + pballoc));
-	IXGBE_WRITE_REG(hw, IXGBE_RXPBSIZE(0),
-	    (IXGBE_READ_REG(hw, IXGBE_RXPBSIZE(0)) - pbsize));
-
-	/*
-	 * The defaults in the HW for RX PB 1-7 are not zero and so should be
-	 * initialized to zero for non DCB mode otherwise actual total RX PB
-	 * would be bigger than programmed and filter space would run into
-	 * the PB 0 region.
-	 */
-	for (i = 1; i < 8; i++)
-		IXGBE_WRITE_REG(hw, IXGBE_RXPBSIZE(i), 0);
 
 	/* Send interrupt when 64 filters are left */
 	fdirctrl |= 4 << IXGBE_FDIRCTRL_FULL_THRESH_SHIFT;
@@ -1157,7 +1138,7 @@ s32 ixgbe_init_fdir_signature_82599(struct ixgbe_hw *hw, u32 pballoc)
 	default:
 		/* bad value */
 		return IXGBE_ERR_CONFIG;
-	};
+	}
 
 	/* Move the flexible bytes to use the ethertype - shift 6 words */
 	fdirctrl |= (0x6 << IXGBE_FDIRCTRL_FLEX_SHIFT);
@@ -1202,26 +1183,7 @@ s32 ixgbe_init_fdir_signature_82599(struct ixgbe_hw *hw, u32 pballoc)
 s32 ixgbe_init_fdir_perfect_82599(struct ixgbe_hw *hw, u32 pballoc)
 {
 	u32 fdirctrl = 0;
-	u32 pbsize;
 	int i;
-
-	/*
-	 * Before enabling Flow Director, the Rx Packet Buffer size
-	 * must be reduced.  The new value is the current size minus
-	 * flow director memory usage size.
-	 */
-	pbsize = (1 << (IXGBE_FDIR_PBALLOC_SIZE_SHIFT + pballoc));
-	IXGBE_WRITE_REG(hw, IXGBE_RXPBSIZE(0),
-	    (IXGBE_READ_REG(hw, IXGBE_RXPBSIZE(0)) - pbsize));
-
-	/*
-	 * The defaults in the HW for RX PB 1-7 are not zero and so should be
-	 * initialized to zero for non DCB mode otherwise actual total RX PB
-	 * would be bigger than programmed and filter space would run into
-	 * the PB 0 region.
-	 */
-	for (i = 1; i < 8; i++)
-		IXGBE_WRITE_REG(hw, IXGBE_RXPBSIZE(i), 0);
 
 	/* Send interrupt when 64 filters are left */
 	fdirctrl |= 4 << IXGBE_FDIRCTRL_FULL_THRESH_SHIFT;
@@ -1245,7 +1207,7 @@ s32 ixgbe_init_fdir_perfect_82599(struct ixgbe_hw *hw, u32 pballoc)
 	default:
 		/* bad value */
 		return IXGBE_ERR_CONFIG;
-	};
+	}
 
 	/* Turn perfect match filtering on */
 	fdirctrl |= IXGBE_FDIRCTRL_PERFECT_MATCH;
@@ -2146,6 +2108,7 @@ static struct ixgbe_mac_operations mac_ops_82599 = {
 	.read_analog_reg8       = &ixgbe_read_analog_reg8_82599,
 	.write_analog_reg8      = &ixgbe_write_analog_reg8_82599,
 	.setup_link             = &ixgbe_setup_mac_link_82599,
+	.set_rxpba		= &ixgbe_set_rxpba_generic,
 	.check_link             = &ixgbe_check_mac_link_generic,
 	.get_link_capabilities  = &ixgbe_get_link_capabilities_82599,
 	.led_on                 = &ixgbe_led_on_generic,
@@ -2163,6 +2126,7 @@ static struct ixgbe_mac_operations mac_ops_82599 = {
 	.clear_vfta             = &ixgbe_clear_vfta_generic,
 	.set_vfta               = &ixgbe_set_vfta_generic,
 	.fc_enable              = &ixgbe_fc_enable_generic,
+	.set_fw_drv_ver         = &ixgbe_set_fw_drv_ver_generic,
 	.init_uta_tables        = &ixgbe_init_uta_tables_generic,
 	.setup_sfp              = &ixgbe_setup_sfp_modules_82599,
 	.set_mac_anti_spoofing  = &ixgbe_set_mac_anti_spoofing,

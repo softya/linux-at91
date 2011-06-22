@@ -707,6 +707,13 @@
 #define IXGBE_HFDR      0x15FE8
 #define IXGBE_FLEX_MNG  0x15800 /* 0x15800 - 0x15EFC */
 
+#define IXGBE_HICR_EN              0x01  /* Enable bit - RO */
+/* Driver sets this bit when done to put command in RAM */
+#define IXGBE_HICR_C               0x02
+#define IXGBE_HICR_SV              0x04  /* Status Validity */
+#define IXGBE_HICR_FW_RESET_ENABLE 0x40
+#define IXGBE_HICR_FW_RESET        0x80
+
 /* PCI-E registers */
 #define IXGBE_GCR       0x11000
 #define IXGBE_GTV       0x11004
@@ -1117,6 +1124,27 @@
 #define IXGBE_GPIE_VTMODE_16     0x00004000 /* 16 VFs 8 queues per VF */
 #define IXGBE_GPIE_VTMODE_32     0x00008000 /* 32 VFs 4 queues per VF */
 #define IXGBE_GPIE_VTMODE_64     0x0000C000 /* 64 VFs 2 queues per VF */
+
+/* Packet Buffer Initialization */
+#define IXGBE_TXPBSIZE_20KB     0x00005000 /* 20KB Packet Buffer */
+#define IXGBE_TXPBSIZE_40KB     0x0000A000 /* 40KB Packet Buffer */
+#define IXGBE_RXPBSIZE_48KB     0x0000C000 /* 48KB Packet Buffer */
+#define IXGBE_RXPBSIZE_64KB     0x00010000 /* 64KB Packet Buffer */
+#define IXGBE_RXPBSIZE_80KB     0x00014000 /* 80KB Packet Buffer */
+#define IXGBE_RXPBSIZE_128KB    0x00020000 /* 128KB Packet Buffer */
+#define IXGBE_RXPBSIZE_MAX      0x00080000 /* 512KB Packet Buffer*/
+#define IXGBE_TXPBSIZE_MAX      0x00028000 /* 160KB Packet Buffer*/
+
+#define IXGBE_TXPKT_SIZE_MAX    0xA        /* Max Tx Packet size  */
+#define IXGBE_MAX_PB		8
+
+/* Packet buffer allocation strategies */
+enum {
+	PBA_STRATEGY_EQUAL	= 0,	/* Distribute PB space equally */
+#define PBA_STRATEGY_EQUAL	PBA_STRATEGY_EQUAL
+	PBA_STRATEGY_WEIGHTED	= 1,	/* Weight front half of TCs */
+#define PBA_STRATEGY_WEIGHTED	PBA_STRATEGY_WEIGHTED
+};
 
 /* Transmit Flow Control status */
 #define IXGBE_TFCS_TXOFF         0x00000001
@@ -1860,6 +1888,7 @@
 #define IXGBE_MTQC_32VF         0x8 /* 4 TX Queues per pool w/32VF's */
 #define IXGBE_MTQC_64VF         0x4 /* 2 TX Queues per pool w/64VF's */
 #define IXGBE_MTQC_8TC_8TQ      0xC /* 8 TC if RT_ENA or 8 TQ if VT_ENA */
+#define IXGBE_MTQC_4TC_4TQ	0x8 /* 4 TC if RT_ENA or 4 TQ if VT_ENA */
 
 /* Receive Descriptor bit definitions */
 #define IXGBE_RXD_STAT_DD       0x01    /* Descriptor Done */
@@ -2101,6 +2130,41 @@ enum ixgbe_fdir_pballoc_type {
 #define IXGBE_FDIRCMD_VT_POOL_SHIFT             24
 #define IXGBE_FDIR_INIT_DONE_POLL               10
 #define IXGBE_FDIRCMD_CMD_POLL                  10
+
+/* Manageablility Host Interface defines */
+#define IXGBE_HI_MAX_BLOCK_BYTE_LENGTH       1792 /* Num of bytes in range */
+#define IXGBE_HI_MAX_BLOCK_DWORD_LENGTH      448 /* Num of dwords in range */
+#define IXGBE_HI_COMMAND_TIMEOUT             500 /* Process HI command limit */
+
+/* CEM Support */
+#define FW_CEM_HDR_LEN                0x4
+#define FW_CEM_CMD_DRIVER_INFO        0xDD
+#define FW_CEM_CMD_DRIVER_INFO_LEN    0x5
+#define FW_CEM_CMD_RESERVED           0X0
+#define FW_CEM_MAX_RETRIES            3
+#define FW_CEM_RESP_STATUS_SUCCESS    0x1
+
+/* Host Interface Command Structures */
+struct ixgbe_hic_hdr {
+	u8 cmd;
+	u8 buf_len;
+	union {
+		u8 cmd_resv;
+		u8 ret_status;
+	} cmd_or_resp;
+	u8 checksum;
+};
+
+struct ixgbe_hic_drv_info {
+	struct ixgbe_hic_hdr hdr;
+	u8 port_num;
+	u8 ver_sub;
+	u8 ver_build;
+	u8 ver_min;
+	u8 ver_maj;
+	u8 pad; /* end spacing to ensure length is mult. of dword */
+	u16 pad2; /* end spacing to ensure length is mult. of dword2 */
+};
 
 /* Transmit Descriptor - Advanced */
 union ixgbe_adv_tx_desc {
@@ -2615,6 +2679,9 @@ struct ixgbe_mac_operations {
 	s32 (*get_link_capabilities)(struct ixgbe_hw *, ixgbe_link_speed *,
 	                             bool *);
 
+	/* Packet Buffer Manipulation */
+	void (*set_rxpba)(struct ixgbe_hw *, int, u32, int);
+
 	/* LED */
 	s32 (*led_on)(struct ixgbe_hw *, u32);
 	s32 (*led_off)(struct ixgbe_hw *, u32);
@@ -2638,6 +2705,9 @@ struct ixgbe_mac_operations {
 
 	/* Flow Control */
 	s32 (*fc_enable)(struct ixgbe_hw *, s32);
+
+	/* Manageability interface */
+	s32 (*set_fw_drv_ver)(struct ixgbe_hw *, u8, u8, u8, u8);
 };
 
 struct ixgbe_phy_operations {
@@ -2807,6 +2877,7 @@ struct ixgbe_info {
 #define IXGBE_ERR_SFP_SETUP_NOT_COMPLETE        -30
 #define IXGBE_ERR_PBA_SECTION                   -31
 #define IXGBE_ERR_INVALID_ARGUMENT              -32
+#define IXGBE_ERR_HOST_INTERFACE_COMMAND        -33
 #define IXGBE_NOT_IMPLEMENTED                   0x7FFFFFFF
 
 #endif /* _IXGBE_TYPE_H_ */

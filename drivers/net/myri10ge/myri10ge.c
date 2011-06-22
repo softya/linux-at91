@@ -210,7 +210,6 @@ struct myri10ge_priv {
 	int big_bytes;
 	int max_intr_slots;
 	struct net_device *dev;
-	spinlock_t stats_lock;
 	u8 __iomem *sram;
 	int sram_size;
 	unsigned long board_span;
@@ -377,7 +376,8 @@ static inline void put_be32(__be32 val, __be32 __iomem * p)
 	__raw_writel((__force __u32) val, (__force void __iomem *)p);
 }
 
-static struct net_device_stats *myri10ge_get_stats(struct net_device *dev);
+static struct rtnl_link_stats64 *myri10ge_get_stats(struct net_device *dev,
+						    struct rtnl_link_stats64 *stats);
 
 static void set_fw_name(struct myri10ge_priv *mgp, char *name, bool allocated)
 {
@@ -1013,7 +1013,7 @@ static int myri10ge_reset(struct myri10ge_priv *mgp)
 		cmd.data2 = i;
 		status |= myri10ge_send_cmd(mgp, MXGEFW_CMD_SET_INTRQ_DMA,
 					    &cmd, 0);
-	};
+	}
 
 	status |=
 	    myri10ge_send_cmd(mgp, MXGEFW_CMD_GET_IRQ_ACK_OFFSET, &cmd, 0);
@@ -1831,13 +1831,15 @@ myri10ge_get_ethtool_stats(struct net_device *netdev,
 {
 	struct myri10ge_priv *mgp = netdev_priv(netdev);
 	struct myri10ge_slice_state *ss;
+	struct rtnl_link_stats64 link_stats;
 	int slice;
 	int i;
 
 	/* force stats update */
-	(void)myri10ge_get_stats(netdev);
+	memset(&link_stats, 0, sizeof(link_stats));
+	(void)myri10ge_get_stats(netdev, &link_stats);
 	for (i = 0; i < MYRI10GE_NET_STATS_LEN; i++)
-		data[i] = ((unsigned long *)&netdev->stats)[i];
+		data[i] = ((u64 *)&link_stats)[i];
 
 	data[i++] = (unsigned int)mgp->tx_boundary;
 	data[i++] = (unsigned int)mgp->wc_enabled;
@@ -2976,15 +2978,13 @@ drop:
 	return NETDEV_TX_OK;
 }
 
-static struct net_device_stats *myri10ge_get_stats(struct net_device *dev)
+static struct rtnl_link_stats64 *myri10ge_get_stats(struct net_device *dev,
+						    struct rtnl_link_stats64 *stats)
 {
-	struct myri10ge_priv *mgp = netdev_priv(dev);
-	struct myri10ge_slice_netstats *slice_stats;
-	struct net_device_stats *stats = &dev->stats;
+	const struct myri10ge_priv *mgp = netdev_priv(dev);
+	const struct myri10ge_slice_netstats *slice_stats;
 	int i;
 
-	spin_lock(&mgp->stats_lock);
-	memset(stats, 0, sizeof(*stats));
 	for (i = 0; i < mgp->num_slices; i++) {
 		slice_stats = &mgp->ss[i].stats;
 		stats->rx_packets += slice_stats->rx_packets;
@@ -2994,7 +2994,6 @@ static struct net_device_stats *myri10ge_get_stats(struct net_device *dev)
 		stats->rx_dropped += slice_stats->rx_dropped;
 		stats->tx_dropped += slice_stats->tx_dropped;
 	}
-	spin_unlock(&mgp->stats_lock);
 	return stats;
 }
 
@@ -3790,7 +3789,7 @@ static const struct net_device_ops myri10ge_netdev_ops = {
 	.ndo_open		= myri10ge_open,
 	.ndo_stop		= myri10ge_close,
 	.ndo_start_xmit		= myri10ge_xmit,
-	.ndo_get_stats		= myri10ge_get_stats,
+	.ndo_get_stats64	= myri10ge_get_stats,
 	.ndo_validate_addr	= eth_validate_addr,
 	.ndo_change_mtu		= myri10ge_change_mtu,
 	.ndo_fix_features	= myri10ge_fix_features,
@@ -3964,7 +3963,6 @@ static int myri10ge_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 	setup_timer(&mgp->watchdog_timer, myri10ge_watchdog_timer,
 		    (unsigned long)mgp);
 
-	spin_lock_init(&mgp->stats_lock);
 	SET_ETHTOOL_OPS(netdev, &myri10ge_ethtool_ops);
 	INIT_WORK(&mgp->watchdog_work, myri10ge_watchdog);
 	status = register_netdev(netdev);
