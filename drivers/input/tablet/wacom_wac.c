@@ -15,6 +15,7 @@
 #include "wacom_wac.h"
 #include "wacom.h"
 #include <linux/input/mt.h>
+#include <linux/hid.h>
 
 /* resolution for penabled devices */
 #define WACOM_PL_RES		20
@@ -1129,8 +1130,11 @@ void wacom_setup_input_capabilities(struct input_dev *input_dev,
 			__set_bit(BTN_0 + i, input_dev->keybit);
 		__set_bit(BTN_TOOL_FINGER, input_dev->keybit);
 
-		input_set_abs_params(input_dev, ABS_RX, 0, 4096, 0, 0);
-		input_set_abs_params(input_dev, ABS_RY, 0, 4096, 0, 0);
+		if (wacom_wac->features.type != WACOM_21UX2) {
+			input_set_abs_params(input_dev, ABS_RX, 0, 4096, 0, 0);
+			input_set_abs_params(input_dev, ABS_RY, 0, 4096, 0, 0);
+		}
+
 		input_set_abs_params(input_dev, ABS_Z, -900, 899, 0, 0);
 		wacom_setup_cintiq(wacom_wac);
 		break;
@@ -1483,6 +1487,11 @@ static const struct wacom_features wacom_features_0x6004 =
 	USB_DEVICE(USB_VENDOR_ID_WACOM, prod),			\
 	.driver_info = (kernel_ulong_t)&wacom_features_##prod
 
+#define USB_DEVICE_DETAILED(prod, class, sub, proto)			\
+	USB_DEVICE_AND_INTERFACE_INFO(USB_VENDOR_ID_WACOM, prod, class,	\
+				      sub, proto),			\
+	.driver_info = (kernel_ulong_t)&wacom_features_##prod
+
 #define USB_DEVICE_LENOVO(prod)					\
 	USB_DEVICE(USB_VENDOR_ID_LENOVO, prod),			\
 	.driver_info = (kernel_ulong_t)&wacom_features_##prod
@@ -1545,7 +1554,13 @@ const struct usb_device_id wacom_ids[] = {
 	{ USB_DEVICE_WACOM(0xC5) },
 	{ USB_DEVICE_WACOM(0xC6) },
 	{ USB_DEVICE_WACOM(0xC7) },
-	{ USB_DEVICE_WACOM(0xCE) },
+	/*
+	 * DTU-2231 has two interfaces on the same configuration,
+	 * only one is used.
+	 */
+	{ USB_DEVICE_DETAILED(0xCE, USB_CLASS_HID,
+			      USB_INTERFACE_SUBCLASS_BOOT,
+			      USB_INTERFACE_PROTOCOL_MOUSE) },
 	{ USB_DEVICE_WACOM(0xD0) },
 	{ USB_DEVICE_WACOM(0xD1) },
 	{ USB_DEVICE_WACOM(0xD2) },
