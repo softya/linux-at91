@@ -1416,6 +1416,8 @@ void intel_setup_overlay(struct drm_device *dev)
 		goto out_free;
 	overlay->reg_bo = reg_bo;
 
+	mutex_lock(&dev->struct_mutex);
+
 	if (OVERLAY_NEEDS_PHYSICAL(dev)) {
 		ret = i915_gem_attach_phys_object(dev, reg_bo,
 						  I915_GEM_PHYS_OVERLAY_REGS,
@@ -1440,6 +1442,8 @@ void intel_setup_overlay(struct drm_device *dev)
                 }
 	}
 
+	mutex_unlock(&dev->struct_mutex);
+
 	/* init all values */
 	overlay->color_key = 0x0101fe;
 	overlay->brightness = -19;
@@ -1463,6 +1467,7 @@ void intel_setup_overlay(struct drm_device *dev)
 out_unpin_bo:
 	i915_gem_object_unpin(reg_bo);
 out_free_bo:
+	mutex_unlock(&dev->struct_mutex);
 	drm_gem_object_unreference(&reg_bo->base);
 out_free:
 	kfree(overlay);
