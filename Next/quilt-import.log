@@ -1,0 +1,34 @@
+Importing i2c based on 3.0-rc3
+Unchanged quilt series i2c
+Importing jdelvare-hwmon based on 3.0-rc3
+Unchanged quilt series jdelvare-hwmon
+Importing kernel-doc based on 3.0-rc4
+$ git clone -s -l -n -q . ../quilt-tmp
+$ cd ../quilt-tmp
+$ git reset --hard 56299378726d5f2ba8d3c8cbbd13cb280ba45e4f
+HEAD is now at 5629937 Linux 3.0-rc4
+$ git quiltimport --author Randy Dunlap <randy.dunlap@oracle.com> --patches ../quilt/kernel-doc
+docum-codingstyle-update-memallocs.patch
+$ cd ../next
+$ git fetch -f ../quilt-tmp master:quilt/kernel-doc
+From ../quilt-tmp
+   59c5f46..3433fb9  master     -> quilt/kernel-doc
+Importing rr based on v3.0-rc2
+Unchanged quilt series rr
+Importing device-mapper based on v3.0-rc3-256-gde505e7
+$ cd ../quilt-tmp
+$ git reset --hard de505e709ffb09a7382ca8e0d8c7dbb171ba5830
+HEAD is now at de505e7 Merge branch 'hwmon-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/groeck/staging
+$ git quiltimport --author Alasdair G Kergon <agk@redhat.com> --patches ../quilt/device-mapper
+dm-kcopyd-remove-offset-field-from-job-structure.patch
+dm-kcopyd-remove-nr_pages-field-from-job-structure.patch
+dm-snap-remove-unused-definitions.patch
+dm-raid-cleanup-parameter-handling.patch
+dm-raid-improve-table-parameters-documentation.patch
+/home/sfr/kernels/next/quilt-tmp/.git/rebase-apply/patch:123: new blank line at EOF.
++
+warning: 1 line adds whitespace errors.
+$ cd ../next
+$ git fetch -f ../quilt-tmp master:quilt/device-mapper
+From ../quilt-tmp
+   61c4f2c..1786cfb  master     -> quilt/device-mapper
