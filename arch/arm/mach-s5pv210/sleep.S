@@ -39,17 +39,13 @@
 	*/
 
 ENTRY(s3c_cpu_save)
+	adr	r3, BSYM(s5pv210_finish_suspend)
+	b	cpu_suspend
 
-	stmfd	sp!, { r3 - r12, lr }
-	ldr	r3, =resume_with_mmu
-	bl	cpu_suspend
-
+s5pv210_finish_suspend:
 	ldr	r0, =pm_cpu_sleep
 	ldr	r0, [ r0 ]
 	mov	pc, r0
-
-resume_with_mmu:
-	ldmfd	sp!, { r3 - r12, pc }
 
 	.ltorg
 
