@@ -169,7 +169,6 @@ void release_task(struct task_struct * p)
 	struct task_struct *leader;
 	int zap_leader;
 repeat:
-	tracehook_prepare_release_task(p);
 	/* don't need to get the RCU readlock here - the process is dead and
 	 * can't be modifying its own credentials. But shut RCU-lockdep up */
 	rcu_read_lock();
@@ -179,7 +178,7 @@ repeat:
 	proc_flush_task(p);
 
 	write_lock_irq(&tasklist_lock);
-	tracehook_finish_release_task(p);
+	ptrace_release_task(p);
 	__exit_signal(p);
 
 	/*
@@ -764,7 +763,7 @@ static void reparent_leader(struct task_struct *father, struct task_struct *p,
 	p->exit_signal = SIGCHLD;
 
 	/* If it has exited notify the new parent about this child's death. */
-	if (!task_ptrace(p) &&
+	if (!p->ptrace &&
 	    p->exit_state == EXIT_ZOMBIE && thread_group_empty(p)) {
 		do_notify_parent(p, p->exit_signal);
 		if (task_detached(p)) {
@@ -794,7 +793,7 @@ static void forget_original_parent(struct task_struct *father)
 		do {
 			t->real_parent = reaper;
 			if (t->parent == father) {
-				BUG_ON(task_ptrace(t));
+				BUG_ON(t->ptrace);
 				t->parent = t->real_parent;
 			}
 			if (t->pdeath_signal)
@@ -867,8 +866,6 @@ static void exit_notify(struct task_struct *tsk, int group_dead)
 		wake_up_process(tsk->signal->group_exit_task);
 	write_unlock_irq(&tasklist_lock);
 
-	tracehook_report_death(tsk, signal, cookie, group_dead);
-
 	/* If the process is dead, release it - nobody will wait for it */
 	if (signal == DEATH_REAP)
 		release_task(tsk);
@@ -923,7 +920,7 @@ NORET_TYPE void do_exit(long code)
 	 */
 	set_fs(USER_DS);
 
-	tracehook_report_exit(&code);
+	ptrace_event(PTRACE_EVENT_EXIT, code);
 
 	validate_creds_for_do_exit(tsk);
 
@@ -1367,7 +1364,8 @@ static int wait_task_zombie(struct wait_opts *wo, struct task_struct *p)
 static int *task_stopped_code(struct task_struct *p, bool ptrace)
 {
 	if (ptrace) {
-		if (task_is_stopped_or_traced(p))
+		if (task_is_stopped_or_traced(p) &&
+		    !(p->jobctl & JOBCTL_LISTENING))
 			return &p->exit_code;
 	} else {
 		if (p->signal->flags & SIGNAL_STOP_STOPPED)
@@ -1563,7 +1561,7 @@ static int wait_consider_task(struct wait_opts *wo, int ptrace,
 		 * Notification and reaping will be cascaded to the real
 		 * parent when the ptracer detaches.
 		 */
-		if (likely(!ptrace) && unlikely(task_ptrace(p))) {
+		if (likely(!ptrace) && unlikely(p->ptrace)) {
 			/* it will become visible, clear notask_error */
 			wo->notask_error = 0;
 			return 0;
@@ -1606,7 +1604,7 @@ static int wait_consider_task(struct wait_opts *wo, int ptrace,
 		 * own children, it should create a separate process which
 		 * takes the role of real parent.
 		 */
-		if (likely(!ptrace) && task_ptrace(p) &&
+		if (likely(!ptrace) && p->ptrace &&
 		    same_thread_group(p->parent, p->real_parent))
 			return 0;
 
