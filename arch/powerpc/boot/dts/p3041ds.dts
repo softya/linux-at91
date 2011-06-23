@@ -1,7 +1,7 @@
 /*
- * P4080DS Device Tree Source
+ * P3041DS Device Tree Source
  *
- * Copyright 2009-2011 Freescale Semiconductor Inc.
+ * Copyright 2010-2011 Freescale Semiconductor Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -35,8 +35,8 @@
 /dts-v1/;
 
 / {
-	model = "fsl,P4080DS";
-	compatible = "fsl,P4080DS";
+	model = "fsl,P3041DS";
+	compatible = "fsl,P3041DS";
 	#address-cells = <2>;
 	#size-cells = <2>;
 	interrupt-parent = <&mpic>;
@@ -51,6 +51,7 @@
 		pci0 = &pci0;
 		pci1 = &pci1;
 		pci2 = &pci2;
+		pci3 = &pci3;
 		usb0 = &usb0;
 		usb1 = &usb1;
 		dma0 = &dma0;
@@ -70,15 +71,13 @@
 		rtic_c = &rtic_c;
 		rtic_d = &rtic_d;
 		sec_mon = &sec_mon;
-
-		rio0 = &rapidio0;
 	};
 
 	cpus {
 		#address-cells = <1>;
 		#size-cells = <0>;
 
-		cpu0: PowerPC,4080@0 {
+		cpu0: PowerPC,e500mc@0 {
 			device_type = "cpu";
 			reg = <0>;
 			next-level-cache = <&L2_0>;
@@ -86,7 +85,7 @@
 				next-level-cache = <&cpc>;
 			};
 		};
-		cpu1: PowerPC,4080@1 {
+		cpu1: PowerPC,e500mc@1 {
 			device_type = "cpu";
 			reg = <1>;
 			next-level-cache = <&L2_1>;
@@ -94,7 +93,7 @@
 				next-level-cache = <&cpc>;
 			};
 		};
-		cpu2: PowerPC,4080@2 {
+		cpu2: PowerPC,e500mc@2 {
 			device_type = "cpu";
 			reg = <2>;
 			next-level-cache = <&L2_2>;
@@ -102,43 +101,11 @@
 				next-level-cache = <&cpc>;
 			};
 		};
-		cpu3: PowerPC,4080@3 {
+		cpu3: PowerPC,e500mc@3 {
 			device_type = "cpu";
 			reg = <3>;
 			next-level-cache = <&L2_3>;
 			L2_3: l2-cache {
-				next-level-cache = <&cpc>;
-			};
-		};
-		cpu4: PowerPC,4080@4 {
-			device_type = "cpu";
-			reg = <4>;
-			next-level-cache = <&L2_4>;
-			L2_4: l2-cache {
-				next-level-cache = <&cpc>;
-			};
-		};
-		cpu5: PowerPC,4080@5 {
-			device_type = "cpu";
-			reg = <5>;
-			next-level-cache = <&L2_5>;
-			L2_5: l2-cache {
-				next-level-cache = <&cpc>;
-			};
-		};
-		cpu6: PowerPC,4080@6 {
-			device_type = "cpu";
-			reg = <6>;
-			next-level-cache = <&L2_6>;
-			L2_6: l2-cache {
-				next-level-cache = <&cpc>;
-			};
-		};
-		cpu7: PowerPC,4080@7 {
-			device_type = "cpu";
-			reg = <7>;
-			next-level-cache = <&L2_7>;
-			L2_7: l2-cache {
 				next-level-cache = <&cpc>;
 			};
 		};
@@ -168,23 +135,15 @@
 		};
 
 		memory-controller@8000 {
-			compatible = "fsl,qoriq-memory-controller-v4.4", "fsl,qoriq-memory-controller";
+			compatible = "fsl,qoriq-memory-controller-v4.5", "fsl,qoriq-memory-controller";
 			reg = <0x8000 0x1000>;
 			interrupts = <16 2 1 23>;
 		};
 
-		memory-controller@9000 {
-			compatible = "fsl,qoriq-memory-controller-v4.4","fsl,qoriq-memory-controller";
-			reg = <0x9000 0x1000>;
-			interrupts = <16 2 1 22>;
-		};
-
 		cpc: l3-cache-controller@10000 {
-			compatible = "fsl,p4080-l3-cache-controller", "cache";
-			reg = <0x10000 0x1000
-			       0x11000 0x1000>;
-			interrupts = <16 2 1 27
-				      16 2 1 26>;
+			compatible = "fsl,p3041-l3-cache-controller", "fsl,p4080-l3-cache-controller", "cache";
+			reg = <0x10000 0x1000>;
+			interrupts = <16 2 1 27>;
 		};
 
 		corenet-cf@18000 {
@@ -197,7 +156,7 @@
 
 		iommu@20000 {
 			compatible = "fsl,pamu-v1.0", "fsl,pamu";
-			reg = <0x20000 0x5000>;
+			reg = <0x20000 0x4000>;
 			interrupts = <
 				24 2 0 0
 				16 2 1 30>;
@@ -273,7 +232,7 @@
 		};
 
 		clockgen: global-utilities@e1000 {
-			compatible = "fsl,p4080-clockgen", "fsl,qoriq-clockgen-1.0";
+			compatible = "fsl,p3041-clockgen", "fsl,qoriq-clockgen-1.0";
 			reg = <0xe1000 0x1000>;
 			clock-frequency = <0>;
 		};
@@ -285,45 +244,45 @@
 		};
 
 		sfp: sfp@e8000 {
-			compatible = "fsl,p4080-sfp", "fsl,qoriq-sfp-1.0";
+			compatible = "fsl,p3041-sfp", "fsl,qoriq-sfp-1.0";
 			reg	   = <0xe8000 0x1000>;
 		};
 
 		serdes: serdes@ea000 {
-			compatible = "fsl,p4080-serdes";
+			compatible = "fsl,p3041-serdes";
 			reg	   = <0xea000 0x1000>;
 		};
 
 		dma0: dma@100300 {
 			#address-cells = <1>;
 			#size-cells = <1>;
-			compatible = "fsl,p4080-dma", "fsl,eloplus-dma";
+			compatible = "fsl,p3041-dma", "fsl,eloplus-dma";
 			reg = <0x100300 0x4>;
 			ranges = <0x0 0x100100 0x200>;
 			cell-index = <0>;
 			dma-channel@0 {
-				compatible = "fsl,p4080-dma-channel",
+				compatible = "fsl,p3041-dma-channel",
 						"fsl,eloplus-dma-channel";
 				reg = <0x0 0x80>;
 				cell-index = <0>;
 				interrupts = <28 2 0 0>;
 			};
 			dma-channel@80 {
-				compatible = "fsl,p4080-dma-channel",
+				compatible = "fsl,p3041-dma-channel",
 						"fsl,eloplus-dma-channel";
 				reg = <0x80 0x80>;
 				cell-index = <1>;
 				interrupts = <29 2 0 0>;
 			};
 			dma-channel@100 {
-				compatible = "fsl,p4080-dma-channel",
+				compatible = "fsl,p3041-dma-channel",
 						"fsl,eloplus-dma-channel";
 				reg = <0x100 0x80>;
 				cell-index = <2>;
 				interrupts = <30 2 0 0>;
 			};
 			dma-channel@180 {
-				compatible = "fsl,p4080-dma-channel",
+				compatible = "fsl,p3041-dma-channel",
 						"fsl,eloplus-dma-channel";
 				reg = <0x180 0x80>;
 				cell-index = <3>;
@@ -334,33 +293,33 @@
 		dma1: dma@101300 {
 			#address-cells = <1>;
 			#size-cells = <1>;
-			compatible = "fsl,p4080-dma", "fsl,eloplus-dma";
+			compatible = "fsl,p3041-dma", "fsl,eloplus-dma";
 			reg = <0x101300 0x4>;
 			ranges = <0x0 0x101100 0x200>;
 			cell-index = <1>;
 			dma-channel@0 {
-				compatible = "fsl,p4080-dma-channel",
+				compatible = "fsl,p3041-dma-channel",
 						"fsl,eloplus-dma-channel";
 				reg = <0x0 0x80>;
 				cell-index = <0>;
 				interrupts = <32 2 0 0>;
 			};
 			dma-channel@80 {
-				compatible = "fsl,p4080-dma-channel",
+				compatible = "fsl,p3041-dma-channel",
 						"fsl,eloplus-dma-channel";
 				reg = <0x80 0x80>;
 				cell-index = <1>;
 				interrupts = <33 2 0 0>;
 			};
 			dma-channel@100 {
-				compatible = "fsl,p4080-dma-channel",
+				compatible = "fsl,p3041-dma-channel",
 						"fsl,eloplus-dma-channel";
 				reg = <0x100 0x80>;
 				cell-index = <2>;
 				interrupts = <34 2 0 0>;
 			};
 			dma-channel@180 {
-				compatible = "fsl,p4080-dma-channel",
+				compatible = "fsl,p3041-dma-channel",
 						"fsl,eloplus-dma-channel";
 				reg = <0x180 0x80>;
 				cell-index = <3>;
@@ -371,7 +330,7 @@
 		spi@110000 {
 			#address-cells = <1>;
 			#size-cells = <0>;
-			compatible = "fsl,p4080-espi", "fsl,mpc8536-espi";
+			compatible = "fsl,p3041-espi", "fsl,mpc8536-espi";
 			reg = <0x110000 0x1000>;
 			interrupts = <53 0x2 0 0>;
 			fsl,espi-num-chipselects = <4>;
@@ -405,10 +364,9 @@
 		};
 
 		sdhc: sdhc@114000 {
-			compatible = "fsl,p4080-esdhc", "fsl,esdhc";
+			compatible = "fsl,p3041-esdhc", "fsl,esdhc";
 			reg = <0x114000 0x1000>;
 			interrupts = <48 2 0 0>;
-			voltage-ranges = <3300 3300>;
 			sdhci,auto-cmd12;
 			clock-frequency = <0>;
 		};
@@ -439,11 +397,6 @@
 				compatible = "at24,24c256";
 				reg = <0x52>;
 			};
-			rtc@68 {
-				compatible = "dallas,ds3232";
-				reg = <0x68>;
-				interrupts = <0x1 0x1 0 0>;
-			};
 		};
 
 		i2c@119000 {
@@ -464,6 +417,11 @@
 			reg = <0x119100 0x100>;
 			interrupts = <39 2 0 0>;
 			dfsrr;
+			rtc@68 {
+				compatible = "dallas,ds3232";
+				reg = <0x68>;
+				interrupts = <0x1 0x1 0 0>;
+			};
 		};
 
 		serial0: serial@11c500 {
@@ -503,7 +461,7 @@
 		};
 
 		gpio0: gpio@130000 {
-			compatible = "fsl,p4080-gpio", "fsl,qoriq-gpio";
+			compatible = "fsl,p3041-gpio", "fsl,qoriq-gpio";
 			reg = <0x130000 0x1000>;
 			interrupts = <55 2 0 0>;
 			#gpio-cells = <2>;
@@ -511,124 +469,126 @@
 		};
 
 		usb0: usb@210000 {
-			compatible = "fsl,p4080-usb2-mph",
+			compatible = "fsl,p3041-usb2-mph",
 					"fsl,mpc85xx-usb2-mph", "fsl-usb2-mph";
 			reg = <0x210000 0x1000>;
 			#address-cells = <1>;
 			#size-cells = <0>;
 			interrupts = <44 0x2 0 0>;
-			phy_type = "ulpi";
+			phy_type = "utmi";
+			port0;
 		};
 
 		usb1: usb@211000 {
-			compatible = "fsl,p4080-usb2-dr",
+			compatible = "fsl,p3041-usb2-dr",
 					"fsl,mpc85xx-usb2-dr", "fsl-usb2-dr";
 			reg = <0x211000 0x1000>;
 			#address-cells = <1>;
 			#size-cells = <0>;
 			interrupts = <45 0x2 0 0>;
 			dr_mode = "host";
-			phy_type = "ulpi";
+			phy_type = "utmi";
+		};
+
+		sata@220000 {
+			compatible = "fsl,p3041-sata", "fsl,pq-sata-v2";
+			reg = <0x220000 0x1000>;
+			interrupts = <68 0x2 0 0>;
+		};
+
+		sata@221000 {
+			compatible = "fsl,p3041-sata", "fsl,pq-sata-v2";
+			reg = <0x221000 0x1000>;
+			interrupts = <69 0x2 0 0>;
 		};
 
 		crypto: crypto@300000 {
-			compatible = "fsl,sec-v4.0";
+			compatible = "fsl,sec-v4.2", "fsl,sec-v4.0";
 			#address-cells = <1>;
 			#size-cells = <1>;
 			reg = <0x300000 0x10000>;
 			ranges = <0 0x300000 0x10000>;
-			interrupt-parent = <&mpic>;
 			interrupts = <92 2 0 0>;
 
 			sec_jr0: jr@1000 {
-				compatible = "fsl,sec-v4.0-job-ring";
+				compatible = "fsl,sec-v4.2-job-ring",
+					     "fsl,sec-v4.0-job-ring";
 				reg = <0x1000 0x1000>;
-				interrupt-parent = <&mpic>;
 				interrupts = <88 2 0 0>;
 			};
 
 			sec_jr1: jr@2000 {
-				compatible = "fsl,sec-v4.0-job-ring";
+				compatible = "fsl,sec-v4.2-job-ring",
+					     "fsl,sec-v4.0-job-ring";
 				reg = <0x2000 0x1000>;
-				interrupt-parent = <&mpic>;
 				interrupts = <89 2 0 0>;
 			};
 
 			sec_jr2: jr@3000 {
-				compatible = "fsl,sec-v4.0-job-ring";
+				compatible = "fsl,sec-v4.2-job-ring",
+					     "fsl,sec-v4.0-job-ring";
 				reg = <0x3000 0x1000>;
-				interrupt-parent = <&mpic>;
 				interrupts = <90 2 0 0>;
 			};
 
 			sec_jr3: jr@4000 {
-				compatible = "fsl,sec-v4.0-job-ring";
+				compatible = "fsl,sec-v4.2-job-ring",
+					     "fsl,sec-v4.0-job-ring";
 				reg = <0x4000 0x1000>;
-				interrupt-parent = <&mpic>;
 				interrupts = <91 2 0 0>;
 			};
 
 			rtic@6000 {
-				compatible = "fsl,sec-v4.0-rtic";
+				compatible = "fsl,sec-v4.2-rtic",
+					     "fsl,sec-v4.0-rtic";
 				#address-cells = <1>;
 				#size-cells = <1>;
 				reg = <0x6000 0x100>;
 				ranges = <0x0 0x6100 0xe00>;
 
 				rtic_a: rtic-a@0 {
-					compatible = "fsl,sec-v4.0-rtic-memory";
+					compatible = "fsl,sec-v4.2-rtic-memory",
+						     "fsl,sec-v4.0-rtic-memory";
 					reg = <0x00 0x20 0x100 0x80>;
 				};
 
 				rtic_b: rtic-b@20 {
-					compatible = "fsl,sec-v4.0-rtic-memory";
+					compatible = "fsl,sec-v4.2-rtic-memory",
+						     "fsl,sec-v4.0-rtic-memory";
 					reg = <0x20 0x20 0x200 0x80>;
 				};
 
 				rtic_c: rtic-c@40 {
-					compatible = "fsl,sec-v4.0-rtic-memory";
+					compatible = "fsl,sec-v4.2-rtic-memory",
+						     "fsl,sec-v4.0-rtic-memory";
 					reg = <0x40 0x20 0x300 0x80>;
 				};
 
 				rtic_d: rtic-d@60 {
-					compatible = "fsl,sec-v4.0-rtic-memory";
+					compatible = "fsl,sec-v4.2-rtic-memory",
+						     "fsl,sec-v4.0-rtic-memory";
 					reg = <0x60 0x20 0x500 0x80>;
 				};
 			};
 		};
 
 		sec_mon: sec_mon@314000 {
-			compatible = "fsl,sec-v4.0-mon";
+			compatible = "fsl,sec-v4.2-mon", "fsl,sec-v4.0-mon";
 			reg = <0x314000 0x1000>;
-			interrupt-parent = <&mpic>;
 			interrupts = <93 2 0 0>;
 		};
 	};
 
-	rapidio0: rapidio@ffe0c0000 {
-		#address-cells = <2>;
-		#size-cells = <2>;
-		compatible = "fsl,rapidio-delta";
-		reg = <0xf 0xfe0c0000 0 0x20000>;
-		ranges = <0 0 0xc 0x20000000 0 0x01000000>;
-		interrupts = <
-			16 2 1 11 /* err_irq */
-			56 2 0 0  /* bell_outb_irq */
-			57 2 0 0  /* bell_inb_irq */
-			60 2 0 0  /* msg1_tx_irq */
-			61 2 0 0  /* msg1_rx_irq */
-			62 2 0 0  /* msg2_tx_irq */
-			63 2 0 0>; /* msg2_rx_irq */
-	};
-
 	localbus@ffe124000 {
-		compatible = "fsl,p4080-elbc", "fsl,elbc", "simple-bus";
+		compatible = "fsl,p3041-elbc", "fsl,elbc", "simple-bus";
 		reg = <0xf 0xfe124000 0 0x1000>;
 		interrupts = <25 2 0 0>;
 		#address-cells = <2>;
 		#size-cells = <1>;
 
-		ranges = <0 0 0xf 0xe8000000 0x08000000>;
+		ranges = <0 0 0xf 0xe8000000 0x08000000
+			  2 0 0xf 0xffa00000 0x00040000
+			  3 0 0xf 0xffdf0000 0x00008000>;
 
 		flash@0,0 {
 			compatible = "cfi-flash";
@@ -636,10 +596,53 @@
 			bank-width = <2>;
 			device-width = <2>;
 		};
+
+		nand@2,0 {
+			#address-cells = <1>;
+			#size-cells = <1>;
+			compatible = "fsl,elbc-fcm-nand";
+			reg = <0x2 0x0 0x40000>;
+
+			partition@0 {
+				label = "NAND U-Boot Image";
+				reg = <0x0 0x02000000>;
+				read-only;
+			};
+
+			partition@2000000 {
+				label = "NAND Root File System";
+				reg = <0x02000000 0x10000000>;
+			};
+
+			partition@12000000 {
+				label = "NAND Compressed RFS Image";
+				reg = <0x12000000 0x08000000>;
+			};
+
+			partition@1a000000 {
+				label = "NAND Linux Kernel Image";
+				reg = <0x1a000000 0x04000000>;
+			};
+
+			partition@1e000000 {
+				label = "NAND DTB Image";
+				reg = <0x1e000000 0x01000000>;
+			};
+
+			partition@1f000000 {
+				label = "NAND Writable User area";
+				reg = <0x1f000000 0x21000000>;
+			};
+		};
+
+		board-control@3,0 {
+			compatible = "fsl,p3041ds-pixis";
+			reg = <3 0 0x20>;
+		};
 	};
 
 	pci0: pcie@ffe200000 {
-		compatible = "fsl,p4080-pcie";
+		compatible = "fsl,p3041-pcie", "fsl,qoriq-pcie-v2.2";
 		device_type = "pci";
 		#size-cells = <2>;
 		#address-cells = <3>;
@@ -676,7 +679,7 @@
 	};
 
 	pci1: pcie@ffe201000 {
-		compatible = "fsl,p4080-pcie";
+		compatible = "fsl,p3041-pcie", "fsl,qoriq-pcie-v2.2";
 		device_type = "pci";
 		#size-cells = <2>;
 		#address-cells = <3>;
@@ -713,7 +716,7 @@
 	};
 
 	pci2: pcie@ffe202000 {
-		compatible = "fsl,p4080-pcie";
+		compatible = "fsl,p3041-pcie", "fsl,qoriq-pcie-v2.2";
 		device_type = "pci";
 		#size-cells = <2>;
 		#address-cells = <3>;
@@ -749,4 +752,40 @@
 		};
 	};
 
+	pci3: pcie@ffe203000 {
+		compatible = "fsl,p3041-pcie", "fsl,qoriq-pcie-v2.2";
+		device_type = "pci";
+		#size-cells = <2>;
+		#address-cells = <3>;
+		reg = <0xf 0xfe203000 0 0x1000>;
+		bus-range = <0x0 0xff>;
+		ranges = <0x02000000 0 0xe0000000 0xc 0x60000000 0 0x20000000
+			  0x01000000 0 0x00000000 0xf 0xf8030000 0 0x00010000>;
+		clock-frequency = <0x1fca055>;
+		fsl,msi = <&msi2>;
+		interrupts = <16 2 1 12>;
+		pcie@0 {
+			reg = <0 0 0 0 0>;
+			#interrupt-cells = <1>;
+			#size-cells = <2>;
+			#address-cells = <3>;
+			device_type = "pci";
+			interrupts = <16 2 1 12>;
+			interrupt-map-mask = <0xf800 0 0 7>;
+			interrupt-map = <
+				/* IDSEL 0x0 */
+				0000 0 0 1 &mpic 43 1 0 0
+				0000 0 0 2 &mpic 0 1 0 0
+				0000 0 0 3 &mpic 4 1 0 0
+				0000 0 0 4 &mpic 8 1 0 0
+				>;
+			ranges = <0x02000000 0 0xe0000000
+				  0x02000000 0 0xe0000000
+				  0 0x20000000
+
+				  0x01000000 0 0x00000000
+				  0x01000000 0 0x00000000
+				  0 0x00010000>;
+		};
+	};
 };
