@@ -745,12 +745,23 @@ static int via_independent_hp_put(struct snd_kcontrol *kcontrol,
 	struct via_spec *spec = codec->spec;
 	hda_nid_t nid = kcontrol->private_value;
 	unsigned int pinsel = ucontrol->value.enumerated.item[0];
+	unsigned int parm0, parm1;
 	/* Get Independent Mode index of headphone pin widget */
 	spec->hp_independent_mode = spec->hp_independent_mode_index == pinsel
 		? 1 : 0;
-	if (spec->codec_type == VT1718S)
+	if (spec->codec_type == VT1718S) {
 		snd_hda_codec_write(codec, nid, 0,
 				    AC_VERB_SET_CONNECT_SEL, pinsel ? 2 : 0);
+		/* Set correct mute switch for MW3 */
+		parm0 = spec->hp_independent_mode ?
+			       AMP_IN_UNMUTE(0) : AMP_IN_MUTE(0);
+		parm1 = spec->hp_independent_mode ?
+			       AMP_IN_MUTE(1) : AMP_IN_UNMUTE(1);
+		snd_hda_codec_write(codec, 0x1b, 0,
+				    AC_VERB_SET_AMP_GAIN_MUTE, parm0);
+		snd_hda_codec_write(codec, 0x1b, 0,
+				    AC_VERB_SET_AMP_GAIN_MUTE, parm1);
+	}
 	else
 		snd_hda_codec_write(codec, nid, 0,
 				    AC_VERB_SET_CONNECT_SEL, pinsel);
@@ -1006,19 +1017,13 @@ static int via_smart51_put(struct snd_kcontrol *kcontrol,
 	return 1;
 }
 
-static const struct snd_kcontrol_new via_smart51_mixer[2] = {
-	{
-	 .iface = SNDRV_CTL_ELEM_IFACE_MIXER,
-	 .name = "Smart 5.1",
-	 .count = 1,
-	 .info = via_smart51_info,
-	 .get = via_smart51_get,
-	 .put = via_smart51_put,
-	 },
-	{
-	 .iface = NID_MAPPING,
-	 .name = "Smart 5.1",
-	}
+static const struct snd_kcontrol_new via_smart51_mixer = {
+	.iface = SNDRV_CTL_ELEM_IFACE_MIXER,
+	.name = "Smart 5.1",
+	.count = 1,
+	.info = via_smart51_info,
+	.get = via_smart51_get,
+	.put = via_smart51_put,
 };
 
 static int via_smart51_build(struct via_spec *spec)
@@ -1033,17 +1038,14 @@ static int via_smart51_build(struct via_spec *spec)
 	if (cfg->line_outs > 2)
 		return 0;
 
-	knew = via_clone_control(spec, &via_smart51_mixer[0]);
+	knew = via_clone_control(spec, &via_smart51_mixer);
 	if (knew == NULL)
 		return -ENOMEM;
 
 	for (i = 0; i < cfg->num_inputs; i++) {
 		nid = cfg->inputs[i].pin;
 		if (cfg->inputs[i].type <= AUTO_PIN_LINE_IN) {
-			knew = via_clone_control(spec, &via_smart51_mixer[1]);
-			if (knew == NULL)
-				return -ENOMEM;
-			knew->subdevice = nid;
+			knew->subdevice = HDA_SUBDEV_NID_FLAG | nid;
 			break;
 		}
 	}
@@ -1239,28 +1241,30 @@ static void playback_multi_pcm_prep_0(struct hda_codec *codec,
 	const hda_nid_t *nids = mout->dac_nids;
 	int chs = substream->runtime->channels;
 	int i;
+	struct hda_spdif_out *spdif =
+		snd_hda_spdif_out_of_nid(codec, spec->multiout.dig_out_nid);
 
 	mutex_lock(&codec->spdif_mutex);
 	if (mout->dig_out_nid && mout->dig_out_used != HDA_DIG_EXCLUSIVE) {
 		if (chs == 2 &&
 		    snd_hda_is_supported_format(codec, mout->dig_out_nid,
 						format) &&
-		    !(codec->spdif_status & IEC958_AES0_NONAUDIO)) {
+		    !(spdif->status & IEC958_AES0_NONAUDIO)) {
 			mout->dig_out_used = HDA_DIG_ANALOG_DUP;
 			/* turn off SPDIF once; otherwise the IEC958 bits won't
 			 * be updated */
-			if (codec->spdif_ctls & AC_DIG1_ENABLE)
+			if (spdif->ctls & AC_DIG1_ENABLE)
 				snd_hda_codec_write(codec, mout->dig_out_nid, 0,
 						    AC_VERB_SET_DIGI_CONVERT_1,
-						    codec->spdif_ctls &
+						    spdif->ctls &
 							~AC_DIG1_ENABLE & 0xff);
 			snd_hda_codec_setup_stream(codec, mout->dig_out_nid,
 						   stream_tag, 0, format);
 			/* turn on again (if needed) */
-			if (codec->spdif_ctls & AC_DIG1_ENABLE)
+			if (spdif->ctls & AC_DIG1_ENABLE)
 				snd_hda_codec_write(codec, mout->dig_out_nid, 0,
 						    AC_VERB_SET_DIGI_CONVERT_1,
-						    codec->spdif_ctls & 0xff);
+						    spdif->ctls & 0xff);
 		} else {
 			mout->dig_out_used = 0;
 			snd_hda_codec_setup_stream(codec, mout->dig_out_nid,
@@ -1498,6 +1502,7 @@ static int via_build_controls(struct hda_codec *codec)
 
 	if (spec->multiout.dig_out_nid) {
 		err = snd_hda_create_spdif_out_ctls(codec,
+						    spec->multiout.dig_out_nid,
 						    spec->multiout.dig_out_nid);
 		if (err < 0)
 			return err;
@@ -4283,9 +4288,6 @@ static const struct hda_verb vt1718S_volume_init_verbs[] = {
 	{0x21, AC_VERB_SET_AMP_GAIN_MUTE, AMP_IN_MUTE(2)},
 	{0x21, AC_VERB_SET_AMP_GAIN_MUTE, AMP_IN_MUTE(3)},
 	{0x21, AC_VERB_SET_AMP_GAIN_MUTE, AMP_IN_UNMUTE(5)},
-
-	/* Setup default input of Front HP to MW9 */
-	{0x28, AC_VERB_SET_CONNECT_SEL, 0x1},
 	/* PW9 PW10 Output enable */
 	{0x2d, AC_VERB_SET_PIN_WIDGET_CONTROL, AC_PINCTL_OUT_EN},
 	{0x2e, AC_VERB_SET_PIN_WIDGET_CONTROL, AC_PINCTL_OUT_EN},
@@ -4294,10 +4296,10 @@ static const struct hda_verb vt1718S_volume_init_verbs[] = {
 	/* Enable Boost Volume backdoor */
 	{0x1, 0xf88, 0x8},
 	/* MW0/1/2/3/4: un-mute index 0 (AOWx), mute index 1 (MW9) */
-	{0x18, AC_VERB_SET_AMP_GAIN_MUTE, AMP_IN_UNMUTE(0)},
+	{0x18, AC_VERB_SET_AMP_GAIN_MUTE, AMP_IN_MUTE(0)},
 	{0x19, AC_VERB_SET_AMP_GAIN_MUTE, AMP_IN_UNMUTE(0)},
 	{0x1a, AC_VERB_SET_AMP_GAIN_MUTE, AMP_IN_UNMUTE(0)},
-	{0x1b, AC_VERB_SET_AMP_GAIN_MUTE, AMP_IN_UNMUTE(0)},
+	{0x1b, AC_VERB_SET_AMP_GAIN_MUTE, AMP_IN_MUTE(0)},
 	{0x1c, AC_VERB_SET_AMP_GAIN_MUTE, AMP_IN_UNMUTE(0)},
 	{0x18, AC_VERB_SET_AMP_GAIN_MUTE, AMP_IN_UNMUTE(1)},
 	{0x19, AC_VERB_SET_AMP_GAIN_MUTE, AMP_IN_MUTE(1)},
@@ -4307,8 +4309,6 @@ static const struct hda_verb vt1718S_volume_init_verbs[] = {
 	/* set MUX1 = 2 (AOW4), MUX2 = 1 (AOW3) */
 	{0x34, AC_VERB_SET_CONNECT_SEL, 0x2},
 	{0x35, AC_VERB_SET_CONNECT_SEL, 0x1},
-	/* Unmute MW4's index 0 */
-	{0x1c, AC_VERB_SET_AMP_GAIN_MUTE, AMP_IN_UNMUTE(0)},
 	{ }
 };
 
@@ -4456,6 +4456,19 @@ static int vt1718S_auto_create_multi_out_ctls(struct via_spec *spec,
 			if (err < 0)
 				return err;
 		} else if (i == AUTO_SEQ_FRONT) {
+			/* add control to mixer index 0 */
+			err = via_add_control(spec, VIA_CTL_WIDGET_VOL,
+					      "Master Front Playback Volume",
+					      HDA_COMPOSE_AMP_VAL(0x21, 3, 5,
+								  HDA_INPUT));
+			if (err < 0)
+				return err;
+			err = via_add_control(spec, VIA_CTL_WIDGET_MUTE,
+					      "Master Front Playback Switch",
+					      HDA_COMPOSE_AMP_VAL(0x21, 3, 5,
+								  HDA_INPUT));
+			if (err < 0)
+				return err;
 			/* Front */
 			sprintf(name, "%s Playback Volume", chname[i]);
 			err = via_add_control(
