@@ -1233,7 +1233,12 @@ int check_unsafe_exec(struct linux_binprm *bprm)
 	unsigned n_fs;
 	int res = 0;
 
-	bprm->unsafe = tracehook_unsafe_exec(p);
+	if (p->ptrace) {
+		if (p->ptrace & PT_PTRACE_CAP)
+			bprm->unsafe |= LSM_UNSAFE_PTRACE_CAP;
+		else
+			bprm->unsafe |= LSM_UNSAFE_PTRACE;
+	}
 
 	n_fs = 1;
 	spin_lock(&p->fs->lock);
@@ -1389,7 +1394,7 @@ int search_binary_handler(struct linux_binprm *bprm,struct pt_regs *regs)
 			bprm->recursion_depth = depth;
 			if (retval >= 0) {
 				if (depth == 0)
-					tracehook_report_exec(fmt, bprm, regs);
+					ptrace_event(PTRACE_EVENT_EXEC, 0);
 				put_binfmt(fmt);
 				allow_write_access(bprm->file);
 				if (bprm->file)
@@ -1777,7 +1782,7 @@ static int zap_process(struct task_struct *start, int exit_code)
 
 	t = start;
 	do {
-		task_clear_group_stop_pending(t);
+		task_clear_jobctl_pending(t, JOBCTL_PENDING_MASK);
 		if (t != current && t->mm) {
 			sigaddset(&t->pending.signal, SIGKILL);
 			signal_wake_up(t, 1);
