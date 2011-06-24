@@ -125,9 +125,7 @@ static u8 ixgbe_dcbnl_set_state(struct net_device *netdev, u8 state)
 			goto out;
 		}
 
-		if (netif_running(netdev))
-			netdev->netdev_ops->ndo_stop(netdev);
-		ixgbe_clear_interrupt_scheme(adapter);
+		adapter->flags |= IXGBE_FLAG_DCB_ENABLED;
 
 		switch (adapter->hw.mac.type) {
 		case ixgbe_mac_82598EB:
@@ -137,46 +135,32 @@ static u8 ixgbe_dcbnl_set_state(struct net_device *netdev, u8 state)
 		case ixgbe_mac_82599EB:
 		case ixgbe_mac_X540:
 			adapter->flags &= ~IXGBE_FLAG_FDIR_HASH_CAPABLE;
-			adapter->flags &= ~IXGBE_FLAG_FDIR_PERFECT_CAPABLE;
 			break;
 		default:
 			break;
 		}
 
-		adapter->flags |= IXGBE_FLAG_DCB_ENABLED;
-		if (!netdev_get_num_tc(netdev))
-			ixgbe_setup_tc(netdev, MAX_TRAFFIC_CLASS);
-
-		ixgbe_init_interrupt_scheme(adapter);
-		if (netif_running(netdev))
-			netdev->netdev_ops->ndo_open(netdev);
+		ixgbe_setup_tc(netdev, MAX_TRAFFIC_CLASS);
 	} else {
 		/* Turn off DCB */
-		if (adapter->flags & IXGBE_FLAG_DCB_ENABLED) {
-			if (netif_running(netdev))
-				netdev->netdev_ops->ndo_stop(netdev);
-			ixgbe_clear_interrupt_scheme(adapter);
+		if (!(adapter->flags & IXGBE_FLAG_DCB_ENABLED))
+			goto out;
 
-			adapter->hw.fc.requested_mode = adapter->last_lfc_mode;
-			adapter->temp_dcb_cfg.pfc_mode_enable = false;
-			adapter->dcb_cfg.pfc_mode_enable = false;
-			adapter->flags &= ~IXGBE_FLAG_DCB_ENABLED;
-			switch (adapter->hw.mac.type) {
-			case ixgbe_mac_82599EB:
-			case ixgbe_mac_X540:
-				adapter->flags |= IXGBE_FLAG_FDIR_HASH_CAPABLE;
-				break;
-			default:
-				break;
-			}
-
-			ixgbe_setup_tc(netdev, 0);
-
-			ixgbe_init_interrupt_scheme(adapter);
-			if (netif_running(netdev))
-				netdev->netdev_ops->ndo_open(netdev);
+		adapter->hw.fc.requested_mode = adapter->last_lfc_mode;
+		adapter->temp_dcb_cfg.pfc_mode_enable = false;
+		adapter->dcb_cfg.pfc_mode_enable = false;
+		adapter->flags &= ~IXGBE_FLAG_DCB_ENABLED;
+		switch (adapter->hw.mac.type) {
+		case ixgbe_mac_82599EB:
+		case ixgbe_mac_X540:
+			adapter->flags |= IXGBE_FLAG_FDIR_HASH_CAPABLE;
+			break;
+		default:
+			break;
 		}
+		ixgbe_setup_tc(netdev, 0);
 	}
+
 out:
 	return err;
 }

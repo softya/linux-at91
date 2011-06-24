@@ -228,8 +228,6 @@ extern struct ctl_path net_ipv4_ctl_path[];
 extern int inet_peer_threshold;
 extern int inet_peer_minttl;
 extern int inet_peer_maxttl;
-extern int inet_peer_gc_mintime;
-extern int inet_peer_gc_maxtime;
 
 /* From ip_output.c */
 extern int sysctl_ip_dynaddr;
@@ -250,6 +248,11 @@ int ip_decrease_ttl(struct iphdr *iph)
 	check += (__force u32)htons(0x0100);
 	iph->check = (__force __sum16)(check + (check>=0xFFFF));
 	return --iph->ttl;
+}
+
+static inline bool ip_is_fragment(const struct iphdr *iph)
+{
+	return (iph->frag_off & htons(IP_MF | IP_OFFSET)) != 0;
 }
 
 static inline
