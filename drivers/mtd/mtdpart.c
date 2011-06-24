@@ -479,6 +479,19 @@ static struct mtd_part *allocate_partition(struct mtd_info *master,
 			       (unsigned long long)cur_offset, (unsigned long long)slave->offset);
 		}
 	}
+	if (slave->offset == MTDPART_OFS_RETAIN) {
+		slave->offset = cur_offset;
+		if (master->size - slave->offset >= slave->mtd.size) {
+			slave->mtd.size = master->size - slave->offset
+							- slave->mtd.size;
+		} else {
+			printk(KERN_ERR "mtd partition \"%s\" doesn't have enough space: %#llx < %#llx, disabled\n",
+				part->name, master->size - slave->offset,
+				slave->mtd.size);
+			/* register to preserve ordering */
+			goto out_register;
+		}
+	}
 	if (slave->mtd.size == MTDPART_SIZ_FULL)
 		slave->mtd.size = master->size - slave->offset;
 
@@ -712,11 +725,43 @@ int deregister_mtd_parser(struct mtd_part_parser *p)
 }
 EXPORT_SYMBOL_GPL(deregister_mtd_parser);
 
+/*
+ * Do not forget to update 'parse_mtd_partitions()' kerneldoc comment if you
+ * are changing this array!
+ */
+static const char *default_mtd_part_types[] = {
+	"cmdlinepart",
+	"ofpart",
+	NULL
+};
+
+/**
+ * parse_mtd_partitions - parse MTD partitions
+ * @master: the master partition (describes whole MTD device)
+ * @types: names of partition parsers to try or %NULL
+ * @pparts: array of partitions found is returned here
+ * @data: MTD partition parser-specific data
+ *
+ * This function tries to find partition on MTD device @master. It uses MTD
+ * partition parsers, specified in @types. However, if @types is %NULL, then
+ * the default list of parsers is used. The default list contains only the
+ * "cmdlinepart" and "ofpart" parsers ATM.
+ *
+ * This function may return:
+ * o a negative error code in case of failure
+ * o zero if no partitions were found
+ * o a positive number of found partitions, in which case on exit @pparts will
+ *   point to an array containing this number of &struct mtd_info objects.
+ */
 int parse_mtd_partitions(struct mtd_info *master, const char **types,
-			 struct mtd_partition **pparts, unsigned long origin)
+			 struct mtd_partition **pparts,
+			 struct mtd_part_parser_data *data)
 {
 	struct mtd_part_parser *parser;
 	int ret = 0;
+
+	if (!types)
+		types = default_mtd_part_types;
 
 	for ( ; ret <= 0 && *types; types++) {
 		parser = get_partition_parser(*types);
@@ -724,7 +769,7 @@ int parse_mtd_partitions(struct mtd_info *master, const char **types,
 				parser = get_partition_parser(*types);
 		if (!parser)
 			continue;
-		ret = (*parser->parse_fn)(master, pparts, origin);
+		ret = (*parser->parse_fn)(master, pparts, data);
 		if (ret > 0) {
 			printk(KERN_NOTICE "%d %s partitions found on MTD device %s\n",
 			       ret, parser->name, master->name);
