@@ -574,7 +574,7 @@ static void dw_mci_setup_bus(struct dw_mci_slot *slot)
 	}
 
 	/* Set the current slot bus width */
-	mci_writel(host, CTYPE, slot->ctype);
+	mci_writel(host, CTYPE, (slot->ctype << slot->id));
 }
 
 static void dw_mci_start_request(struct dw_mci *host,
@@ -1202,7 +1202,6 @@ static irqreturn_t dw_mci_interrupt(int irq, void *dev_id)
 			host->cmd_status = status;
 			smp_wmb();
 			set_bit(EVENT_CMD_COMPLETE, &host->pending_events);
-			tasklet_schedule(&host->tasklet);
 		}
 
 		if (pending & DW_MCI_DATA_ERROR_FLAGS) {
@@ -1211,7 +1210,9 @@ static irqreturn_t dw_mci_interrupt(int irq, void *dev_id)
 			host->data_status = status;
 			smp_wmb();
 			set_bit(EVENT_DATA_ERROR, &host->pending_events);
-			tasklet_schedule(&host->tasklet);
+			if (!(pending & (SDMMC_INT_DTO | SDMMC_INT_DCRC |
+					 SDMMC_INT_SBE | SDMMC_INT_EBE)))
+				tasklet_schedule(&host->tasklet);
 		}
 
 		if (pending & SDMMC_INT_DATA_OVER) {
