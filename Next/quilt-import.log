@@ -1,0 +1,30 @@
+Importing i2c based on 3.0-rc3
+Unchanged quilt series i2c
+Importing jdelvare-hwmon based on 3.0-rc3
+Unchanged quilt series jdelvare-hwmon
+Importing kernel-doc based on 3.0-rc4
+Unchanged quilt series kernel-doc
+Importing rr based on v3.0-rc2
+Unchanged quilt series rr
+Importing device-mapper based on v3.0-rc3-256-gde505e7
+$ git clone -s -l -n -q . ../quilt-tmp
+$ cd ../quilt-tmp
+$ git reset --hard de505e709ffb09a7382ca8e0d8c7dbb171ba5830
+HEAD is now at de505e7 Merge branch 'hwmon-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/groeck/staging
+$ git quiltimport --author Alasdair G Kergon <agk@redhat.com> --patches ../quilt/device-mapper
+dm-log-clean-up-bit-little-endian-bitops.patch
+dm-kcopyd-remove-offset-field-from-job-structure.patch
+dm-kcopyd-remove-nr_pages-field-from-job-structure.patch
+dm-kcopyd-add-dm_kcopyd_zero-to-zero-an-area.patch
+dm-snap-remove-unused-definitions.patch
+dm-ignore-merge_bvec-for-snapshots-when-safe.patch
+dm-snap-skip-reading-origin-when-overwriting-complete-chunk.patch
+dm-raid-cleanup-parameter-handling.patch
+dm-raid-improve-table-parameters-documentation.patch
+/home/sfr/kernels/next/quilt-tmp/.git/rebase-apply/patch:123: new blank line at EOF.
++
+warning: 1 line adds whitespace errors.
+$ cd ../next
+$ git fetch -f ../quilt-tmp master:quilt/device-mapper
+From ../quilt-tmp
+ + 75d4d18...6c579be master     -> quilt/device-mapper  (forced update)
