@@ -339,9 +339,9 @@ static void fsl_elbc_cmdfunc(struct mtd_info *mtd, unsigned int command,
 		                    (FIR_OP_UA  << FIR_OP1_SHIFT) |
 		                    (FIR_OP_RBW << FIR_OP2_SHIFT));
 		out_be32(&lbc->fcr, NAND_CMD_READID << FCR_CMD0_SHIFT);
-		/* 5 bytes for manuf, device and exts */
-		out_be32(&lbc->fbcr, 5);
-		elbc_fcm_ctrl->read_bytes = 5;
+		/* nand_get_flash_type() reads 8 bytes of entire ID string */
+		out_be32(&lbc->fbcr, 8);
+		elbc_fcm_ctrl->read_bytes = 8;
 		elbc_fcm_ctrl->use_mdr = 1;
 		elbc_fcm_ctrl->mdr = 0;
 
@@ -791,8 +791,8 @@ static int fsl_elbc_chip_init(struct fsl_elbc_mtd *priv)
 	chip->bbt_md = &bbt_mirror_descr;
 
 	/* set up nand options */
-	chip->options = NAND_NO_READRDY | NAND_NO_AUTOINCR |
-			NAND_USE_FLASH_BBT;
+	chip->options = NAND_NO_READRDY | NAND_NO_AUTOINCR;
+	chip->bbt_options = NAND_BBT_USE_FLASH;
 
 	chip->controller = &elbc_fcm_ctrl->controller;
 	chip->priv = priv;
@@ -842,13 +842,14 @@ static int __devinit fsl_elbc_nand_probe(struct platform_device *pdev)
 	struct resource res;
 	struct fsl_elbc_fcm_ctrl *elbc_fcm_ctrl;
 	static const char *part_probe_types[]
-		= { "cmdlinepart", "RedBoot", NULL };
-	struct mtd_partition *parts;
+		= { "cmdlinepart", "RedBoot", "ofpart", NULL };
 	int ret;
 	int bank;
 	struct device *dev;
 	struct device_node *node = pdev->dev.of_node;
+	struct mtd_part_parser_data ppdata;
 
+	ppdata.of_node = pdev->dev.of_node;
 	if (!fsl_lbc_ctrl_dev || !fsl_lbc_ctrl_dev->regs)
 		return -ENODEV;
 	lbc = fsl_lbc_ctrl_dev->regs;
@@ -934,17 +935,8 @@ static int __devinit fsl_elbc_nand_probe(struct platform_device *pdev)
 
 	/* First look for RedBoot table or partitions on the command
 	 * line, these take precedence over device tree information */
-	ret = parse_mtd_partitions(&priv->mtd, part_probe_types, &parts, 0);
-	if (ret < 0)
-		goto err;
-
-	if (ret == 0) {
-		ret = of_mtd_parse_partitions(priv->dev, node, &parts);
-		if (ret < 0)
-			goto err;
-	}
-
-	mtd_device_register(&priv->mtd, parts, ret);
+	mtd_device_parse_register(&priv->mtd, part_probe_types, &ppdata,
+				  NULL, 0);
 
 	printk(KERN_INFO "eLBC NAND device at 0x%llx, bank %d\n",
 	       (unsigned long long)res.start, priv->bank);
