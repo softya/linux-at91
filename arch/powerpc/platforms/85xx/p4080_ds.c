@@ -29,12 +29,9 @@
 #include <linux/of_platform.h>
 #include <sysdev/fsl_soc.h>
 #include <sysdev/fsl_pci.h>
+#include <asm/ehv_pic.h>
 
 #include "corenet_ds.h"
-
-#ifdef CONFIG_PCI
-static int primary_phb_addr;
-#endif
 
 /*
  * Called very early, device-tree isn't unflattened
@@ -43,17 +40,20 @@ static int __init p4080_ds_probe(void)
 {
 	unsigned long root = of_get_flat_dt_root();
 
-	if (of_flat_dt_is_compatible(root, "fsl,P4080DS")) {
-#ifdef CONFIG_PCI
-		/* treat PCIe1 as primary,
-		 * shouldn't matter as we have no ISA on the board
-		 */
-		primary_phb_addr = 0x0000;
-#endif
+	if (of_flat_dt_is_compatible(root, "fsl,P4080DS"))
 		return 1;
-	} else {
-		return 0;
+
+	/* Check if we're running under the Freescale hypervisor */
+	if (of_flat_dt_is_compatible(root, "fsl,P4080DS-hv")) {
+		ppc_md.init_IRQ = ehv_pic_init;
+		ppc_md.get_irq = ehv_pic_get_irq;
+		ppc_md.restart = fsl_hv_restart;
+		ppc_md.power_off = fsl_hv_halt;
+		ppc_md.halt = fsl_hv_halt;
+		return 1;
 	}
+
+	return 0;
 }
 
 define_machine(p4080_ds) {
@@ -71,4 +71,6 @@ define_machine(p4080_ds) {
 };
 
 machine_device_initcall(p4080_ds, corenet_ds_publish_devices);
+#ifdef CONFIG_SWIOTLB
 machine_arch_initcall(p4080_ds, swiotlb_setup_bus_notifier);
+#endif
