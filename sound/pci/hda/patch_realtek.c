@@ -3224,6 +3224,7 @@ static int alc_build_controls(struct hda_codec *codec)
 	}
 	if (spec->multiout.dig_out_nid) {
 		err = snd_hda_create_spdif_out_ctls(codec,
+						    spec->multiout.dig_out_nid,
 						    spec->multiout.dig_out_nid);
 		if (err < 0)
 			return err;
@@ -5358,11 +5359,15 @@ static int alc880_auto_fill_dac_nids(struct alc_spec *spec,
 	return 0;
 }
 
-static const char *alc_get_line_out_pfx(struct alc_spec *spec,
-					bool can_be_master)
+static const char *alc_get_line_out_pfx(struct alc_spec *spec, int ch,
+					bool can_be_master, int *index)
 {
 	struct auto_pin_cfg *cfg = &spec->autocfg;
+	static const char * const chname[4] = {
+		"Front", "Surround", NULL /*CLFE*/, "Side"
+	};
 
+	*index = 0;
 	if (cfg->line_outs == 1 && !spec->multi_ios &&
 	    !cfg->hp_outs && !cfg->speaker_outs && can_be_master)
 		return "Master";
@@ -5373,23 +5378,23 @@ static const char *alc_get_line_out_pfx(struct alc_spec *spec,
 			return "Speaker";
 		break;
 	case AUTO_PIN_HP_OUT:
+		/* for multi-io case, only the primary out */
+		if (ch && spec->multi_ios)
+			break;
+		*index = ch;
 		return "Headphone";
 	default:
 		if (cfg->line_outs == 1 && !spec->multi_ios)
 			return "PCM";
 		break;
 	}
-	return NULL;
+	return chname[ch];
 }
 
 /* add playback controls from the parsed DAC table */
 static int alc880_auto_create_multi_out_ctls(struct alc_spec *spec,
 					     const struct auto_pin_cfg *cfg)
 {
-	static const char * const chname[4] = {
-		"Front", "Surround", NULL /*CLFE*/, "Side"
-	};
-	const char *pfx = alc_get_line_out_pfx(spec, false);
 	hda_nid_t nid;
 	int i, err, noutputs;
 
@@ -5398,10 +5403,13 @@ static int alc880_auto_create_multi_out_ctls(struct alc_spec *spec,
 		noutputs += spec->multi_ios;
 
 	for (i = 0; i < noutputs; i++) {
+		const char *name;
+		int index;
 		if (!spec->multiout.dac_nids[i])
 			continue;
 		nid = alc880_idx_to_mixer(alc880_dac_to_idx(spec->multiout.dac_nids[i]));
-		if (!pfx && i == 2) {
+		name = alc_get_line_out_pfx(spec, i, false, &index);
+		if (!name) {
 			/* Center/LFE */
 			err = add_pb_vol_ctrl(spec, ALC_CTL_WIDGET_VOL,
 					      "Center",
@@ -5428,12 +5436,6 @@ static int alc880_auto_create_multi_out_ctls(struct alc_spec *spec,
 			if (err < 0)
 				return err;
 		} else {
-			const char *name = pfx;
-			int index = i;
-			if (!name) {
-				name = chname[i];
-				index = 0;
-			}
 			err = __add_pb_vol_ctrl(spec, ALC_CTL_WIDGET_VOL,
 						name, index,
 					  HDA_COMPOSE_AMP_VAL(nid, 3, 0,
@@ -7182,12 +7184,8 @@ static int alc260_auto_create_multi_out_ctls(struct alc_spec *spec,
 	nid = cfg->line_out_pins[0];
 	if (nid) {
 		const char *pfx;
-		if (!cfg->speaker_pins[0] && !cfg->hp_pins[0])
-			pfx = "Master";
-		else if (cfg->line_out_type == AUTO_PIN_SPEAKER_OUT)
-			pfx = "Speaker";
-		else
-			pfx = "Front";
+		int index;
+		pfx = alc_get_line_out_pfx(spec, 0, true, &index);
 		err = alc260_add_playback_controls(spec, nid, pfx, &vols);
 		if (err < 0)
 			return err;
@@ -12256,17 +12254,18 @@ static int alc262_auto_create_multi_out_ctls(struct alc_spec *spec,
 {
 	const char *pfx;
 	int vbits;
-	int i, err;
+	int i, index, err;
 
 	spec->multiout.num_dacs = 1;	/* only use one dac */
 	spec->multiout.dac_nids = spec->private_dac_nids;
 	spec->private_dac_nids[0] = 2;
 
-	pfx = alc_get_line_out_pfx(spec, true);
-	if (!pfx)
-		pfx = "Front";
 	for (i = 0; i < 2; i++) {
-		err = alc262_add_out_sw_ctl(spec, cfg->line_out_pins[i], pfx, i);
+		pfx = alc_get_line_out_pfx(spec, i, true, &index);
+		if (!pfx)
+			pfx = "PCM";
+		err = alc262_add_out_sw_ctl(spec, cfg->line_out_pins[i], pfx,
+					    index);
 		if (err < 0)
 			return err;
 		if (cfg->line_out_type != AUTO_PIN_SPEAKER_OUT) {
@@ -12286,10 +12285,11 @@ static int alc262_auto_create_multi_out_ctls(struct alc_spec *spec,
 	vbits = alc262_check_volbit(cfg->line_out_pins[0]) |
 		alc262_check_volbit(cfg->speaker_pins[0]) |
 		alc262_check_volbit(cfg->hp_pins[0]);
-	if (vbits == 1 || vbits == 2)
-		pfx = "Master"; /* only one mixer is used */
 	vbits = 0;
 	for (i = 0; i < 2; i++) {
+		pfx = alc_get_line_out_pfx(spec, i, true, &index);
+		if (!pfx)
+			pfx = "PCM";
 		err = alc262_add_out_vol_ctl(spec, cfg->line_out_pins[i], pfx,
 					     &vbits, i);
 		if (err < 0)
@@ -13635,10 +13635,8 @@ static int alc268_auto_create_multi_out_ctls(struct alc_spec *spec,
 	nid = cfg->line_out_pins[0];
 	if (nid) {
 		const char *name;
-		if (cfg->line_out_type == AUTO_PIN_SPEAKER_OUT)
-			name = "Speaker";
-		else
-			name = "Front";
+		int index;
+		name = alc_get_line_out_pfx(spec, 0, true, &index);
 		err = alc268_new_analog_output(spec, nid, name, 0);
 		if (err < 0)
 			return err;
@@ -16034,10 +16032,6 @@ static int alc861_auto_create_multi_out_ctls(struct hda_codec *codec,
 					     const struct auto_pin_cfg *cfg)
 {
 	struct alc_spec *spec = codec->spec;
-	static const char * const chname[4] = {
-		"Front", "Surround", NULL /*CLFE*/, "Side"
-	};
-	const char *pfx = alc_get_line_out_pfx(spec, true);
 	hda_nid_t nid;
 	int i, err, noutputs;
 
@@ -16046,10 +16040,13 @@ static int alc861_auto_create_multi_out_ctls(struct hda_codec *codec,
 		noutputs += spec->multi_ios;
 
 	for (i = 0; i < noutputs; i++) {
+		const char *name;
+		int index;
 		nid = spec->multiout.dac_nids[i];
 		if (!nid)
 			continue;
-		if (!pfx && i == 2) {
+		name = alc_get_line_out_pfx(spec, i, true, &index);
+		if (!name) {
 			/* Center/LFE */
 			err = alc861_create_out_sw(codec, "Center", nid, 1);
 			if (err < 0)
@@ -16058,12 +16055,6 @@ static int alc861_auto_create_multi_out_ctls(struct hda_codec *codec,
 			if (err < 0)
 				return err;
 		} else {
-			const char *name = pfx;
-			int index = i;
-			if (!name) {
-				name = chname[i];
-				index = 0;
-			}
 			err = __alc861_create_out_sw(codec, name, nid, index, 3);
 			if (err < 0)
 				return err;
@@ -17177,10 +17168,6 @@ static void alc861vd_auto_init_analog_input(struct hda_codec *codec)
 static int alc861vd_auto_create_multi_out_ctls(struct alc_spec *spec,
 					     const struct auto_pin_cfg *cfg)
 {
-	static const char * const chname[4] = {
-		"Front", "Surround", "CLFE", "Side"
-	};
-	const char *pfx = alc_get_line_out_pfx(spec, true);
 	hda_nid_t nid_v, nid_s;
 	int i, err, noutputs;
 
@@ -17189,6 +17176,8 @@ static int alc861vd_auto_create_multi_out_ctls(struct alc_spec *spec,
 		noutputs += spec->multi_ios;
 
 	for (i = 0; i < noutputs; i++) {
+		const char *name;
+		int index;
 		if (!spec->multiout.dac_nids[i])
 			continue;
 		nid_v = alc861vd_idx_to_mixer_vol(
@@ -17198,7 +17187,8 @@ static int alc861vd_auto_create_multi_out_ctls(struct alc_spec *spec,
 				alc880_dac_to_idx(
 					spec->multiout.dac_nids[i]));
 
-		if (!pfx && i == 2) {
+		name = alc_get_line_out_pfx(spec, i, true, &index);
+		if (!name) {
 			/* Center/LFE */
 			err = add_pb_vol_ctrl(spec, ALC_CTL_WIDGET_VOL,
 					      "Center",
@@ -17225,12 +17215,6 @@ static int alc861vd_auto_create_multi_out_ctls(struct alc_spec *spec,
 			if (err < 0)
 				return err;
 		} else {
-			const char *name = pfx;
-			int index = i;
-			if (!name) {
-				name = chname[i];
-				index = 0;
-			}
 			err = __add_pb_vol_ctrl(spec, ALC_CTL_WIDGET_VOL,
 						name, index,
 					  HDA_COMPOSE_AMP_VAL(nid_v, 3, 0,
@@ -18991,6 +18975,7 @@ static int alc662_auto_fill_dac_nids(struct hda_codec *codec,
 	hda_nid_t dac;
 
 	spec->multiout.dac_nids = spec->private_dac_nids;
+	spec->multiout.num_dacs = 0;
 	for (i = 0; i < cfg->line_outs; i++) {
 		dac = alc_auto_look_for_dac(codec, cfg->line_out_pins[i]);
 		if (!dac)
@@ -19028,10 +19013,6 @@ static int alc662_auto_create_multi_out_ctls(struct hda_codec *codec,
 					     const struct auto_pin_cfg *cfg)
 {
 	struct alc_spec *spec = codec->spec;
-	static const char * const chname[4] = {
-		"Front", "Surround", NULL /*CLFE*/, "Side"
-	};
-	const char *pfx = alc_get_line_out_pfx(spec, true);
 	hda_nid_t nid, mix, pin;
 	int i, err, noutputs;
 
@@ -19040,6 +19021,8 @@ static int alc662_auto_create_multi_out_ctls(struct hda_codec *codec,
 		noutputs += spec->multi_ios;
 
 	for (i = 0; i < noutputs; i++) {
+		const char *name;
+		int index;
 		nid = spec->multiout.dac_nids[i];
 		if (!nid)
 			continue;
@@ -19050,7 +19033,8 @@ static int alc662_auto_create_multi_out_ctls(struct hda_codec *codec,
 		mix = alc_auto_dac_to_mix(codec, pin, nid);
 		if (!mix)
 			continue;
-		if (!pfx && i == 2) {
+		name = alc_get_line_out_pfx(spec, i, true, &index);
+		if (!name) {
 			/* Center/LFE */
 			err = alc662_add_vol_ctl(spec, "Center", nid, 1);
 			if (err < 0)
@@ -19065,12 +19049,6 @@ static int alc662_auto_create_multi_out_ctls(struct hda_codec *codec,
 			if (err < 0)
 				return err;
 		} else {
-			const char *name = pfx;
-			int index = i;
-			if (!name) {
-				name = chname[i];
-				index = 0;
-			}
 			err = __alc662_add_vol_ctl(spec, name, nid, index, 3);
 			if (err < 0)
 				return err;
@@ -19325,8 +19303,20 @@ static int alc_auto_add_multi_channel_mode(struct hda_codec *codec)
 	unsigned int location, defcfg;
 	int num_pins;
 
+	if (cfg->line_out_type == AUTO_PIN_SPEAKER_OUT && cfg->hp_outs == 1) {
+		/* use HP as primary out */
+		cfg->speaker_outs = cfg->line_outs;
+		memcpy(cfg->speaker_pins, cfg->line_out_pins,
+		       sizeof(cfg->speaker_pins));
+		cfg->line_outs = cfg->hp_outs;
+		memcpy(cfg->line_out_pins, cfg->hp_pins, sizeof(cfg->hp_pins));
+		cfg->hp_outs = 0;
+		memset(cfg->hp_pins, 0, sizeof(cfg->hp_pins));
+		cfg->line_out_type = AUTO_PIN_HP_OUT;
+		alc662_auto_fill_dac_nids(codec, cfg);
+	}
 	if (cfg->line_outs != 1 ||
-	    cfg->line_out_type != AUTO_PIN_LINE_OUT)
+	    cfg->line_out_type == AUTO_PIN_SPEAKER_OUT)
 		return 0;
 
 	defcfg = snd_hda_codec_get_pincfg(codec, cfg->line_out_pins[0]);
@@ -19875,10 +19865,8 @@ static int alc680_auto_create_multi_out_ctls(struct alc_spec *spec,
 	nid = cfg->line_out_pins[0];
 	if (nid) {
 		const char *name;
-		if (cfg->line_out_type == AUTO_PIN_SPEAKER_OUT)
-			name = "Speaker";
-		else
-			name = "Front";
+		int index;
+		name = alc_get_line_out_pfx(spec, 0, true, &index);
 		err = alc680_new_analog_output(spec, nid, name, 0);
 		if (err < 0)
 			return err;
