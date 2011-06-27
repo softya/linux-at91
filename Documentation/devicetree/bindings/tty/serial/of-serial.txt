@@ -21,6 +21,9 @@ Optional properties:
 - reg-shift : quantity to shift the register offsets by.
 - used-by-rtas : set to indicate that the port is in use by the OpenFirmware
   RTAS and should not be registered.
+- io-width : the size (in bytes) of the IO accesses that should be performed
+  on the device.  There are some systems that require 32-bit accesses to the
+  UART (e.g. TI davinci).
 
 Example:
 
