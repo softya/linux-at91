@@ -239,8 +239,6 @@ v6_dma_inv_range:
 	strlo	r2, [r0]			@ write for ownership
 #endif
 	blo	1b
-	mov	r0, #0
-	mcr	p15, 0, r0, c7, c10, 4		@ drain write buffer
 	mov	pc, lr
 
 /*
@@ -262,8 +260,6 @@ v6_dma_clean_range:
 	add	r0, r0, #D_CACHE_LINE_SIZE
 	cmp	r0, r1
 	blo	1b
-	mov	r0, #0
-	mcr	p15, 0, r0, c7, c10, 4		@ drain write buffer
 	mov	pc, lr
 
 /*
@@ -290,8 +286,6 @@ ENTRY(v6_dma_flush_range)
 	strlob	r2, [r0]			@ write for ownership
 #endif
 	blo	1b
-	mov	r0, #0
-	mcr	p15, 0, r0, c7, c10, 4		@ drain write buffer
 	mov	pc, lr
 
 /*

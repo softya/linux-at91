@@ -97,6 +97,7 @@ static struct page *__dma_alloc_buffer(struct device *dev, size_t size, gfp_t gf
 	memset(ptr, 0, size);
 	dmac_flush_range(ptr, ptr + size);
 	outer_flush_range(__pa(ptr), __pa(ptr) + size);
+	__dma_sync();
 
 	return page;
 }
@@ -572,6 +573,7 @@ int dma_map_sg(struct device *dev, struct scatterlist *sg, int nents,
 		if (dma_mapping_error(dev, s->dma_address))
 			goto bad_mapping;
 	}
+	__dma_sync();
 	debug_dma_map_sg(dev, sg, nents, nents, dir);
 	return nents;
 
@@ -602,6 +604,8 @@ void dma_unmap_sg(struct device *dev, struct scatterlist *sg, int nents,
 
 	for_each_sg(sg, s, nents, i)
 		__dma_unmap_page(dev, sg_dma_address(s), sg_dma_len(s), dir);
+
+	__dma_sync();
 }
 EXPORT_SYMBOL(dma_unmap_sg);
 
@@ -626,6 +630,8 @@ void dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg,
 		__dma_page_dev_to_cpu(sg_page(s), s->offset,
 				      s->length, dir);
 	}
+
+	__dma_sync();
 
 	debug_dma_sync_sg_for_cpu(dev, sg, nents, dir);
 }
@@ -652,6 +658,8 @@ void dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg,
 		__dma_page_cpu_to_dev(sg_page(s), s->offset,
 				      s->length, dir);
 	}
+
+	__dma_sync();
 
 	debug_dma_sync_sg_for_device(dev, sg, nents, dir);
 }

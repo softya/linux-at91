@@ -115,6 +115,11 @@ static inline void __dma_page_dev_to_cpu(struct page *page, unsigned long off,
 		___dma_page_dev_to_cpu(page, off, size, dir);
 }
 
+static inline void __dma_sync(void)
+{
+	dsb();
+}
+
 /*
  * Return whether the given device DMA address mask can be supported
  * properly.  For example, if your device can only drive the low 24-bits
@@ -378,6 +383,7 @@ static inline dma_addr_t dma_map_single(struct device *dev, void *cpu_addr,
 	BUG_ON(!valid_dma_direction(dir));
 
 	addr = __dma_map_single(dev, cpu_addr, size, dir);
+	__dma_sync();
 	debug_dma_map_page(dev, virt_to_page(cpu_addr),
 			(unsigned long)cpu_addr & ~PAGE_MASK, size,
 			dir, addr, true);
@@ -407,6 +413,7 @@ static inline dma_addr_t dma_map_page(struct device *dev, struct page *page,
 	BUG_ON(!valid_dma_direction(dir));
 
 	addr = __dma_map_page(dev, page, offset, size, dir);
+	__dma_sync();
 	debug_dma_map_page(dev, page, offset, size, dir, addr, false);
 
 	return addr;
@@ -431,6 +438,7 @@ static inline void dma_unmap_single(struct device *dev, dma_addr_t handle,
 {
 	debug_dma_unmap_page(dev, handle, size, dir, true);
 	__dma_unmap_single(dev, handle, size, dir);
+	__dma_sync();
 }
 
 /**
@@ -452,6 +460,7 @@ static inline void dma_unmap_page(struct device *dev, dma_addr_t handle,
 {
 	debug_dma_unmap_page(dev, handle, size, dir, false);
 	__dma_unmap_page(dev, handle, size, dir);
+	__dma_sync();
 }
 
 /**
@@ -484,6 +493,7 @@ static inline void dma_sync_single_range_for_cpu(struct device *dev,
 		return;
 
 	__dma_single_dev_to_cpu(dma_to_virt(dev, handle) + offset, size, dir);
+	__dma_sync();
 }
 
 static inline void dma_sync_single_range_for_device(struct device *dev,
@@ -498,6 +508,7 @@ static inline void dma_sync_single_range_for_device(struct device *dev,
 		return;
 
 	__dma_single_cpu_to_dev(dma_to_virt(dev, handle) + offset, size, dir);
+	__dma_sync();
 }
 
 static inline void dma_sync_single_for_cpu(struct device *dev,
