@@ -244,7 +244,6 @@ struct ixgbe_ring {
 
 enum ixgbe_ring_f_enum {
 	RING_F_NONE = 0,
-	RING_F_DCB,
 	RING_F_VMDQ,  /* SR-IOV uses the same ring feature */
 	RING_F_RSS,
 	RING_F_FDIR,
@@ -255,7 +254,6 @@ enum ixgbe_ring_f_enum {
 	RING_F_ARRAY_SIZE      /* must be last in enum set */
 };
 
-#define IXGBE_MAX_DCB_INDICES  64
 #define IXGBE_MAX_RSS_INDICES  16
 #define IXGBE_MAX_VMDQ_INDICES 64
 #define IXGBE_MAX_FDIR_INDICES 64
@@ -484,6 +482,17 @@ struct ixgbe_adapter {
 	struct vf_macvlans vf_mvs;
 	struct vf_macvlans *mv_list;
 	bool antispoofing_enabled;
+
+	struct hlist_head fdir_filter_list;
+	union ixgbe_atr_input fdir_mask;
+	int fdir_filter_count;
+};
+
+struct ixgbe_fdir_filter {
+	struct hlist_node fdir_node;
+	union ixgbe_atr_input filter;
+	u16 sw_idx;
+	u16 action;
 };
 
 enum ixbge_state_t {
@@ -545,16 +554,22 @@ extern void ixgbe_alloc_rx_buffers(struct ixgbe_ring *, u16);
 extern void ixgbe_write_eitr(struct ixgbe_q_vector *);
 extern int ethtool_ioctl(struct ifreq *ifr);
 extern s32 ixgbe_reinit_fdir_tables_82599(struct ixgbe_hw *hw);
-extern s32 ixgbe_init_fdir_signature_82599(struct ixgbe_hw *hw, u32 pballoc);
-extern s32 ixgbe_init_fdir_perfect_82599(struct ixgbe_hw *hw, u32 pballoc);
+extern s32 ixgbe_init_fdir_signature_82599(struct ixgbe_hw *hw, u32 fdirctrl);
+extern s32 ixgbe_init_fdir_perfect_82599(struct ixgbe_hw *hw, u32 fdirctrl);
 extern s32 ixgbe_fdir_add_signature_filter_82599(struct ixgbe_hw *hw,
 						 union ixgbe_atr_hash_dword input,
 						 union ixgbe_atr_hash_dword common,
                                                  u8 queue);
-extern s32 ixgbe_fdir_add_perfect_filter_82599(struct ixgbe_hw *hw,
-                                      union ixgbe_atr_input *input,
-                                      struct ixgbe_atr_input_masks *input_masks,
-                                      u16 soft_id, u8 queue);
+extern s32 ixgbe_fdir_set_input_mask_82599(struct ixgbe_hw *hw,
+					   union ixgbe_atr_input *input_mask);
+extern s32 ixgbe_fdir_write_perfect_filter_82599(struct ixgbe_hw *hw,
+						 union ixgbe_atr_input *input,
+						 u16 soft_id, u8 queue);
+extern s32 ixgbe_fdir_erase_perfect_filter_82599(struct ixgbe_hw *hw,
+						 union ixgbe_atr_input *input,
+						 u16 soft_id);
+extern void ixgbe_atr_compute_perfect_hash_82599(union ixgbe_atr_input *input,
+						 union ixgbe_atr_input *mask);
 extern void ixgbe_configure_rscctl(struct ixgbe_adapter *adapter,
                                    struct ixgbe_ring *ring);
 extern void ixgbe_clear_rscctl(struct ixgbe_adapter *adapter,
