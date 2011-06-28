@@ -25,6 +25,7 @@
 #include <linux/pci.h>
 #include <linux/delay.h>
 #include <linux/init.h>
+#include <linux/interrupt.h>
 #include <linux/dma-mapping.h>
 #include <linux/ssb/ssb.h>
 #include <linux/slab.h>
@@ -2335,7 +2336,7 @@ static struct ssb_driver b44_ssb_driver = {
 	.resume		= b44_resume,
 };
 
-static inline int b44_pci_init(void)
+static inline int __init b44_pci_init(void)
 {
 	int err = 0;
 #ifdef CONFIG_B44_PCI
@@ -2344,7 +2345,7 @@ static inline int b44_pci_init(void)
 	return err;
 }
 
-static inline void b44_pci_exit(void)
+static inline void __exit b44_pci_exit(void)
 {
 #ifdef CONFIG_B44_PCI
 	ssb_pcihost_unregister(&b44_pci_driver);
