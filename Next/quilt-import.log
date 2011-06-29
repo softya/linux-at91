@@ -1,0 +1,51 @@
+Importing i2c based on 3.0-rc5
+$ git clone -s -l -n -q . ../quilt-tmp
+$ cd ../quilt-tmp
+$ git reset --hard b0af8dfdd67699e25083478c63eedef2e72ebd85
+HEAD is now at b0af8df Linux 3.0-rc5
+$ git quiltimport --author Jean Delvare <khali@linux-fr.org> --patches ../quilt/i2c
+i2c-taos-evm-fix-log-messages.patch
+i2c-pca954x-initialize-the-mux-to-disconnected-state.patch
+$ cd ../next
+$ git fetch -f ../quilt-tmp master:quilt/i2c
+From ../quilt-tmp
+ + 06055ef...a8a903b master     -> quilt/i2c  (forced update)
+Importing jdelvare-hwmon based on 3.0-rc3
+Unchanged quilt series jdelvare-hwmon
+Importing kernel-doc based on 3.0-rc4
+Unchanged quilt series kernel-doc
+Importing rr based on v3.0-rc2
+Unchanged quilt series rr
+Importing device-mapper based on v3.0-rc3-256-gde505e7
+$ cd ../quilt-tmp
+$ git reset --hard de505e709ffb09a7382ca8e0d8c7dbb171ba5830
+HEAD is now at de505e7 Merge branch 'hwmon-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/groeck/staging
+$ git quiltimport --author Alasdair G Kergon <agk@redhat.com> --patches ../quilt/device-mapper
+dm-snapshot-flush-disk-cache-when-merging.patch
+dm-log-clean-up-bit-little-endian-bitops.patch
+dm-log-userspace-use-list_move.patch
+dm-use-vzalloc.patch
+dm-kcopyd-remove-offset-field-from-job-structure.patch
+dm-kcopyd-remove-nr_pages-field-from-job-structure.patch
+dm-snapshot-remove-unused-definitions.patch
+dm-snapshot-style-cleanups.patch
+dm-raid-cleanup-parameter-handling.patch
+dm-mpath-fix-potential-NULL-pointer-in-feature-arg-processing.patch
+dm-kcopyd-add-dm_kcopyd_zero-to-zero-an-area.patch
+dm-ignore-merge_bvec-for-snapshots-when-safe.patch
+dm-snap-skip-reading-origin-when-overwriting-complete-chunk.patch
+dm-raid-improve-table-parameters-documentation.patch
+/home/sfr/kernels/next/quilt-tmp/.git/rebase-apply/patch:123: new blank line at EOF.
++
+warning: 1 line adds whitespace errors.
+dm-table-share-target-argument-parsing-functions.patch
+dm-flakey-use-dm_target_offset-and-support-discards.patch
+dm-flakey-support-feature-args.patch
+dm-flakey-add-drop_writes.patch
+/home/sfr/kernels/next/quilt-tmp/.git/rebase-apply/patch:11: new blank line at EOF.
++
+warning: 1 line adds whitespace errors.
+$ cd ../next
+$ git fetch -f ../quilt-tmp master:quilt/device-mapper
+From ../quilt-tmp
+ + d195cbd...9d26c6a master     -> quilt/device-mapper  (forced update)
