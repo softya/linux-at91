@@ -510,6 +510,7 @@ static int conexant_build_controls(struct hda_codec *codec)
 	}
 	if (spec->multiout.dig_out_nid) {
 		err = snd_hda_create_spdif_out_ctls(codec,
+						    spec->multiout.dig_out_nid,
 						    spec->multiout.dig_out_nid);
 		if (err < 0)
 			return err;
@@ -1123,10 +1124,8 @@ static int patch_cxt5045(struct hda_codec *codec)
 	board_config = snd_hda_check_board_config(codec, CXT5045_MODELS,
 						  cxt5045_models,
 						  cxt5045_cfg_tbl);
-#if 0 /* use the old method just for safety */
 	if (board_config < 0)
-		board_config = CXT5045_AUTO;
-#endif
+		board_config = CXT5045_AUTO; /* model=auto as default */
 	if (board_config == CXT5045_AUTO)
 		return patch_conexant_auto(codec);
 
@@ -1564,10 +1563,8 @@ static int patch_cxt5047(struct hda_codec *codec)
 	board_config = snd_hda_check_board_config(codec, CXT5047_MODELS,
 						  cxt5047_models,
 						  cxt5047_cfg_tbl);
-#if 0 /* not enabled as default, as BIOS often broken for this codec */
 	if (board_config < 0)
-		board_config = CXT5047_AUTO;
-#endif
+		board_config = CXT5047_AUTO; /* model=auto as default */
 	if (board_config == CXT5047_AUTO)
 		return patch_conexant_auto(codec);
 
@@ -1993,10 +1990,8 @@ static int patch_cxt5051(struct hda_codec *codec)
 	board_config = snd_hda_check_board_config(codec, CXT5051_MODELS,
 						  cxt5051_models,
 						  cxt5051_cfg_tbl);
-#if 0 /* use the old method just for safety */
 	if (board_config < 0)
-		board_config = CXT5051_AUTO;
-#endif
+		board_config = CXT5051_AUTO; /* model=auto as default */
 	if (board_config == CXT5051_AUTO)
 		return patch_conexant_auto(codec);
 
@@ -3074,6 +3069,7 @@ static const char * const cxt5066_models[CXT5066_MODELS] = {
 };
 
 static const struct snd_pci_quirk cxt5066_cfg_tbl[] = {
+	SND_PCI_QUIRK(0x1025, 0x054c, "Acer Aspire 3830TG", CXT5066_AUTO),
 	SND_PCI_QUIRK_MASK(0x1025, 0xff00, 0x0400, "Acer", CXT5066_IDEAPAD),
 	SND_PCI_QUIRK(0x1028, 0x02d8, "Dell Vostro", CXT5066_DELL_VOSTRO),
 	SND_PCI_QUIRK(0x1028, 0x02f5, "Dell Vostro 320", CXT5066_IDEAPAD),
@@ -3113,10 +3109,8 @@ static int patch_cxt5066(struct hda_codec *codec)
 
 	board_config = snd_hda_check_board_config(codec, CXT5066_MODELS,
 						  cxt5066_models, cxt5066_cfg_tbl);
-#if 0 /* use the old method just for safety */
 	if (board_config < 0)
-		board_config = CXT5066_AUTO;
-#endif
+		board_config = CXT5066_AUTO; /* model=auto as default */
 	if (board_config == CXT5066_AUTO)
 		return patch_conexant_auto(codec);
 
@@ -3307,19 +3301,8 @@ static const struct hda_pcm_stream cx_auto_pcm_analog_capture = {
 
 static const hda_nid_t cx_auto_adc_nids[] = { 0x14 };
 
-/* get the connection index of @nid in the widget @mux */
-static int get_connection_index(struct hda_codec *codec, hda_nid_t mux,
-				hda_nid_t nid)
-{
-	hda_nid_t conn[HDA_MAX_NUM_INPUTS];
-	int i, nums;
-
-	nums = snd_hda_get_connections(codec, mux, conn, ARRAY_SIZE(conn));
-	for (i = 0; i < nums; i++)
-		if (conn[i] == nid)
-			return i;
-	return -1;
-}
+#define get_connection_index(codec, mux, nid)\
+	snd_hda_get_conn_index(codec, mux, nid, 0)
 
 /* get an unassigned DAC from the given list.
  * Return the nid if found and reduce the DAC list, or return zero if
@@ -4389,6 +4372,8 @@ static const struct hda_codec_preset snd_hda_preset_conexant[] = {
 	  .patch = patch_cxt5066 },
 	{ .id = 0x14f15069, .name = "CX20585",
 	  .patch = patch_cxt5066 },
+	{ .id = 0x14f1506c, .name = "CX20588",
+	  .patch = patch_cxt5066 },
 	{ .id = 0x14f1506e, .name = "CX20590",
 	  .patch = patch_cxt5066 },
 	{ .id = 0x14f15097, .name = "CX20631",
@@ -4417,6 +4402,7 @@ MODULE_ALIAS("snd-hda-codec-id:14f15066");
 MODULE_ALIAS("snd-hda-codec-id:14f15067");
 MODULE_ALIAS("snd-hda-codec-id:14f15068");
 MODULE_ALIAS("snd-hda-codec-id:14f15069");
+MODULE_ALIAS("snd-hda-codec-id:14f1506c");
 MODULE_ALIAS("snd-hda-codec-id:14f1506e");
 MODULE_ALIAS("snd-hda-codec-id:14f15097");
 MODULE_ALIAS("snd-hda-codec-id:14f15098");
