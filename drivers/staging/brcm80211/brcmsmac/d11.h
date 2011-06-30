@@ -14,23 +14,14 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef	_D11_H
-#define	_D11_H
+#ifndef	_BRCM_D11_H_
+#define	_BRCM_D11_H_
 
-#include <sbconfig.h>
+#include <linux/ieee80211.h>
 
-#ifndef WL_RSSI_ANT_MAX
-#define WL_RSSI_ANT_MAX		4	/* max possible rx antennas */
-#elif WL_RSSI_ANT_MAX != 4
-#error "WL_RSSI_ANT_MAX does not match"
-#endif
-
-/* cpp contortions to concatenate w/arg prescan */
-#ifndef	PAD
-#define	_PADLINE(line)	pad ## line
-#define	_XSTR(line)	_PADLINE(line)
-#define	PAD		_XSTR(__LINE__)
-#endif
+#include <defs.h>
+#include "pub.h"
+#include "dma.h"
 
 #define	BCN_TMPL_LEN		512	/* length of the BCN template area */
 
@@ -56,10 +47,16 @@
 #define	TX_DATA_FIFO		TX_AC_BE_FIFO
 #define	TX_CTL_FIFO		TX_AC_VO_FIFO
 
-typedef volatile struct {
+#ifndef WL_RSSI_ANT_MAX
+#define WL_RSSI_ANT_MAX		4	/* max possible rx antennas */
+#elif WL_RSSI_ANT_MAX != 4
+#error "WL_RSSI_ANT_MAX does not match"
+#endif
+
+struct intctrlregs {
 	u32 intstatus;
 	u32 intmask;
-} intctrlregs_t;
+};
 
 /* PIO structure,
  *  support two PIO format: 2 bytes access and 4 bytes access
@@ -67,55 +64,53 @@ typedef volatile struct {
  *  a pair of channels is defined for convenience
  */
 /* 2byte-wide pio register set per channel(xmt or rcv) */
-typedef volatile struct {
+struct pio2regs {
 	u16 fifocontrol;
 	u16 fifodata;
 	u16 fifofree;	/* only valid in xmt channel, not in rcv channel */
 	u16 PAD;
-} pio2regs_t;
+};
 
 /* a pair of pio channels(tx and rx) */
-typedef volatile struct {
+struct pio2regp {
 	pio2regs_t tx;
 	pio2regs_t rx;
-} pio2regp_t;
+};
 
 /* 4byte-wide pio register set per channel(xmt or rcv) */
-typedef volatile struct {
+struct pio4regs {
 	u32 fifocontrol;
 	u32 fifodata;
-} pio4regs_t;
+};
 
 /* a pair of pio channels(tx and rx) */
-typedef volatile struct {
+struct pio4regp {
 	pio4regs_t tx;
 	pio4regs_t rx;
-} pio4regp_t;
+};
 
 /* read: 32-bit register that can be read as 32-bit or as 2 16-bit
  * write: only low 16b-it half can be written
  */
-typedef volatile union {
+union pmqreg {
 	u32 pmqhostdata;	/* read only! */
 	struct {
 		u16 pmqctrlstatus;	/* read/write */
 		u16 PAD;
 	} w;
-} pmqreg_t;
+};
 
-typedef volatile struct {
+struct fifo64 {
 	dma64regs_t dmaxmt;	/* dma tx */
 	pio4regs_t piotx;	/* pio tx */
 	dma64regs_t dmarcv;	/* dma rx */
 	pio4regs_t piorx;	/* pio rx */
-} fifo64_t;
+};
 
 /*
  * Host Interface Registers
- * - primed from hnd_cores/dot11mac/systemC/registers/ihr.h
- * - but definitely not complete
  */
-typedef volatile struct _d11regs {
+struct d11regs {
 	/* Device Control ("semi-standard host registers") */
 	u32 PAD[3];		/* 0x0 - 0x8 */
 	u32 biststatus;	/* 0xC */
@@ -439,10 +434,7 @@ typedef volatile struct _d11regs {
 
 	/* SHM *//* 0x800 - 0xEFE */
 	u16 PAD[0x380];	/* 0x800 - 0xEFE */
-
-	/* SB configuration registers: 0xF00 */
-	sbconfig_t sbconfig;	/* sb config regs occupy top 256 bytes */
-} d11regs_t;
+};
 
 #define	PIHR_BASE	0x0400	/* byte address of packed IHR region */
 
@@ -629,7 +621,6 @@ typedef volatile struct _d11regs {
 #define	ANA_11N_013		5
 
 /* 802.11a PLCP header def */
-typedef struct ofdm_phy_hdr ofdm_phy_hdr_t;
 struct ofdm_phy_hdr {
 	u8 rlpt[3];		/* rate, length, parity, tail */
 	u16 service;
@@ -664,7 +655,6 @@ struct ofdm_phy_hdr {
 #define	D11A_PHY_PREHDR_TIME	(D11A_PHY_PRE_TIME + D11A_PHY_HDR_TIME)
 
 /* 802.11b PLCP header def */
-typedef struct cck_phy_hdr cck_phy_hdr_t;
 struct cck_phy_hdr {
 	u8 signal;
 	u8 service;
@@ -710,7 +700,6 @@ struct cck_phy_hdr {
 #define	D11_PHY_HDR_LEN	6
 
 /* TX DMA buffer header */
-typedef struct d11txh d11txh_t;
 struct d11txh {
 	u16 MacTxControlLow;	/* 0x0 */
 	u16 MacTxControlHigh;	/* 0x1 */
@@ -854,7 +843,6 @@ struct d11txh {
 #define ABI_MAS_MRT_ANT_PTN_MASK	0x000f
 
 /* tx status packet */
-typedef struct tx_status tx_status_t;
 struct tx_status {
 	u16 framelen;
 	u16 PAD;
@@ -1247,7 +1235,6 @@ struct tx_status {
 #define MIMO_ANTSEL_WAIT	50	/* 50us wait */
 #define MIMO_ANTSEL_OVERRIDE	0x8000	/* flag */
 
-typedef struct shm_acparams shm_acparams_t;
 struct shm_acparams {
 	u16 txop;
 	u16 cwmin;
@@ -1306,7 +1293,6 @@ struct shm_acparams {
 #define	PHY_NOISE_MASK		0x00ff
 
 /* Receive Frame Data Header for 802.11b DCF-only frames */
-typedef struct d11rxhdr d11rxhdr_t;
 struct d11rxhdr {
 	u16 RxFrameSize;	/* Actual byte length of the frame data received */
 	u16 PAD;
@@ -1325,7 +1311,6 @@ struct d11rxhdr {
 #define	RXHDR_LEN		24	/* sizeof d11rxhdr_t */
 #define	FRAMELEN(h)		((h)->RxFrameSize)
 
-typedef struct wlc_d11rxhdr wlc_d11rxhdr_t;
 struct wlc_d11rxhdr {
 	d11rxhdr_t rxhdr;
 	u32 tsf_l;		/* TSF_L reading */
@@ -1473,7 +1458,7 @@ struct wlc_d11rxhdr {
 #define	DBGST_ASLEEP		4	/* asleep (PS mode) */
 
 /* Scratch Reg defs */
-typedef enum {
+enum _ePsmScratchPadRegDefinitions {
 	S_RSV0 = 0,
 	S_RSV1,
 	S_RSV2,
@@ -1551,7 +1536,7 @@ typedef enum {
 	S_MFGTEST_TMP0,		/* Temp register used for RX test calculations  0x3D */
 	S_RXESN,		/* Received end sequence number for A-MPDU BA   0x3E */
 	S_STREG6,		/* 0x3F */
-} ePsmScratchPadRegDefinitions;
+};
 
 #define S_BEACON_INDX	S_OLD_BREM
 #define S_PRS_INDX	S_OLD_CWWIN
@@ -1563,7 +1548,7 @@ typedef enum {
 #define SLOW_CTRL_FD		(1 << 8)
 
 /* ucode mac statistic counters in shared memory */
-typedef struct macstat {
+struct macstat {
 	u16 txallfrm;	/* 0x80 */
 	u16 txrtsfrm;	/* 0x82 */
 	u16 txctsfrm;	/* 0x84 */
@@ -1621,7 +1606,7 @@ typedef struct macstat {
 	u16 phywatchdog;	/* 0xfa # of phy watchdog events */
 	u16 PAD;
 	u16 bphy_badplcp;	/* bphy bad plcp */
-} macstat_t;
+};
 
 /* dot11 core-specific control flags */
 #define	SICF_PCLKE		0x0004	/* PHY clock enable */
@@ -1770,4 +1755,21 @@ typedef struct macstat {
 #define SHM_BYT_CNT	0x2	/* IHR location */
 #define MAX_BYT_CNT	0x600	/* Maximum frame len */
 
-#endif				/* _D11_H */
+struct d11cnt {
+	u32 txfrag;
+	u32 txmulti;
+	u32 txfail;
+	u32 txretry;
+	u32 txretrie;
+	u32 rxdup;
+	u32 txrts;
+	u32 txnocts;
+	u32 txnoack;
+	u32 rxfrag;
+	u32 rxmulti;
+	u32 rxcrc;
+	u32 txfrmsnt;
+	u32 rxundec;
+};
+
+#endif				/* _BRCM_D11_H_ */
