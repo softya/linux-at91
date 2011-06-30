@@ -93,11 +93,29 @@ static int xen_register_pirq(u32 gsi, int triggering, bool alloc_pirq)
 		name = "ioapic-level";
 	}
 
+	/* Before we bind the GSI to a Linux IRQ, check whether
+	 * we need to override it with bus_irq (IRQ) value. Usually for
+	 * IRQs below IRQ_LEGACY_IRQ this holds IRQ == GSI, as so:
+	 *  ACPI: INT_SRC_OVR (bus 0 bus_irq 9 global_irq 9 low level)
+	 * but there are oddballs where the IRQ != GSI:
+	 *  ACPI: INT_SRC_OVR (bus 0 bus_irq 9 global_irq 20 low level)
+	 * which ends up being: gsi_to_irq[9] == 20
+	 * (which is what acpi_gsi_to_irq ends up calling when starting the
+	 * the ACPI interpreter and keels over since IRQ 9 has not been
+	 * setup as we had setup IRQ 20 for it).
+	 */
+	if (acpi_sci_override_gsi == gsi) {
+		acpi_gsi_to_irq(gsi, &irq);
+		if (gsi != irq)
+			/* Bugger, we MUST have that IRQ! */
+			gsi = irq;
+	}
 	irq = xen_bind_pirq_gsi_to_irq(gsi, map_irq.pirq, shareable, name);
 	if (irq < 0)
 		goto out;
 
-	printk(KERN_DEBUG "xen: --> pirq=%d -> irq=%d\n", pirq, map_irq.pirq);
+	printk(KERN_DEBUG "xen: --> pirq=%d -> irq=%d (gsi=%d)\n",
+		map_irq.pirq, irq, gsi);
 
 out:
 	return irq;
