@@ -1154,20 +1154,6 @@ static void __init xen_pagetable_setup_start(pgd_t *base)
 {
 }
 
-static __init void xen_mapping_pagetable_reserve(u64 start, u64 end)
-{
-	/* reserve the range used */
-	native_pagetable_reserve(start, end);
-
-	/* set as RW the rest */
-	printk(KERN_DEBUG "xen: setting RW the range %llx - %llx\n", end,
-			PFN_PHYS(pgt_buf_top));
-	while (end < PFN_PHYS(pgt_buf_top)) {
-		make_lowmem_page_readwrite(__va(end));
-		end += PAGE_SIZE;
-	}
-}
-
 static void xen_post_allocator_init(void);
 
 static void __init xen_pagetable_setup_done(pgd_t *base)
@@ -1232,7 +1218,11 @@ static void xen_flush_tlb_others(const struct cpumask *cpus,
 {
 	struct {
 		struct mmuext_op op;
+#ifdef CONFIG_SMP
 		DECLARE_BITMAP(mask, num_processors);
+#else
+		DECLARE_BITMAP(mask, NR_CPUS);
+#endif
 	} *args;
 	struct multicall_space mcs;
 
@@ -2005,7 +1995,6 @@ static const struct pv_mmu_ops xen_mmu_ops __initconst = {
 
 void __init xen_init_mmu_ops(void)
 {
-	x86_init.mapping.pagetable_reserve = xen_mapping_pagetable_reserve;
 	x86_init.paging.pagetable_setup_start = xen_pagetable_setup_start;
 	x86_init.paging.pagetable_setup_done = xen_pagetable_setup_done;
 	pv_mmu_ops = xen_mmu_ops;
