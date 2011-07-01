@@ -338,7 +338,6 @@ static int watchdog_release(struct inode *inode, struct file *file)
 
 static const struct file_operations watchdog_fops = {
 	.owner		= THIS_MODULE,
-	.llseek		= no_llseek,
 	.write		= watchdog_write,
 	.unlocked_ioctl	= watchdog_ioctl,
 	.open		= watchdog_open,
