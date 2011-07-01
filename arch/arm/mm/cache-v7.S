@@ -257,7 +257,6 @@ v7_dma_inv_range:
 	add	r0, r0, r2
 	cmp	r0, r1
 	blo	1b
-	dsb
 	mov	pc, lr
 ENDPROC(v7_dma_inv_range)
 
@@ -275,7 +274,6 @@ v7_dma_clean_range:
 	add	r0, r0, r2
 	cmp	r0, r1
 	blo	1b
-	dsb
 	mov	pc, lr
 ENDPROC(v7_dma_clean_range)
 
@@ -293,7 +291,6 @@ ENTRY(v7_dma_flush_range)
 	add	r0, r0, r2
 	cmp	r0, r1
 	blo	1b
-	dsb
 	mov	pc, lr
 ENDPROC(v7_dma_flush_range)
 
