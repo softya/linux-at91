@@ -1005,8 +1005,8 @@ static inline struct cfq_group *cfqg_of_blkg(struct blkio_group *blkg)
 	return NULL;
 }
 
-void cfq_update_blkio_group_weight(void *key, struct blkio_group *blkg,
-					unsigned int weight)
+static void cfq_update_blkio_group_weight(void *key, struct blkio_group *blkg,
+					  unsigned int weight)
 {
 	struct cfq_group *cfqg = cfqg_of_blkg(blkg);
 	cfqg->new_weight = weight;
@@ -1235,7 +1235,7 @@ static void cfq_release_cfq_groups(struct cfq_data *cfqd)
  * it should not be NULL as even if elevator was exiting, cgroup deltion
  * path got to it first.
  */
-void cfq_unlink_blkio_group(void *key, struct blkio_group *blkg)
+static void cfq_unlink_blkio_group(void *key, struct blkio_group *blkg)
 {
 	unsigned long  flags;
 	struct cfq_data *cfqd = key;
@@ -1502,16 +1502,11 @@ static void cfq_add_rq_rb(struct request *rq)
 {
 	struct cfq_queue *cfqq = RQ_CFQQ(rq);
 	struct cfq_data *cfqd = cfqq->cfqd;
-	struct request *__alias, *prev;
+	struct request *prev;
 
 	cfqq->queued[rq_is_sync(rq)]++;
 
-	/*
-	 * looks a little odd, but the first insert might return an alias.
-	 * if that happens, put the alias on the dispatch list
-	 */
-	while ((__alias = elv_rb_add(&cfqq->sort_list, rq)) != NULL)
-		cfq_dispatch_insert(cfqd->queue, __alias);
+	elv_rb_add(&cfqq->sort_list, rq);
 
 	if (!cfq_cfqq_on_rr(cfqq))
 		cfq_add_cfqq_rr(cfqd, cfqq);
@@ -2773,11 +2768,14 @@ static void __cfq_exit_single_io_context(struct cfq_data *cfqd,
 	smp_wmb();
 	cic->key = cfqd_dead_key(cfqd);
 
+	rcu_read_lock();
 	if (rcu_dereference(ioc->ioc_data) == cic) {
+		rcu_read_unlock();
 		spin_lock(&ioc->lock);
 		rcu_assign_pointer(ioc->ioc_data, NULL);
 		spin_unlock(&ioc->lock);
-	}
+	} else
+		rcu_read_unlock();
 
 	if (cic->cfqq[BLK_RW_ASYNC]) {
 		cfq_exit_cfqq(cfqd, cic->cfqq[BLK_RW_ASYNC]);
@@ -3084,7 +3082,8 @@ cfq_drop_dead_cic(struct cfq_data *cfqd, struct io_context *ioc,
 
 	spin_lock_irqsave(&ioc->lock, flags);
 
-	BUG_ON(ioc->ioc_data == cic);
+	BUG_ON(rcu_dereference_check(ioc->ioc_data,
+		lockdep_is_held(&ioc->lock)) == cic);
 
 	radix_tree_delete(&ioc->radix_root, cfqd->cic_index);
 	hlist_del_rcu(&cic->cic_list);
