@@ -108,7 +108,7 @@ static void et131x_xcvr_init(struct et131x_adapter *etdev);
 int PhyMiRead(struct et131x_adapter *etdev, u8 xcvrAddr,
 	      u8 xcvrReg, u16 *value)
 {
-	struct _MAC_t __iomem *mac = &etdev->regs->mac;
+	struct mac_regs __iomem *mac = &etdev->regs->mac;
 	int status = 0;
 	u32 delay;
 	u32 miiAddr;
@@ -176,9 +176,9 @@ int PhyMiRead(struct et131x_adapter *etdev, u8 xcvrAddr,
  */
 int MiWrite(struct et131x_adapter *etdev, u8 xcvrReg, u16 value)
 {
-	struct _MAC_t __iomem *mac = &etdev->regs->mac;
+	struct mac_regs __iomem *mac = &etdev->regs->mac;
 	int status = 0;
-	u8 xcvrAddr = etdev->Stats.xcvr_addr;
+	u8 xcvrAddr = etdev->stats.xcvr_addr;
 	u32 delay;
 	u32 miiAddr;
 	u32 miiCmd;
@@ -259,8 +259,8 @@ int et131x_xcvr_find(struct et131x_adapter *etdev)
 		xcvr_id = (u32) ((idr1 << 16) | idr2);
 
 		if (idr1 != 0 && idr1 != 0xffff) {
-			etdev->Stats.xcvr_id = xcvr_id;
-			etdev->Stats.xcvr_addr = xcvr_addr;
+			etdev->stats.xcvr_id = xcvr_id;
+			etdev->stats.xcvr_addr = xcvr_addr;
 			return 0;
 		}
 	}
@@ -590,7 +590,7 @@ static void et131x_xcvr_init(struct et131x_adapter *etdev)
 	/* Set the link status interrupt only.  Bad behavior when link status
 	 * and auto neg are set, we run into a nested interrupt problem
 	 */
-        imr |= 0x0105;
+	imr |= 0x0105;
 
 	MiWrite(etdev, (u8) offsetof(struct mi_regs, imr), imr);
 

@@ -24,6 +24,7 @@
 #include <linux/wireless.h>
 #include <linux/ieee80211.h>
 #include <net/cfg80211.h>
+#include <net/netlink.h>
 
 #include "ar6000_drv.h"
 
@@ -867,26 +868,31 @@ ar6k_cfg80211_scanComplete_event(struct ar6_softc *ar, int status)
 
     AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("%s: status %d\n", __func__, status));
 
-    if(ar->scan_request)
-    {
-        /* Translate data to cfg80211 mgmt format */
-	if (ar->arWmi)
-		wmi_iterate_nodes(ar->arWmi, ar6k_cfg80211_scan_node, ar->wdev->wiphy);
+    if (!ar->scan_request)
+	    return;
 
-        cfg80211_scan_done(ar->scan_request,
-            ((status & A_ECANCELED) || (status & A_EBUSY)) ? true : false);
+    if ((status == A_ECANCELED) || (status == A_EBUSY)) {
+	    cfg80211_scan_done(ar->scan_request, true);
+	    goto out;
+    }
 
-        if(ar->scan_request->n_ssids &&
-           ar->scan_request->ssids[0].ssid_len) {
+    /* Translate data to cfg80211 mgmt format */
+    wmi_iterate_nodes(ar->arWmi, ar6k_cfg80211_scan_node, ar->wdev->wiphy);
+
+    cfg80211_scan_done(ar->scan_request, false);
+
+    if(ar->scan_request->n_ssids &&
+       ar->scan_request->ssids[0].ssid_len) {
             u8 i;
 
             for (i = 0; i < ar->scan_request->n_ssids; i++) {
-                wmi_probedSsid_cmd(ar->arWmi, i+1, DISABLE_SSID_FLAG,
-                                   0, NULL);
+		    wmi_probedSsid_cmd(ar->arWmi, i+1, DISABLE_SSID_FLAG,
+				       0, NULL);
             }
-        }
-        ar->scan_request = NULL;
     }
+
+out:
+    ar->scan_request = NULL;
 }
 
 static int
@@ -1453,6 +1459,62 @@ ar6k_cfg80211_leave_ibss(struct wiphy *wiphy, struct net_device *dev)
     return 0;
 }
 
+#ifdef CONFIG_NL80211_TESTMODE
+enum ar6k_testmode_attr {
+	__AR6K_TM_ATTR_INVALID	= 0,
+	AR6K_TM_ATTR_CMD	= 1,
+	AR6K_TM_ATTR_DATA	= 2,
+
+	/* keep last */
+	__AR6K_TM_ATTR_AFTER_LAST,
+	AR6K_TM_ATTR_MAX	= __AR6K_TM_ATTR_AFTER_LAST - 1
+};
+
+enum ar6k_testmode_cmd {
+	AR6K_TM_CMD_TCMD		= 0,
+};
+
+#define AR6K_TM_DATA_MAX_LEN 5000
+
+static const struct nla_policy ar6k_testmode_policy[AR6K_TM_ATTR_MAX + 1] = {
+	[AR6K_TM_ATTR_CMD] = { .type = NLA_U32 },
+	[AR6K_TM_ATTR_DATA] = { .type = NLA_BINARY,
+				.len = AR6K_TM_DATA_MAX_LEN },
+};
+
+static int ar6k_testmode_cmd(struct wiphy *wiphy, void *data, int len)
+{
+	struct ar6_softc *ar = wiphy_priv(wiphy);
+	struct nlattr *tb[AR6K_TM_ATTR_MAX + 1];
+	int err, buf_len;
+	void *buf;
+
+	err = nla_parse(tb, AR6K_TM_ATTR_MAX, data, len,
+			ar6k_testmode_policy);
+	if (err)
+		return err;
+
+	if (!tb[AR6K_TM_ATTR_CMD])
+		return -EINVAL;
+
+	switch (nla_get_u32(tb[AR6K_TM_ATTR_CMD])) {
+	case AR6K_TM_CMD_TCMD:
+		if (!tb[AR6K_TM_ATTR_DATA])
+			return -EINVAL;
+
+		buf = nla_data(tb[AR6K_TM_ATTR_DATA]);
+		buf_len = nla_len(tb[AR6K_TM_ATTR_DATA]);
+
+		wmi_test_cmd(ar->arWmi, buf, buf_len);
+
+		return 0;
+
+		break;
+	default:
+		return -EOPNOTSUPP;
+	}
+}
+#endif
 
 static const
 u32 cipher_suites[] = {
@@ -1607,6 +1669,28 @@ static int ar6k_get_station(struct wiphy *wiphy, struct net_device *dev,
 	return 0;
 }
 
+static int ar6k_set_pmksa(struct wiphy *wiphy, struct net_device *netdev,
+			  struct cfg80211_pmksa *pmksa)
+{
+	struct ar6_softc *ar = ar6k_priv(netdev);
+	return wmi_setPmkid_cmd(ar->arWmi, pmksa->bssid, pmksa->pmkid, true);
+}
+
+static int ar6k_del_pmksa(struct wiphy *wiphy, struct net_device *netdev,
+			  struct cfg80211_pmksa *pmksa)
+{
+	struct ar6_softc *ar = ar6k_priv(netdev);
+	return wmi_setPmkid_cmd(ar->arWmi, pmksa->bssid, pmksa->pmkid, false);
+}
+
+static int ar6k_flush_pmksa(struct wiphy *wiphy, struct net_device *netdev)
+{
+	struct ar6_softc *ar = ar6k_priv(netdev);
+	if (ar->arConnected)
+		return wmi_setPmkid_cmd(ar->arWmi, ar->arBssid, NULL, false);
+	return 0;
+}
+
 static struct
 cfg80211_ops ar6k_cfg80211_ops = {
     .change_virtual_intf = ar6k_cfg80211_change_iface,
@@ -1628,6 +1712,10 @@ cfg80211_ops ar6k_cfg80211_ops = {
     .join_ibss = ar6k_cfg80211_join_ibss,
     .leave_ibss = ar6k_cfg80211_leave_ibss,
     .get_station = ar6k_get_station,
+    .set_pmksa = ar6k_set_pmksa,
+    .del_pmksa = ar6k_del_pmksa,
+    .flush_pmksa = ar6k_flush_pmksa,
+    CFG80211_TESTMODE_CMD(ar6k_testmode_cmd)
 };
 
 struct wireless_dev *
