@@ -36,6 +36,7 @@ int hfsplus_submit_bio(struct block_device *bdev, sector_t sector,
 {
 	DECLARE_COMPLETION_ONSTACK(wait);
 	struct bio *bio;
+	int ret = 0;
 
 	bio = bio_alloc(GFP_NOIO, 1);
 	bio->bi_sector = sector;
@@ -54,8 +55,10 @@ int hfsplus_submit_bio(struct block_device *bdev, sector_t sector,
 	wait_for_completion(&wait);
 
 	if (!bio_flagged(bio, BIO_UPTODATE))
-		return -EIO;
-	return 0;
+		ret = -EIO;
+
+	bio_put(bio);
+	return ret;
 }
 
 static int hfsplus_read_mdb(void *bufptr, struct hfsplus_wd *wd)
@@ -138,10 +141,6 @@ int hfsplus_read_wrapper(struct super_block *sb)
 
 	if (hfsplus_get_last_session(sb, &part_start, &part_size))
 		goto out;
-	if ((u64)part_start + part_size > 0x100000000ULL) {
-		pr_err("hfs: volumes larger than 2TB are not supported yet\n");
-		goto out;
-	}
 
 	error = -ENOMEM;
 	sbi->s_vhdr = kmalloc(HFSPLUS_SECTOR_SIZE, GFP_KERNEL);
@@ -169,8 +168,9 @@ reread:
 		if (!hfsplus_read_mdb(sbi->s_vhdr, &wd))
 			goto out_free_backup_vhdr;
 		wd.ablk_size >>= HFSPLUS_SECTOR_SHIFT;
-		part_start += wd.ablk_start + wd.embed_start * wd.ablk_size;
-		part_size = wd.embed_count * wd.ablk_size;
+		part_start += (sector_t)wd.ablk_start +
+			       (sector_t)wd.embed_start * wd.ablk_size;
+		part_size = (sector_t)wd.embed_count * wd.ablk_size;
 		goto reread;
 	default:
 		/*
