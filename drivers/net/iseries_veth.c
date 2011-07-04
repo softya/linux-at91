@@ -538,7 +538,7 @@ static void veth_handle_ack(struct veth_lpevent *event)
 	default:
 		veth_error("Unknown ack type %d from LPAR %d.\n",
 				event->base_event.xSubtype, rlp);
-	};
+	}
 }
 
 static void veth_handle_int(struct veth_lpevent *event)
@@ -584,7 +584,7 @@ static void veth_handle_int(struct veth_lpevent *event)
 	default:
 		veth_error("Unknown interrupt type %d from LPAR %d.\n",
 				event->base_event.xSubtype, rlp);
-	};
+	}
 }
 
 static void veth_handle_event(struct HvLpEvent *event)
@@ -964,11 +964,9 @@ static void veth_set_multicast_list(struct net_device *dev)
 			u8 *addr = ha->addr;
 			u64 xaddr = 0;
 
-			if (addr[0] & 0x01) {/* multicast address? */
-				memcpy(&xaddr, addr, ETH_ALEN);
-				port->mcast_addr[port->num_mcast] = xaddr;
-				port->num_mcast++;
-			}
+			memcpy(&xaddr, addr, ETH_ALEN);
+			port->mcast_addr[port->num_mcast] = xaddr;
+			port->num_mcast++;
 		}
 	}
 
