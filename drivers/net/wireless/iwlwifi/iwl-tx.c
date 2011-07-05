@@ -126,7 +126,7 @@ static inline u8 iwl_tfd_get_num_tbs(struct iwl_tfd *tfd)
 }
 
 static void iwlagn_unmap_tfd(struct iwl_priv *priv, struct iwl_cmd_meta *meta,
-			     struct iwl_tfd *tfd, int dma_dir)
+			     struct iwl_tfd *tfd, enum dma_data_direction dma_dir)
 {
 	int i;
 	int num_tbs;
