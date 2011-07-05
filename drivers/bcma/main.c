@@ -89,6 +89,8 @@ static int bcma_register_cores(struct bcma_bus *bus)
 		switch (bus->hosttype) {
 		case BCMA_HOSTTYPE_PCI:
 			core->dev.parent = &bus->host_pci->dev;
+			core->dma_dev = &bus->host_pci->dev;
+			core->irq = bus->host_pci->irq;
 			break;
 		case BCMA_HOSTTYPE_NONE:
 		case BCMA_HOSTTYPE_SDIO:
@@ -144,6 +146,13 @@ int bcma_bus_register(struct bcma_bus *bus)
 		bcma_core_pci_init(&bus->drv_pci);
 	}
 
+	/* Try to get SPROM */
+	err = bcma_sprom_get(bus);
+	if (err) {
+		pr_err("Failed to get SPROM: %d\n", err);
+		return -ENOENT;
+	}
+
 	/* Register found cores */
 	bcma_register_cores(bus);
 
@@ -151,13 +160,11 @@ int bcma_bus_register(struct bcma_bus *bus)
 
 	return 0;
 }
-EXPORT_SYMBOL_GPL(bcma_bus_register);
 
 void bcma_bus_unregister(struct bcma_bus *bus)
 {
 	bcma_unregister_cores(bus);
 }
-EXPORT_SYMBOL_GPL(bcma_bus_unregister);
 
 int __bcma_driver_register(struct bcma_driver *drv, struct module *owner)
 {
