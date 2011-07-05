@@ -29,7 +29,6 @@
 #include <linux/usb.h>
 #include <linux/spinlock.h>
 #include <linux/wait.h>
-#include <linux/version.h>
 #include <linux/mutex.h>
 #include <linux/mm.h>
 #include <linux/slab.h>
@@ -45,11 +44,7 @@
 #include <media/pwc-ioctl.h>
 
 /* Version block */
-#define PWC_MAJOR	10
-#define PWC_MINOR	0
-#define PWC_EXTRAMINOR	12
-#define PWC_VERSION_CODE KERNEL_VERSION(PWC_MAJOR,PWC_MINOR,PWC_EXTRAMINOR)
-#define PWC_VERSION	"10.0.14"
+#define PWC_VERSION	"10.0.15"
 #define PWC_NAME 	"pwc"
 #define PFX		PWC_NAME ": "
 
@@ -162,9 +157,9 @@ struct pwc_imgbuf
 
 struct pwc_device
 {
-   struct video_device *vdev;
+	struct video_device vdev;
 
-   /* Pointer to our usb_device */
+   /* Pointer to our usb_device, may be NULL after unplug */
    struct usb_device *udev;
 
    int type;                    /* type of cam (645, 646, 675, 680, 690, 720, 730, 740, 750) */
