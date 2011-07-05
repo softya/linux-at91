@@ -28,11 +28,11 @@
  */
 
 /**
- *	psb_gtt_mask_pte	-	generate GART pte entry
+ *	psb_gtt_mask_pte	-	generate GTT pte entry
  *	@pfn: page number to encode
- *	@type: type of memory in the GART
+ *	@type: type of memory in the GTT
  *
- *	Set the GART entry for the appropriate memory type.
+ *	Set the GTT entry for the appropriate memory type.
  */
 static inline uint32_t psb_gtt_mask_pte(uint32_t pfn, int type)
 {
@@ -49,16 +49,16 @@ static inline uint32_t psb_gtt_mask_pte(uint32_t pfn, int type)
 }
 
 /**
- *	psb_gtt_entry		-	find the GART entries for a gtt_range
+ *	psb_gtt_entry		-	find the GTT entries for a gtt_range
  *	@dev: our DRM device
  *	@r: our GTT range
  * 
- *	Given a gtt_range object return the GART offset of the page table
+ *	Given a gtt_range object return the GTT offset of the page table
  *	entries for this gtt_range
  */
 u32 *psb_gtt_entry(struct drm_device *dev, struct gtt_range *r)
 {
-        struct drm_psb_private *dev_priv = dev->dev_private;
+	struct drm_psb_private *dev_priv = dev->dev_private;
 	unsigned long offset;
 
 	offset = r->resource.start - dev_priv->gtt_mem->start;
@@ -67,18 +67,17 @@ u32 *psb_gtt_entry(struct drm_device *dev, struct gtt_range *r)
 }
 
 /**
- *	psb_gtt_insert	-	put an object into the GART
+ *	psb_gtt_insert	-	put an object into the GTT
  *	@dev: our DRM device
  *	@r: our GTT range
  *
  *	Take our preallocated GTT range and insert the GEM object into
- *	the GART.
+ *	the GTT.
  *
  *	FIXME: gtt lock ?
  */
 static int psb_gtt_insert(struct drm_device *dev, struct gtt_range *r)
 {
-        struct drm_psb_private *dev_priv = dev->dev_private;
 	u32 *gtt_slot, pte;
 	int numpages = (r->resource.end + 1 - r->resource.start) >> PAGE_SHIFT;
 	struct page **pages;
@@ -94,10 +93,10 @@ static int psb_gtt_insert(struct drm_device *dev, struct gtt_range *r)
 	gtt_slot = psb_gtt_entry(dev, r);
 	pages = r->pages;
 
-	/* Make sure we have no alias present */
-	wbinvd();
+	/* Make sure changes are visible to the GPU */
+	set_pages_array_uc(pages, numpages);
 
-	/* Write our page entries into the GART itself */
+	/* Write our page entries into the GTT itself */
 	for (i = 0; i < numpages; i++) {
 		pte = psb_gtt_mask_pte(page_to_pfn(*pages++), 0/*type*/);
 		iowrite32(pte, gtt_slot++);
@@ -109,11 +108,11 @@ static int psb_gtt_insert(struct drm_device *dev, struct gtt_range *r)
 }
 
 /**
- *	psb_gtt_remove	-	remove an object from the GART
+ *	psb_gtt_remove	-	remove an object from the GTT
  *	@dev: our DRM device
  *	@r: our GTT range
  *
- *	Remove a preallocated GTT range from the GART. Overwrite all the
+ *	Remove a preallocated GTT range from the GTT. Overwrite all the
  *	page table entries with the dummy page
  */
 
@@ -127,11 +126,12 @@ static void psb_gtt_remove(struct drm_device *dev, struct gtt_range *r)
 	WARN_ON(r->stolen);
 
 	gtt_slot = psb_gtt_entry(dev, r);
-	pte = psb_gtt_mask_pte(page_to_pfn(dev_priv->scratch_page), 0);;
+	pte = psb_gtt_mask_pte(page_to_pfn(dev_priv->scratch_page), 0);
 
 	for (i = 0; i < numpages; i++)
 		iowrite32(pte, gtt_slot++);
 	ioread32(gtt_slot - 1);
+	set_pages_array_wb(r->pages, numpages);
 }
 
 /**
@@ -183,7 +183,7 @@ err:
  *	@gt: the gtt range
  *
  *	Undo the effect of psb_gtt_attach_pages. At this point the pages
- *	must have been removed from the GART as they could now be paged out
+ *	must have been removed from the GTT as they could now be paged out
  *	and move bus address.
  *
  *	FIXME: Do we need to cache flush when we update the GTT
@@ -215,7 +215,7 @@ static void psb_gtt_detach_pages(struct gtt_range *gt)
  */
 int psb_gtt_pin(struct gtt_range *gt)
 {
-	int ret;
+	int ret = 0;
 	struct drm_device *dev = gt->gem.dev;
 	struct drm_psb_private *dev_priv = dev->dev_private;
 
@@ -291,33 +291,33 @@ struct gtt_range *psb_gtt_alloc_range(struct drm_device *dev, int len,
 	struct resource *r = dev_priv->gtt_mem;
 	int ret;
 	unsigned long start, end;
-	
+
 	if (backed) {
-	        /* The start of the GTT is the stolen pages */
-	        start = r->start;
-	        end = r->start + dev_priv->pg->stolen_size - 1;
+		/* The start of the GTT is the stolen pages */
+		start = r->start;
+		end = r->start + dev_priv->pg->stolen_size - 1;
         } else {
-                /* The rest we will use for GEM backed objects */
-                start = r->start + dev_priv->pg->stolen_size;
-                end = r->end;
+        	/* The rest we will use for GEM backed objects */
+        	start = r->start + dev_priv->pg->stolen_size;
+        	end = r->end;
         }
 
 	gt = kzalloc(sizeof(struct gtt_range), GFP_KERNEL);
 	if (gt == NULL)
 		return NULL;
-        gt->resource.name = name;
-        gt->stolen = backed;
-        gt->in_gart = backed;
-        /* Ensure this is set for non GEM objects */
-        gt->gem.dev = dev;
+	gt->resource.name = name;
+	gt->stolen = backed;
+	gt->in_gart = backed;
+	/* Ensure this is set for non GEM objects */
+	gt->gem.dev = dev;
 	kref_init(&gt->kref);
 
 	ret = allocate_resource(dev_priv->gtt_mem, &gt->resource,
 				len, start, end, PAGE_SIZE, NULL, NULL);
 	if (ret == 0) {
-	        gt->offset = gt->resource.start - r->start;
+		gt->offset = gt->resource.start - r->start;
 		return gt;
-        }
+	}
 	kfree(gt);
 	return NULL;
 }
@@ -421,7 +421,7 @@ int psb_gtt_init(struct drm_device *dev, int resume)
 
 	dev_priv->pg = pg = psb_gtt_alloc(dev);
 	if (pg == NULL)
-	        return -ENOMEM;
+		return -ENOMEM;
 
 	pci_read_config_word(dev->pdev, PSB_GMCH_CTRL, &dev_priv->gmch_ctrl);
 	pci_write_config_word(dev->pdev, PSB_GMCH_CTRL,
@@ -490,7 +490,7 @@ int psb_gtt_init(struct drm_device *dev, int resume)
 		goto out_err;
 	}
 
-	DRM_DEBUG("%s: vram kernel virtual address %p\n", dev_priv->vram_addr);
+	DRM_DEBUG("gma500: vram kernel virtual address %p\n", dev_priv->vram_addr);
 
 	tt_pages = (pg->gatt_pages < PSB_TT_PRIV0_PLIMIT) ?
 		(pg->gatt_pages) : PSB_TT_PRIV0_PLIMIT;
