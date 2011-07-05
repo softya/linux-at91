@@ -1,0 +1,62 @@
+Importing i2c based on 3.0-rc5
+Unchanged quilt series i2c
+Importing jdelvare-hwmon based on 3.0-rc5
+$ cd ../quilt-tmp
+$ git reset --hard b0af8dfdd67699e25083478c63eedef2e72ebd85
+HEAD is now at b0af8df Linux 3.0-rc5
+$ git am ../quilt/jdelvare-hwmon/hwmon-emc6w201-improve-error-handing.patch
+Applying: hwmon: (emc6w201) Properly handle all errors
+$ git am ../quilt/jdelvare-hwmon/hwmon-reformat-hdegoede-email-address.patch
+Applying: hwmon: Use <> rather than () around my e-mail address
+$ git am ../quilt/jdelvare-hwmon/hwmon-f71882fg-add-support-for-the-f71869a.patch
+Applying: hwmon: (f71882fg) Add support for the F71869A
+$ git am ../quilt/jdelvare-hwmon/hwmon-vid-fix-typo-in-VIA-CPU-name.patch
+Applying: hwmon-vid: Fix typo in VIA CPU name
+$ git am ../quilt/jdelvare-hwmon/hwmon-k10temp-update-documentation.patch
+Applying: hwmon: (k10temp) Update documentation for Fam12h
+$ git am ../quilt/jdelvare-hwmon/hwmon-factor-out-common-sch56xx-code.patch
+Applying: hwmon (sch5627): Factor out some code shared with sch5636 driver
+$ git am ../quilt/jdelvare-hwmon/hwmon-new-driver-sch5636.patch
+Applying: hwmon: New driver sch5636
+$ git am ../quilt/jdelvare-hwmon/hwmon-vid-add-VIA-C7-D-support.patch
+Applying: hwmon-vid: Add support for VIA family 6 model D CPU
+$ git am ../quilt/jdelvare-hwmon/hwmon-via-cputemp-add-cpu-vid.patch
+Applying: hwmon: (via-cputemp) Add VID reporting support
+$ cd ../next
+$ git fetch -f ../quilt-tmp master:quilt/jdelvare-hwmon
+From ../quilt-tmp
+ + 746bc91...14eb0d4 master     -> quilt/jdelvare-hwmon  (forced update)
+Importing kernel-doc based on 3.0-rc4
+Unchanged quilt series kernel-doc
+Importing rr based on v3.0-rc3-55-gada9c93
+$ cd ../quilt-tmp
+$ git reset --hard ada9c93312f7ec49514c68c211595ce2601cebae
+HEAD is now at ada9c93 signal.c: fix kernel-doc notation
+$ git am ../quilt/rr/misc:param_fix_return_value_handling_in_param_set.patch
+Applying: param: fix return value handling in param_set_*
+$ git am ../quilt/rr/module:s_add_default_loader_hook_implementations.patch
+Applying: modules: add default loader hook implementations
+$ git am ../quilt/rr/module:s_make_arch_s_use_default_loader_hooks.patch
+Applying: modules: make arch's use default loader hooks
+$ git am ../quilt/rr/module:param-callback-change.patch
+Applying: module: change attr callbacks to take struct module_kobject
+$ git am ../quilt/rr/module:uevent-file.patch
+Applying: module: add /sys/module/<name>/uevent files
+$ git am ../quilt/rr/lguest:do_not_exit_on_non_fatal_errors.patch
+Applying: lguest: Do not exit on non-fatal errors
+$ git am ../quilt/rr/lguest-use-native-pagetables.patch
+Applying: lguest: use a special 1:1 linear pagetable mode until first switch.
+$ git am ../quilt/rr/lguest-remove-remaining-vmcalls.patch
+Applying: lguest: remove remaining vmcall
+$ git am ../quilt/rr/lguest-dont-rewrite-kvm-hypercalls.patch
+Applying: lguest: don't rewrite vmcall instructions
+$ git am ../quilt/rr/lguest-no-use-before-setup.patch
+Applying: lguest: Simplify device initialization.
+$ git am ../quilt/rr/lguest-update-comments.patch
+Applying: lguest: update comments
+$ cd ../next
+$ git fetch -f ../quilt-tmp master:quilt/rr
+From ../quilt-tmp
+ + 8c391e1...cd2abeb master     -> quilt/rr  (forced update)
+Importing device-mapper based on v3.0-rc3-256-gde505e7
+Unchanged quilt series device-mapper
