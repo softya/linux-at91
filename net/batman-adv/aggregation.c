@@ -20,24 +20,19 @@
  */
 
 #include "main.h"
+#include "translation-table.h"
 #include "aggregation.h"
 #include "send.h"
 #include "routing.h"
 #include "hard-interface.h"
 
-/* calculate the size of the tt information for a given packet */
-static int tt_len(struct batman_packet *batman_packet)
-{
-	return batman_packet->num_tt * ETH_ALEN;
-}
-
 /* return true if new_packet can be aggregated with forw_packet */
-static bool can_aggregate_with(struct batman_packet *new_batman_packet,
+static bool can_aggregate_with(const struct batman_packet *new_batman_packet,
 			       int packet_len,
 			       unsigned long send_time,
 			       bool directlink,
-			       struct hard_iface *if_incoming,
-			       struct forw_packet *forw_packet)
+			       const struct hard_iface *if_incoming,
+			       const struct forw_packet *forw_packet)
 {
 	struct batman_packet *batman_packet =
 		(struct batman_packet *)forw_packet->skb->data;
@@ -97,8 +92,9 @@ static bool can_aggregate_with(struct batman_packet *new_batman_packet,
 }
 
 /* create a new aggregated packet and add this packet to it */
-static void new_aggregated_packet(unsigned char *packet_buff, int packet_len,
-				  unsigned long send_time, bool direct_link,
+static void new_aggregated_packet(const unsigned char *packet_buff,
+				  int packet_len, unsigned long send_time,
+				  bool direct_link,
 				  struct hard_iface *if_incoming,
 				  int own_packet)
 {
@@ -118,7 +114,7 @@ static void new_aggregated_packet(unsigned char *packet_buff, int packet_len,
 		}
 	}
 
-	forw_packet_aggr = kmalloc(sizeof(struct forw_packet), GFP_ATOMIC);
+	forw_packet_aggr = kmalloc(sizeof(*forw_packet_aggr), GFP_ATOMIC);
 	if (!forw_packet_aggr) {
 		if (!own_packet)
 			atomic_inc(&bat_priv->batman_queue_left);
@@ -150,7 +146,7 @@ static void new_aggregated_packet(unsigned char *packet_buff, int packet_len,
 	forw_packet_aggr->own = own_packet;
 	forw_packet_aggr->if_incoming = if_incoming;
 	forw_packet_aggr->num_packets = 0;
-	forw_packet_aggr->direct_link_flags = 0;
+	forw_packet_aggr->direct_link_flags = NO_FLAGS;
 	forw_packet_aggr->send_time = send_time;
 
 	/* save packet direct link flag status */
@@ -176,8 +172,7 @@ out:
 
 /* aggregate a new packet into the existing aggregation */
 static void aggregate(struct forw_packet *forw_packet_aggr,
-		      unsigned char *packet_buff,
-		      int packet_len,
+		      const unsigned char *packet_buff, int packet_len,
 		      bool direct_link)
 {
 	unsigned char *skb_buff;
@@ -195,7 +190,7 @@ static void aggregate(struct forw_packet *forw_packet_aggr,
 
 void add_bat_packet_to_list(struct bat_priv *bat_priv,
 			    unsigned char *packet_buff, int packet_len,
-			    struct hard_iface *if_incoming, char own_packet,
+			    struct hard_iface *if_incoming, int own_packet,
 			    unsigned long send_time)
 {
 	/**
@@ -253,8 +248,9 @@ void add_bat_packet_to_list(struct bat_priv *bat_priv,
 }
 
 /* unpack the aggregated packets and process them one by one */
-void receive_aggr_bat_packet(struct ethhdr *ethhdr, unsigned char *packet_buff,
-			     int packet_len, struct hard_iface *if_incoming)
+void receive_aggr_bat_packet(const struct ethhdr *ethhdr,
+			     unsigned char *packet_buff, int packet_len,
+			     struct hard_iface *if_incoming)
 {
 	struct batman_packet *batman_packet;
 	int buff_pos = 0;
@@ -263,18 +259,20 @@ void receive_aggr_bat_packet(struct ethhdr *ethhdr, unsigned char *packet_buff,
 	batman_packet = (struct batman_packet *)packet_buff;
 
 	do {
-		/* network to host order for our 32bit seqno, and the
-		   orig_interval. */
+		/* network to host order for our 32bit seqno and the
+		   orig_interval */
 		batman_packet->seqno = ntohl(batman_packet->seqno);
+		batman_packet->tt_crc = ntohs(batman_packet->tt_crc);
 
 		tt_buff = packet_buff + buff_pos + BAT_PACKET_LEN;
-		receive_bat_packet(ethhdr, batman_packet,
-				   tt_buff, tt_len(batman_packet),
-				   if_incoming);
 
-		buff_pos += BAT_PACKET_LEN + tt_len(batman_packet);
+		receive_bat_packet(ethhdr, batman_packet, tt_buff, if_incoming);
+
+		buff_pos += BAT_PACKET_LEN +
+			tt_len(batman_packet->tt_num_changes);
+
 		batman_packet = (struct batman_packet *)
 			(packet_buff + buff_pos);
 	} while (aggregated_packet(buff_pos, packet_len,
-				   batman_packet->num_tt));
+				   batman_packet->tt_num_changes));
 }
