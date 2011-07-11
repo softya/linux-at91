@@ -41,6 +41,7 @@ The watchdog device structure looks like this:
 struct watchdog_device {
 	const struct watchdog_info *info;
 	const struct watchdog_ops *ops;
+	struct device *parent;
 	unsigned int bootstatus;
 	unsigned int timeout;
 	void *priv;
@@ -51,6 +52,9 @@ It contains following fields:
 * info: a pointer to a watchdog_info structure. This structure gives some
   additional information about the watchdog timer itself. (Like it's unique name)
 * ops: a pointer to the list of watchdog operations that the watchdog supports.
+* parent: a pointer to the parent device of the watchdog. This will be set
+  as the parent of the misc device to improve dependencies in driver model
+  (e.g. sysfs).
 * timeout: the watchdog timer's timeout value (in seconds).
 * bootstatus: status of the device after booting (reported with watchdog
   WDIOF_* status bits).

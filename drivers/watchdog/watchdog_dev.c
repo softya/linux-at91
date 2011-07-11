@@ -367,6 +367,7 @@ int watchdog_dev_register(struct watchdog_device *watchdog)
 	wdd = watchdog;
 
 	/* Register the miscdevice */
+	watchdog_miscdev.parent = watchdog->parent;
 	err = misc_register(&watchdog_miscdev);
 	if (err != 0) {
 		pr_err("%s: cannot register miscdev on minor=%d (err=%d).\n",

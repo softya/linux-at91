@@ -78,6 +78,7 @@ struct watchdog_ops {
 struct watchdog_device {
 	const struct watchdog_info *info;
 	const struct watchdog_ops *ops;
+	struct device *parent;
 	unsigned int bootstatus;
 	unsigned int timeout;
 	void *priv;
