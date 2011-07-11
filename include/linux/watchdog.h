@@ -70,12 +70,14 @@ struct watchdog_ops {
 	int (*stop)(struct watchdog_device *);
 	/* optional operations */
 	int (*ping)(struct watchdog_device *);
+	unsigned int (*status)(struct watchdog_device *);
 };
 
 /* The structure that defines a watchdog device */
 struct watchdog_device {
 	const struct watchdog_info *info;
 	const struct watchdog_ops *ops;
+	unsigned int bootstatus;
 	void *priv;
 	unsigned long status;
 /* Bit numbers for status flags */
