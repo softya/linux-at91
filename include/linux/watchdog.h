@@ -81,6 +81,7 @@ struct watchdog_device {
 	void *priv;
 	unsigned long status;
 /* Bit numbers for status flags */
+#define WDOG_ACTIVE		0	/* Is the watchdog running/active */
 #define WDOG_DEV_OPEN		1	/* Opened via /dev/watchdog ? */
 };
 
