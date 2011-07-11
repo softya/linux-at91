@@ -72,6 +72,7 @@ struct watchdog_ops {
 	int (*ping)(struct watchdog_device *);
 	unsigned int (*status)(struct watchdog_device *);
 	int (*set_timeout)(struct watchdog_device *, unsigned int);
+	long (*ioctl)(struct watchdog_device *, unsigned int, unsigned long);
 };
 
 /* The structure that defines a watchdog device */
