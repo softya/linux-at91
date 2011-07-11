@@ -44,6 +44,8 @@ struct watchdog_device {
 	struct device *parent;
 	unsigned int bootstatus;
 	unsigned int timeout;
+	unsigned int min_timeout;
+	unsigned int max_timeout;
 	void *priv;
 	unsigned long status;
 };
@@ -56,6 +58,8 @@ It contains following fields:
   as the parent of the misc device to improve dependencies in driver model
   (e.g. sysfs).
 * timeout: the watchdog timer's timeout value (in seconds).
+* min_timeout: the watchdog timer's minimum timeout value (in seconds).
+* max_timeout: the watchdog timer's maximum timeout value (in seconds).
 * bootstatus: status of the device after booting (reported with watchdog
   WDIOF_* status bits).
 * priv: a pointer to the private data of a watchdog device

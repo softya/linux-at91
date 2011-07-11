@@ -82,6 +82,8 @@ struct watchdog_device {
 	struct device *parent;
 	unsigned int bootstatus;
 	unsigned int timeout;
+	unsigned int min_timeout;
+	unsigned int max_timeout;
 	void *priv;
 	unsigned long status;
 /* Bit numbers for status flags */
