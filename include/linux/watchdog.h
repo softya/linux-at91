@@ -59,6 +59,33 @@ struct watchdog_info {
 #define WATCHDOG_NOWAYOUT	0
 #endif
 
+struct watchdog_ops;
+struct watchdog_device;
+
+/* The watchdog-devices operations */
+struct watchdog_ops {
+	struct module *owner;
+	/* mandatory operations */
+	int (*start)(struct watchdog_device *);
+	int (*stop)(struct watchdog_device *);
+	/* optional operations */
+	int (*ping)(struct watchdog_device *);
+};
+
+/* The structure that defines a watchdog device */
+struct watchdog_device {
+	const struct watchdog_info *info;
+	const struct watchdog_ops *ops;
+	void *priv;
+	unsigned long status;
+/* Bit numbers for status flags */
+#define WDOG_DEV_OPEN		1	/* Opened via /dev/watchdog ? */
+};
+
+/* drivers/watchdog/core/watchdog_core.c */
+extern int watchdog_register_device(struct watchdog_device *);
+extern void watchdog_unregister_device(struct watchdog_device *);
+
 #endif	/* __KERNEL__ */
 
 #endif  /* ifndef _LINUX_WATCHDOG_H */
