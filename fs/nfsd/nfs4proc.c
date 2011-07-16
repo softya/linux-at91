@@ -291,6 +291,15 @@ nfsd4_open(struct svc_rqst *rqstp, struct nfsd4_compound_state *cstate,
 	if (open->op_create && open->op_claim_type != NFS4_OPEN_CLAIM_NULL)
 		return nfserr_inval;
 
+	/*
+	 * RFC5661 18.51.3
+	 * Before RECLAIM_COMPLETE done, server should deny new lock
+	 */
+	if (nfsd4_has_session(cstate) &&
+	    !cstate->session->se_client->cl_firststate &&
+	    open->op_claim_type != NFS4_OPEN_CLAIM_PREVIOUS)
+		return nfserr_grace;
+
 	if (nfsd4_has_session(cstate))
 		copy_clientid(&open->op_clientid, cstate->session);
 
@@ -1402,6 +1411,11 @@ static struct nfsd4_operation nfsd4_ops[] = {
 		.op_flags = ALLOWED_WITHOUT_FH | ALLOWED_AS_FIRST_OP,
 		.op_name = "OP_SEQUENCE",
 	},
+	[OP_DESTROY_CLIENTID] = {
+		.op_func = NULL,
+		.op_flags = ALLOWED_WITHOUT_FH | ALLOWED_AS_FIRST_OP,
+		.op_name = "OP_DESTROY_CLIENTID",
+	},
 	[OP_RECLAIM_COMPLETE] = {
 		.op_func = (nfsd4op_func)nfsd4_reclaim_complete,
 		.op_flags = ALLOWED_WITHOUT_FH,
@@ -1411,6 +1425,16 @@ static struct nfsd4_operation nfsd4_ops[] = {
 		.op_func = (nfsd4op_func)nfsd4_secinfo_no_name,
 		.op_flags = OP_HANDLES_WRONGSEC,
 		.op_name = "OP_SECINFO_NO_NAME",
+	},
+	[OP_TEST_STATEID] = {
+		.op_func = (nfsd4op_func)nfsd4_test_stateid,
+		.op_flags = ALLOWED_WITHOUT_FH,
+		.op_name = "OP_TEST_STATEID",
+	},
+	[OP_FREE_STATEID] = {
+		.op_func = (nfsd4op_func)nfsd4_free_stateid,
+		.op_flags = ALLOWED_WITHOUT_FH,
+		.op_name = "OP_FREE_STATEID",
 	},
 };
 
