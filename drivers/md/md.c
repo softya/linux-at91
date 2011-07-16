@@ -1025,7 +1025,7 @@ static int super_90_load(mdk_rdev_t *rdev, mdk_rdev_t *refdev, int minor_version
 	ret = -EINVAL;
 
 	bdevname(rdev->bdev, b);
-	sb = (mdp_super_t*)page_address(rdev->sb_page);
+	sb = page_address(rdev->sb_page);
 
 	if (sb->md_magic != MD_SB_MAGIC) {
 		printk(KERN_ERR "md: invalid raid superblock magic on %s\n",
@@ -1064,7 +1064,7 @@ static int super_90_load(mdk_rdev_t *rdev, mdk_rdev_t *refdev, int minor_version
 		ret = 1;
 	} else {
 		__u64 ev1, ev2;
-		mdp_super_t *refsb = (mdp_super_t*)page_address(refdev->sb_page);
+		mdp_super_t *refsb = page_address(refdev->sb_page);
 		if (!uuid_equal(refsb, sb)) {
 			printk(KERN_WARNING "md: %s has different UUID to %s\n",
 				b, bdevname(refdev->bdev,b2));
@@ -1099,7 +1099,7 @@ static int super_90_load(mdk_rdev_t *rdev, mdk_rdev_t *refdev, int minor_version
 static int super_90_validate(mddev_t *mddev, mdk_rdev_t *rdev)
 {
 	mdp_disk_t *desc;
-	mdp_super_t *sb = (mdp_super_t *)page_address(rdev->sb_page);
+	mdp_super_t *sb = page_address(rdev->sb_page);
 	__u64 ev1 = md_event(sb);
 
 	rdev->raid_disk = -1;
@@ -1230,7 +1230,7 @@ static void super_90_sync(mddev_t *mddev, mdk_rdev_t *rdev)
 
 	rdev->sb_size = MD_SB_BYTES;
 
-	sb = (mdp_super_t*)page_address(rdev->sb_page);
+	sb = page_address(rdev->sb_page);
 
 	memset(sb, 0, sizeof(*sb));
 
@@ -1435,7 +1435,7 @@ static int super_1_load(mdk_rdev_t *rdev, mdk_rdev_t *refdev, int minor_version)
 	if (ret) return ret;
 
 
-	sb = (struct mdp_superblock_1*)page_address(rdev->sb_page);
+	sb = page_address(rdev->sb_page);
 
 	if (sb->magic != cpu_to_le32(MD_SB_MAGIC) ||
 	    sb->major_version != cpu_to_le32(1) ||
@@ -1477,8 +1477,7 @@ static int super_1_load(mdk_rdev_t *rdev, mdk_rdev_t *refdev, int minor_version)
 		ret = 1;
 	} else {
 		__u64 ev1, ev2;
-		struct mdp_superblock_1 *refsb = 
-			(struct mdp_superblock_1*)page_address(refdev->sb_page);
+		struct mdp_superblock_1 *refsb = page_address(refdev->sb_page);
 
 		if (memcmp(sb->set_uuid, refsb->set_uuid, 16) != 0 ||
 		    sb->level != refsb->level ||
@@ -1513,7 +1512,7 @@ static int super_1_load(mdk_rdev_t *rdev, mdk_rdev_t *refdev, int minor_version)
 
 static int super_1_validate(mddev_t *mddev, mdk_rdev_t *rdev)
 {
-	struct mdp_superblock_1 *sb = (struct mdp_superblock_1*)page_address(rdev->sb_page);
+	struct mdp_superblock_1 *sb = page_address(rdev->sb_page);
 	__u64 ev1 = le64_to_cpu(sb->events);
 
 	rdev->raid_disk = -1;
@@ -1619,7 +1618,7 @@ static void super_1_sync(mddev_t *mddev, mdk_rdev_t *rdev)
 	int max_dev, i;
 	/* make rdev->sb match mddev and rdev data. */
 
-	sb = (struct mdp_superblock_1*)page_address(rdev->sb_page);
+	sb = page_address(rdev->sb_page);
 
 	sb->feature_map = 0;
 	sb->pad0 = 0;
@@ -1724,7 +1723,7 @@ super_1_rdev_size_change(mdk_rdev_t *rdev, sector_t num_sectors)
 			num_sectors = max_sectors;
 		rdev->sb_start = sb_start;
 	}
-	sb = (struct mdp_superblock_1 *) page_address(rdev->sb_page);
+	sb = page_address(rdev->sb_page);
 	sb->data_size = cpu_to_le64(num_sectors);
 	sb->super_offset = rdev->sb_start;
 	sb->sb_csum = calc_sb_1_csum(sb);
@@ -1922,7 +1921,7 @@ static int bind_rdev_to_array(mdk_rdev_t * rdev, mddev_t * mddev)
 	bd_link_disk_holder(rdev->bdev, mddev->gendisk);
 
 	/* May as well allow recovery to be retried once */
-	mddev->recovery_disabled = 0;
+	mddev->recovery_disabled ++;
 
 	return 0;
 
@@ -2127,10 +2126,10 @@ static void print_rdev(mdk_rdev_t *rdev, int major_version)
 		printk(KERN_INFO "md: rdev superblock (MJ:%d):\n", major_version);
 		switch (major_version) {
 		case 0:
-			print_sb_90((mdp_super_t*)page_address(rdev->sb_page));
+			print_sb_90(page_address(rdev->sb_page));
 			break;
 		case 1:
-			print_sb_1((struct mdp_superblock_1 *)page_address(rdev->sb_page));
+			print_sb_1(page_address(rdev->sb_page));
 			break;
 		}
 	} else
@@ -2459,7 +2458,6 @@ slot_store(mdk_rdev_t *rdev, const char *buf, size_t len)
 {
 	char *e;
 	int err;
-	char nm[20];
 	int slot = simple_strtoul(buf, &e, 10);
 	if (strncmp(buf, "none", 4)==0)
 		slot = -1;
@@ -2482,8 +2480,7 @@ slot_store(mdk_rdev_t *rdev, const char *buf, size_t len)
 			hot_remove_disk(rdev->mddev, rdev->raid_disk);
 		if (err)
 			return err;
-		sprintf(nm, "rd%d", rdev->raid_disk);
-		sysfs_remove_link(&rdev->mddev->kobj, nm);
+		sysfs_unlink_rdev(rdev->mddev, rdev);
 		rdev->raid_disk = -1;
 		set_bit(MD_RECOVERY_NEEDED, &rdev->mddev->recovery);
 		md_wakeup_thread(rdev->mddev->thread);
@@ -2522,8 +2519,7 @@ slot_store(mdk_rdev_t *rdev, const char *buf, size_t len)
 			return err;
 		} else
 			sysfs_notify_dirent_safe(rdev->sysfs_state);
-		sprintf(nm, "rd%d", rdev->raid_disk);
-		if (sysfs_create_link(&rdev->mddev->kobj, &rdev->kobj, nm))
+		if (sysfs_link_rdev(rdev->mddev, rdev))
 			/* failure here is OK */;
 		/* don't wakeup anyone, leave that to userspace. */
 	} else {
@@ -3149,15 +3145,13 @@ level_store(mddev_t *mddev, const char *buf, size_t len)
 	}
 
 	list_for_each_entry(rdev, &mddev->disks, same_set) {
-		char nm[20];
 		if (rdev->raid_disk < 0)
 			continue;
 		if (rdev->new_raid_disk >= mddev->raid_disks)
 			rdev->new_raid_disk = -1;
 		if (rdev->new_raid_disk == rdev->raid_disk)
 			continue;
-		sprintf(nm, "rd%d", rdev->raid_disk);
-		sysfs_remove_link(&mddev->kobj, nm);
+		sysfs_unlink_rdev(mddev, rdev);
 	}
 	list_for_each_entry(rdev, &mddev->disks, same_set) {
 		if (rdev->raid_disk < 0)
@@ -3168,11 +3162,10 @@ level_store(mddev_t *mddev, const char *buf, size_t len)
 		if (rdev->raid_disk < 0)
 			clear_bit(In_sync, &rdev->flags);
 		else {
-			char nm[20];
-			sprintf(nm, "rd%d", rdev->raid_disk);
-			if(sysfs_create_link(&mddev->kobj, &rdev->kobj, nm))
-				printk("md: cannot register %s for %s after level change\n",
-				       nm, mdname(mddev));
+			if (sysfs_link_rdev(mddev, rdev))
+				printk(KERN_WARNING "md: cannot register rd%d"
+				       " for %s after level change\n",
+				       rdev->raid_disk, mdname(mddev));
 		}
 	}
 
@@ -4621,12 +4614,9 @@ int md_run(mddev_t *mddev)
 	smp_wmb();
 	mddev->ready = 1;
 	list_for_each_entry(rdev, &mddev->disks, same_set)
-		if (rdev->raid_disk >= 0) {
-			char nm[20];
-			sprintf(nm, "rd%d", rdev->raid_disk);
-			if (sysfs_create_link(&mddev->kobj, &rdev->kobj, nm))
+		if (rdev->raid_disk >= 0)
+			if (sysfs_link_rdev(mddev, rdev))
 				/* failure here is OK */;
-		}
 	
 	set_bit(MD_RECOVERY_NEEDED, &mddev->recovery);
 	
@@ -4854,11 +4844,8 @@ static int do_md_stop(mddev_t * mddev, int mode, int is_open)
 		sysfs_notify_dirent_safe(mddev->sysfs_state);
 
 		list_for_each_entry(rdev, &mddev->disks, same_set)
-			if (rdev->raid_disk >= 0) {
-				char nm[20];
-				sprintf(nm, "rd%d", rdev->raid_disk);
-				sysfs_remove_link(&mddev->kobj, nm);
-			}
+			if (rdev->raid_disk >= 0)
+				sysfs_unlink_rdev(mddev, rdev);
 
 		set_capacity(disk, 0);
 		mutex_unlock(&mddev->open_mutex);
@@ -7077,14 +7064,12 @@ static int remove_and_add_spares(mddev_t *mddev)
 		    atomic_read(&rdev->nr_pending)==0) {
 			if (mddev->pers->hot_remove_disk(
 				    mddev, rdev->raid_disk)==0) {
-				char nm[20];
-				sprintf(nm,"rd%d", rdev->raid_disk);
-				sysfs_remove_link(&mddev->kobj, nm);
+				sysfs_unlink_rdev(mddev, rdev);
 				rdev->raid_disk = -1;
 			}
 		}
 
-	if (mddev->degraded && !mddev->recovery_disabled) {
+	if (mddev->degraded) {
 		list_for_each_entry(rdev, &mddev->disks, same_set) {
 			if (rdev->raid_disk >= 0 &&
 			    !test_bit(In_sync, &rdev->flags) &&
@@ -7096,10 +7081,7 @@ static int remove_and_add_spares(mddev_t *mddev)
 				rdev->recovery_offset = 0;
 				if (mddev->pers->
 				    hot_add_disk(mddev, rdev) == 0) {
-					char nm[20];
-					sprintf(nm, "rd%d", rdev->raid_disk);
-					if (sysfs_create_link(&mddev->kobj,
-							      &rdev->kobj, nm))
+					if (sysfs_link_rdev(mddev, rdev))
 						/* failure here is OK */;
 					spares++;
 					md_new_event(mddev);
@@ -7180,9 +7162,6 @@ void md_check_recovery(mddev_t *mddev)
 	if (mddev->bitmap)
 		bitmap_daemon_work(mddev);
 
-	if (mddev->ro)
-		return;
-
 	if (signal_pending(current)) {
 		if (mddev->pers->sync_request && !mddev->external) {
 			printk(KERN_INFO "md: %s in immediate safe mode\n",
@@ -7219,9 +7198,7 @@ void md_check_recovery(mddev_t *mddev)
 				    atomic_read(&rdev->nr_pending)==0) {
 					if (mddev->pers->hot_remove_disk(
 						    mddev, rdev->raid_disk)==0) {
-						char nm[20];
-						sprintf(nm,"rd%d", rdev->raid_disk);
-						sysfs_remove_link(&mddev->kobj, nm);
+						sysfs_unlink_rdev(mddev, rdev);
 						rdev->raid_disk = -1;
 					}
 				}

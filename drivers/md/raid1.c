@@ -35,6 +35,7 @@
 #include <linux/delay.h>
 #include <linux/blkdev.h>
 #include <linux/seq_file.h>
+#include <linux/ratelimit.h>
 #include "md.h"
 #include "raid1.h"
 #include "bitmap.h"
@@ -287,10 +288,11 @@ static void raid1_end_read_request(struct bio *bio, int error)
 		 * oops, read error:
 		 */
 		char b[BDEVNAME_SIZE];
-		if (printk_ratelimit())
-			printk(KERN_ERR "md/raid1:%s: %s: rescheduling sector %llu\n",
-			       mdname(conf->mddev),
-			       bdevname(conf->mirrors[mirror].rdev->bdev,b), (unsigned long long)r1_bio->sector);
+		printk_ratelimited(KERN_ERR "md/raid1:%s: %s: "
+				   "rescheduling sector %llu\n",
+				   mdname(conf->mddev),
+				   bdevname(conf->mirrors[mirror].rdev->bdev, b),
+				   (unsigned long long)r1_bio->sector);
 		reschedule_retry(r1_bio);
 	}
 
@@ -952,7 +954,7 @@ static void error(mddev_t *mddev, mdk_rdev_t *rdev)
 		 * However don't try a recovery from this drive as
 		 * it is very likely to fail.
 		 */
-		mddev->recovery_disabled = 1;
+		conf->recovery_disabled = mddev->recovery_disabled;
 		return;
 	}
 	if (test_and_clear_bit(In_sync, &rdev->flags)) {
@@ -1048,6 +1050,9 @@ static int raid1_add_disk(mddev_t *mddev, mdk_rdev_t *rdev)
 	int first = 0;
 	int last = mddev->raid_disks - 1;
 
+	if (mddev->recovery_disabled == conf->recovery_disabled)
+		return -EBUSY;
+
 	if (rdev->raid_disk >= 0)
 		first = last = rdev->raid_disk;
 
@@ -1103,7 +1108,7 @@ static int raid1_remove_disk(mddev_t *mddev, int number)
 		 * is not possible.
 		 */
 		if (!test_bit(Faulty, &rdev->flags) &&
-		    !mddev->recovery_disabled &&
+		    mddev->recovery_disabled != conf->recovery_disabled &&
 		    mddev->degraded < conf->raid_disks) {
 			err = -EBUSY;
 			goto abort;
@@ -1217,9 +1222,7 @@ static int fix_sync_read_error(r1bio_t *r1_bio)
 				 * active, and resync is currently active
 				 */
 				rdev = conf->mirrors[d].rdev;
-				if (sync_page_io(rdev,
-						 sect,
-						 s<<9,
+				if (sync_page_io(rdev, sect, s<<9,
 						 bio->bi_io_vec[idx].bv_page,
 						 READ, false)) {
 					success = 1;
@@ -1254,16 +1257,13 @@ static int fix_sync_read_error(r1bio_t *r1_bio)
 			if (r1_bio->bios[d]->bi_end_io != end_sync_read)
 				continue;
 			rdev = conf->mirrors[d].rdev;
-			if (sync_page_io(rdev,
-					 sect,
-					 s<<9,
+			if (sync_page_io(rdev, sect, s<<9,
 					 bio->bi_io_vec[idx].bv_page,
 					 WRITE, false) == 0) {
 				r1_bio->bios[d]->bi_end_io = NULL;
 				rdev_dec_pending(rdev, mddev);
 				md_error(mddev, rdev);
-			} else
-				atomic_add(s, &rdev->corrected_errors);
+			}
 		}
 		d = start;
 		while (d != r1_bio->read_disk) {
@@ -1273,12 +1273,12 @@ static int fix_sync_read_error(r1bio_t *r1_bio)
 			if (r1_bio->bios[d]->bi_end_io != end_sync_read)
 				continue;
 			rdev = conf->mirrors[d].rdev;
-			if (sync_page_io(rdev,
-					 sect,
-					 s<<9,
+			if (sync_page_io(rdev, sect, s<<9,
 					 bio->bi_io_vec[idx].bv_page,
 					 READ, false) == 0)
 				md_error(mddev, rdev);
+			else
+				atomic_add(s, &rdev->corrected_errors);
 		}
 		sectors -= s;
 		sect += s;
@@ -1580,12 +1580,12 @@ static void raid1d(mddev_t *mddev)
 						      GFP_NOIO, mddev);
 				r1_bio->bios[r1_bio->read_disk] = bio;
 				rdev = conf->mirrors[disk].rdev;
-				if (printk_ratelimit())
-					printk(KERN_ERR "md/raid1:%s: redirecting sector %llu to"
-					       " other mirror: %s\n",
-					       mdname(mddev),
-					       (unsigned long long)r1_bio->sector,
-					       bdevname(rdev->bdev,b));
+				printk_ratelimited(KERN_ERR
+						   "md/raid1:%s: redirecting sector %llu to"
+						   " other mirror: %s\n",
+						   mdname(mddev),
+						   (unsigned long long)r1_bio->sector,
+						   bdevname(rdev->bdev, b));
 				bio->bi_sector = r1_bio->sector + rdev->data_offset;
 				bio->bi_bdev = rdev->bdev;
 				bio->bi_end_io = raid1_end_read_request;
@@ -2154,18 +2154,13 @@ static int raid1_reshape(mddev_t *mddev)
 	for (d = d2 = 0; d < conf->raid_disks; d++) {
 		mdk_rdev_t *rdev = conf->mirrors[d].rdev;
 		if (rdev && rdev->raid_disk != d2) {
-			char nm[20];
-			sprintf(nm, "rd%d", rdev->raid_disk);
-			sysfs_remove_link(&mddev->kobj, nm);
+			sysfs_unlink_rdev(mddev, rdev);
 			rdev->raid_disk = d2;
-			sprintf(nm, "rd%d", rdev->raid_disk);
-			sysfs_remove_link(&mddev->kobj, nm);
-			if (sysfs_create_link(&mddev->kobj,
-					      &rdev->kobj, nm))
+			sysfs_unlink_rdev(mddev, rdev);
+			if (sysfs_link_rdev(mddev, rdev))
 				printk(KERN_WARNING
-				       "md/raid1:%s: cannot register "
-				       "%s\n",
-				       mdname(mddev), nm);
+				       "md/raid1:%s: cannot register rd%d\n",
+				       mdname(mddev), rdev->raid_disk);
 		}
 		if (rdev)
 			newmirrors[d2++].rdev = rdev;
