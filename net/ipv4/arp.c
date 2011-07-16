@@ -97,7 +97,6 @@
 #include <linux/init.h>
 #include <linux/net.h>
 #include <linux/rcupdate.h>
-#include <linux/jhash.h>
 #include <linux/slab.h>
 #ifdef CONFIG_SYSCTL
 #include <linux/sysctl.h>
@@ -232,7 +231,7 @@ static u32 arp_hash(const void *pkey,
 		    const struct net_device *dev,
 		    __u32 hash_rnd)
 {
-	return jhash_2words(*(u32 *)pkey, dev->ifindex, hash_rnd);
+	return arp_hashfn(*(u32 *)pkey, dev, hash_rnd);
 }
 
 static int arp_constructor(struct neighbour *neigh)
@@ -517,30 +516,6 @@ int arp_find(unsigned char *haddr, struct sk_buff *skb)
 EXPORT_SYMBOL(arp_find);
 
 /* END OF OBSOLETE FUNCTIONS */
-
-int arp_bind_neighbour(struct dst_entry *dst)
-{
-	struct net_device *dev = dst->dev;
-	struct neighbour *n = dst->neighbour;
-
-	if (dev == NULL)
-		return -EINVAL;
-	if (n == NULL) {
-		__be32 nexthop = ((struct rtable *)dst)->rt_gateway;
-		if (dev->flags & (IFF_LOOPBACK | IFF_POINTOPOINT))
-			nexthop = 0;
-		n = __neigh_lookup_errno(
-#if defined(CONFIG_ATM_CLIP) || defined(CONFIG_ATM_CLIP_MODULE)
-					 dev->type == ARPHRD_ATM ?
-					 clip_tbl_hook :
-#endif
-					 &arp_tbl, &nexthop, dev);
-		if (IS_ERR(n))
-			return PTR_ERR(n);
-		dst->neighbour = n;
-	}
-	return 0;
-}
 
 /*
  * Check if we can use proxy ARP for this path

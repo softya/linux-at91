@@ -108,6 +108,7 @@
 #ifdef CONFIG_SYSCTL
 #include <linux/sysctl.h>
 #endif
+#include <net/atmclip.h>
 
 #define RT_FL_TOS(oldflp4) \
     ((u32)(oldflp4->flowi4_tos & (IPTOS_RT_MASK | RTO_ONLINK)))
@@ -425,9 +426,10 @@ static int rt_cache_seq_show(struct seq_file *seq, void *v)
 			(int)((dst_metric(&r->dst, RTAX_RTT) >> 3) +
 			      dst_metric(&r->dst, RTAX_RTTVAR)),
 			r->rt_key_tos,
-			r->dst.hh ? atomic_read(&r->dst.hh->hh_refcnt) : -1,
-			r->dst.hh ? (r->dst.hh->hh_output ==
-				       dev_queue_xmit) : 0,
+			-1,
+			(r->dst.neighbour ?
+			 (r->dst.neighbour->hh.hh_output ==
+			  dev_queue_xmit) : 0),
 			r->rt_spec_dst, &len);
 
 		seq_printf(seq, "%*s\n", 127 - len, "");
@@ -1006,6 +1008,29 @@ static int slow_chain_length(const struct rtable *head)
 	return length >> FRACT_BITS;
 }
 
+static int rt_bind_neighbour(struct rtable *rt)
+{
+	static const __be32 inaddr_any = 0;
+	struct net_device *dev = rt->dst.dev;
+	struct neigh_table *tbl = &arp_tbl;
+	const __be32 *nexthop;
+	struct neighbour *n;
+
+#if defined(CONFIG_ATM_CLIP) || defined(CONFIG_ATM_CLIP_MODULE)
+	if (dev->type == ARPHRD_ATM)
+		tbl = clip_tbl_hook;
+#endif
+	nexthop = &rt->rt_gateway;
+	if (dev->flags & (IFF_LOOPBACK | IFF_POINTOPOINT))
+		nexthop = &inaddr_any;
+	n = ipv4_neigh_lookup(tbl, dev, nexthop);
+	if (IS_ERR(n))
+		return PTR_ERR(n);
+	rt->dst.neighbour = n;
+
+	return 0;
+}
+
 static struct rtable *rt_intern_hash(unsigned hash, struct rtable *rt,
 				     struct sk_buff *skb, int ifindex)
 {
@@ -1042,7 +1067,7 @@ restart:
 
 		rt->dst.flags |= DST_NOCACHE;
 		if (rt->rt_type == RTN_UNICAST || rt_is_output_route(rt)) {
-			int err = arp_bind_neighbour(&rt->dst);
+			int err = rt_bind_neighbour(rt);
 			if (err) {
 				if (net_ratelimit())
 					printk(KERN_WARNING
@@ -1138,7 +1163,7 @@ restart:
 	   route or unicast forwarding path.
 	 */
 	if (rt->rt_type == RTN_UNICAST || rt_is_output_route(rt)) {
-		int err = arp_bind_neighbour(&rt->dst);
+		int err = rt_bind_neighbour(rt);
 		if (err) {
 			spin_unlock_bh(rt_hash_lock_addr(hash));
 
@@ -1439,20 +1464,20 @@ static int ip_error(struct sk_buff *skb)
 	int code;
 
 	switch (rt->dst.error) {
-		case EINVAL:
-		default:
-			goto out;
-		case EHOSTUNREACH:
-			code = ICMP_HOST_UNREACH;
-			break;
-		case ENETUNREACH:
-			code = ICMP_NET_UNREACH;
-			IP_INC_STATS_BH(dev_net(rt->dst.dev),
-					IPSTATS_MIB_INNOROUTES);
-			break;
-		case EACCES:
-			code = ICMP_PKT_FILTERED;
-			break;
+	case EINVAL:
+	default:
+		goto out;
+	case EHOSTUNREACH:
+		code = ICMP_HOST_UNREACH;
+		break;
+	case ENETUNREACH:
+		code = ICMP_NET_UNREACH;
+		IP_INC_STATS_BH(dev_net(rt->dst.dev),
+				IPSTATS_MIB_INNOROUTES);
+		break;
+	case EACCES:
+		code = ICMP_PKT_FILTERED;
+		break;
 	}
 
 	if (!rt->peer)
@@ -1599,7 +1624,7 @@ static int check_peer_redir(struct dst_entry *dst, struct inet_peer *peer)
 	rt->dst.neighbour = NULL;
 
 	rt->rt_gateway = peer->redirect_learned.a4;
-	if (arp_bind_neighbour(&rt->dst) ||
+	if (rt_bind_neighbour(rt) ||
 	    !(rt->dst.neighbour->nud_state & NUD_VALID)) {
 		if (rt->dst.neighbour)
 			neigh_event_send(rt->dst.neighbour, NULL);
@@ -3303,7 +3328,7 @@ int __init ip_rt_init(void)
 	xfrm_init();
 	xfrm4_init(ip_rt_max_size);
 #endif
-	rtnl_register(PF_INET, RTM_GETROUTE, inet_rtm_getroute, NULL);
+	rtnl_register(PF_INET, RTM_GETROUTE, inet_rtm_getroute, NULL, NULL);
 
 #ifdef CONFIG_SYSCTL
 	register_pernet_subsys(&sysctl_route_ops);
