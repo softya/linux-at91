@@ -127,6 +127,8 @@ xfs_iozero(
 STATIC int
 xfs_file_fsync(
 	struct file		*file,
+	loff_t			start,
+	loff_t			end,
 	int			datasync)
 {
 	struct inode		*inode = file->f_mapping->host;
@@ -138,8 +140,16 @@ xfs_file_fsync(
 
 	trace_xfs_file_fsync(ip);
 
-	if (XFS_FORCED_SHUTDOWN(mp))
+	error = filemap_write_and_wait_range(inode->i_mapping, start, end);
+	if (error)
+		return error;
+
+	mutex_lock(&inode->i_mutex);
+
+	if (XFS_FORCED_SHUTDOWN(mp)) {
+		mutex_unlock(&inode->i_mutex);
 		return -XFS_ERROR(EIO);
+	}
 
 	xfs_iflags_clear(ip, XFS_ITRUNCATED);
 
@@ -195,6 +205,7 @@ xfs_file_fsync(
 				XFS_FSYNC_TS_LOG_RES(mp), 0, 0, 0);
 		if (error) {
 			xfs_trans_cancel(tp, 0);
+			mutex_unlock(&inode->i_mutex);
 			return -error;
 		}
 		xfs_ilock(ip, XFS_ILOCK_EXCL);
@@ -244,6 +255,7 @@ xfs_file_fsync(
 	    !log_flushed)
 		xfs_blkdev_issue_flush(mp->m_ddev_targp);
 
+	mutex_unlock(&inode->i_mutex);
 	return -error;
 }
 
@@ -881,7 +893,7 @@ xfs_file_aio_write(
 		error = filemap_write_and_wait_range(mapping, pos, end);
 		xfs_rw_ilock(ip, iolock);
 
-		error2 = -xfs_file_fsync(file,
+		error2 = -xfs_file_fsync(file, pos, end,
 					 (file->f_flags & __O_SYNC) ? 0 : 1);
 		if (error)
 			ret = error;
