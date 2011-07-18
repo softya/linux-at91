@@ -64,8 +64,6 @@ static const struct neigh_ops dn_long_ops = {
 	.error_report =		dn_long_error_report,
 	.output =		dn_long_output,
 	.connected_output =	dn_long_output,
-	.hh_output =		dev_queue_xmit,
-	.queue_xmit =		dev_queue_xmit,
 };
 
 /*
@@ -76,8 +74,6 @@ static const struct neigh_ops dn_short_ops = {
 	.error_report =		dn_short_error_report,
 	.output =		dn_short_output,
 	.connected_output =	dn_short_output,
-	.hh_output =		dev_queue_xmit,
-	.queue_xmit =		dev_queue_xmit,
 };
 
 /*
@@ -88,8 +84,6 @@ static const struct neigh_ops dn_phase3_ops = {
 	.error_report =		dn_short_error_report, /* Can use short version here */
 	.output =		dn_phase3_output,
 	.connected_output =	dn_phase3_output,
-	.hh_output =		dev_queue_xmit,
-	.queue_xmit =		dev_queue_xmit
 };
 
 static u32 dn_neigh_hash(const void *pkey,
@@ -215,7 +209,7 @@ static int dn_neigh_output_packet(struct sk_buff *skb)
 	dn_dn2eth(mac_addr, rt->rt_local_src);
 	if (dev_hard_header(skb, dev, ntohs(skb->protocol), neigh->ha,
 			    mac_addr, skb->len) >= 0)
-		return neigh->ops->queue_xmit(skb);
+		return dev_queue_xmit(skb);
 
 	if (net_ratelimit())
 		printk(KERN_DEBUG "dn_neigh_output_packet: oops, can't send packet\n");
@@ -404,13 +398,13 @@ int dn_neigh_router_hello(struct sk_buff *skb)
 
 			dn->flags &= ~DN_NDFLAG_P3;
 
-			switch(msg->iinfo & DN_RT_INFO_TYPE) {
-				case DN_RT_INFO_L1RT:
-					dn->flags &=~DN_NDFLAG_R2;
-					dn->flags |= DN_NDFLAG_R1;
-					break;
-				case DN_RT_INFO_L2RT:
-					dn->flags |= DN_NDFLAG_R2;
+			switch (msg->iinfo & DN_RT_INFO_TYPE) {
+			case DN_RT_INFO_L1RT:
+				dn->flags &=~DN_NDFLAG_R2;
+				dn->flags |= DN_NDFLAG_R1;
+				break;
+			case DN_RT_INFO_L2RT:
+				dn->flags |= DN_NDFLAG_R2;
 			}
 		}
 
