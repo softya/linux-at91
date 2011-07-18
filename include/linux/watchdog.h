@@ -59,6 +59,44 @@ struct watchdog_info {
 #define WATCHDOG_NOWAYOUT	0
 #endif
 
+struct watchdog_ops;
+struct watchdog_device;
+
+/* The watchdog-devices operations */
+struct watchdog_ops {
+	struct module *owner;
+	/* mandatory operations */
+	int (*start)(struct watchdog_device *);
+	int (*stop)(struct watchdog_device *);
+	/* optional operations */
+	int (*ping)(struct watchdog_device *);
+	unsigned int (*status)(struct watchdog_device *);
+	int (*set_timeout)(struct watchdog_device *, unsigned int);
+	long (*ioctl)(struct watchdog_device *, unsigned int, unsigned long);
+};
+
+/* The structure that defines a watchdog device */
+struct watchdog_device {
+	const struct watchdog_info *info;
+	const struct watchdog_ops *ops;
+	struct device *parent;
+	unsigned int bootstatus;
+	unsigned int timeout;
+	unsigned int min_timeout;
+	unsigned int max_timeout;
+	void *priv;
+	unsigned long status;
+/* Bit numbers for status flags */
+#define WDOG_ACTIVE		0	/* Is the watchdog running/active */
+#define WDOG_DEV_OPEN		1	/* Opened via /dev/watchdog ? */
+#define WDOG_ALLOW_RELEASE	2	/* Did we receive the magic char ? */
+#define WDOG_NO_WAY_OUT		3	/* Is 'nowayout' feature set ? */
+};
+
+/* drivers/watchdog/core/watchdog_core.c */
+extern int watchdog_register_device(struct watchdog_device *);
+extern void watchdog_unregister_device(struct watchdog_device *);
+
 #endif	/* __KERNEL__ */
 
 #endif  /* ifndef _LINUX_WATCHDOG_H */
