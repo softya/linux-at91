@@ -114,12 +114,6 @@ static ext4_fsblk_t ext4_ext_find_goal(struct inode *inode,
 			      struct ext4_ext_path *path,
 			      ext4_lblk_t block)
 {
-	struct ext4_inode_info *ei = EXT4_I(inode);
-	ext4_fsblk_t bg_start;
-	ext4_fsblk_t last_block;
-	ext4_grpblk_t colour;
-	ext4_group_t block_group;
-	int flex_size = ext4_flex_bg_size(EXT4_SB(inode->i_sb));
 	int depth;
 
 	if (path) {
@@ -161,36 +155,7 @@ static ext4_fsblk_t ext4_ext_find_goal(struct inode *inode,
 	}
 
 	/* OK. use inode's group */
-	block_group = ei->i_block_group;
-	if (flex_size >= EXT4_FLEX_SIZE_DIR_ALLOC_SCHEME) {
-		/*
-		 * If there are at least EXT4_FLEX_SIZE_DIR_ALLOC_SCHEME
-		 * block groups per flexgroup, reserve the first block
-		 * group for directories and special files.  Regular
-		 * files will start at the second block group.  This
-		 * tends to speed up directory access and improves
-		 * fsck times.
-		 */
-		block_group &= ~(flex_size-1);
-		if (S_ISREG(inode->i_mode))
-			block_group++;
-	}
-	bg_start = ext4_group_first_block_no(inode->i_sb, block_group);
-	last_block = ext4_blocks_count(EXT4_SB(inode->i_sb)->s_es) - 1;
-
-	/*
-	 * If we are doing delayed allocation, we don't need take
-	 * colour into account.
-	 */
-	if (test_opt(inode->i_sb, DELALLOC))
-		return bg_start;
-
-	if (bg_start + EXT4_BLOCKS_PER_GROUP(inode->i_sb) <= last_block)
-		colour = (current->pid % 16) *
-			(EXT4_BLOCKS_PER_GROUP(inode->i_sb) / 16);
-	else
-		colour = (current->pid % 16) * ((last_block - bg_start) / 16);
-	return bg_start + colour + block;
+	return ext4_inode_to_goal_block(inode);
 }
 
 /*
@@ -808,8 +773,9 @@ static int ext4_ext_insert_index(handle_t *handle, struct inode *inode,
 	if (unlikely(le16_to_cpu(curp->p_hdr->eh_entries)
 			     > le16_to_cpu(curp->p_hdr->eh_max))) {
 		EXT4_ERROR_INODE(inode,
-				 "logical %d == ei_block %d!",
-				 logical, le32_to_cpu(curp->p_idx->ei_block));
+				 "eh_entries %d > eh_max %d!",
+				 le16_to_cpu(curp->p_hdr->eh_entries),
+				 le16_to_cpu(curp->p_hdr->eh_max));
 		return -EIO;
 	}
 	if (unlikely(ix > EXT_LAST_INDEX(curp->p_hdr))) {
@@ -1757,7 +1723,6 @@ int ext4_ext_insert_extent(handle_t *handle, struct inode *inode,
 		goto merge;
 	}
 
-repeat:
 	depth = ext_depth(inode);
 	eh = path[depth].p_hdr;
 	if (le16_to_cpu(eh->eh_entries) < le16_to_cpu(eh->eh_max))
@@ -1765,9 +1730,10 @@ repeat:
 
 	/* probably next leaf has space for us? */
 	fex = EXT_LAST_EXTENT(eh);
-	next = ext4_ext_next_leaf_block(inode, path);
-	if (le32_to_cpu(newext->ee_block) > le32_to_cpu(fex->ee_block)
-	    && next != EXT_MAX_BLOCKS) {
+	next = EXT_MAX_BLOCKS;
+	if (le32_to_cpu(newext->ee_block) > le32_to_cpu(fex->ee_block))
+		next = ext4_ext_next_leaf_block(inode, path);
+	if (next != EXT_MAX_BLOCKS) {
 		ext_debug("next leaf block - %d\n", next);
 		BUG_ON(npath != NULL);
 		npath = ext4_ext_find_extent(inode, next, NULL);
@@ -1779,7 +1745,7 @@ repeat:
 			ext_debug("next leaf isn't full(%d)\n",
 				  le16_to_cpu(eh->eh_entries));
 			path = npath;
-			goto repeat;
+			goto has_space;
 		}
 		ext_debug("next leaf has no free space(%d,%d)\n",
 			  le16_to_cpu(eh->eh_entries), le16_to_cpu(eh->eh_max));
@@ -3107,12 +3073,10 @@ static int ext4_convert_unwritten_extents_endio(handle_t *handle,
 					      struct ext4_ext_path *path)
 {
 	struct ext4_extent *ex;
-	struct ext4_extent_header *eh;
 	int depth;
 	int err = 0;
 
 	depth = ext_depth(inode);
-	eh = path[depth].p_hdr;
 	ex = path[depth].p_ext;
 
 	ext_debug("ext4_convert_unwritten_extents_endio: inode %lu, logical"
@@ -3596,17 +3560,18 @@ int ext4_ext_map_blocks(handle_t *handle, struct inode *inode,
 	}
 
 	err = check_eofblocks_fl(handle, inode, map->m_lblk, path, ar.len);
-	if (err)
-		goto out2;
-
-	err = ext4_ext_insert_extent(handle, inode, path, &newex, flags);
+	if (!err)
+		err = ext4_ext_insert_extent(handle, inode, path,
+					     &newex, flags);
 	if (err) {
+		int fb_flags = flags & EXT4_GET_BLOCKS_DELALLOC_RESERVE ?
+			EXT4_FREE_BLOCKS_NO_QUOT_UPDATE : 0;
 		/* free data blocks we just allocated */
 		/* not a good idea to call discard here directly,
 		 * but otherwise we'd need to call it every free() */
 		ext4_discard_preallocations(inode);
 		ext4_free_blocks(handle, inode, NULL, ext4_ext_pblock(&newex),
-				 ext4_ext_get_actual_len(&newex), 0);
+				 ext4_ext_get_actual_len(&newex), fb_flags);
 		goto out2;
 	}
 

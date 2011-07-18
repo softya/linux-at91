@@ -75,8 +75,8 @@
  *
  * The inode preallocation space is used looking at the _logical_ start
  * block. If only the logical file block falls within the range of prealloc
- * space we will consume the particular prealloc space. This make sure that
- * that the we have contiguous physical blocks representing the file blocks
+ * space we will consume the particular prealloc space. This makes sure that
+ * we have contiguous physical blocks representing the file blocks
  *
  * The important thing to be noted in case of inode prealloc space is that
  * we don't modify the values associated to inode prealloc space except
@@ -84,7 +84,7 @@
  *
  * If we are not able to find blocks in the inode prealloc space and if we
  * have the group allocation flag set then we look at the locality group
- * prealloc space. These are per CPU prealloc list repreasented as
+ * prealloc space. These are per CPU prealloc list represented as
  *
  * ext4_sb_info.s_locality_groups[smp_processor_id()]
  *
@@ -152,7 +152,7 @@
  * best extent in the found extents. Searching for the blocks starts with
  * the group specified as the goal value in allocation context via
  * ac_g_ex. Each group is first checked based on the criteria whether it
- * can used for allocation. ext4_mb_good_group explains how the groups are
+ * can be used for allocation. ext4_mb_good_group explains how the groups are
  * checked.
  *
  * Both the prealloc space are getting populated as above. So for the first
@@ -2279,8 +2279,10 @@ int ext4_mb_add_groupinfo(struct super_block *sb, ext4_group_t group,
 
 exit_group_info:
 	/* If a meta_group_info table has been allocated, release it now */
-	if (group % EXT4_DESC_PER_BLOCK(sb) == 0)
+	if (group % EXT4_DESC_PER_BLOCK(sb) == 0) {
 		kfree(sbi->s_group_info[group >> EXT4_DESC_PER_BLOCK_BITS(sb)]);
+		sbi->s_group_info[group >> EXT4_DESC_PER_BLOCK_BITS(sb)] = NULL;
+	}
 exit_meta_group_info:
 	return -ENOMEM;
 } /* ext4_mb_add_groupinfo */
@@ -2404,13 +2406,13 @@ static int ext4_groupinfo_create_slab(size_t size)
 					slab_size, 0, SLAB_RECLAIM_ACCOUNT,
 					NULL);
 
+	ext4_groupinfo_caches[cache_index] = cachep;
+
 	mutex_unlock(&ext4_grpinfo_slab_create_mutex);
 	if (!cachep) {
 		printk(KERN_EMERG "EXT4: no memory for groupinfo slab cache\n");
 		return -ENOMEM;
 	}
-
-	ext4_groupinfo_caches[cache_index] = cachep;
 
 	return 0;
 }
@@ -2627,6 +2629,15 @@ static void release_blocks_on_commit(journal_t *journal, transaction_t *txn)
 		/* Take it out of per group rb tree */
 		rb_erase(&entry->node, &(db->bb_free_root));
 		mb_free_blocks(NULL, &e4b, entry->start_blk, entry->count);
+
+		/*
+		 * Clear the trimmed flag for the group so that the next
+		 * ext4_trim_fs can trim it.
+		 * If the volume is mounted with -o discard, online discard
+		 * is supported and the free blocks will be trimmed online.
+		 */
+		if (!test_opt(sb, DISCARD))
+			EXT4_MB_GRP_CLEAR_TRIMMED(db);
 
 		if (!db->bb_free_root.rb_node) {
 			/* No more items in the per group rb tree
@@ -4637,7 +4648,7 @@ do_more:
 	}
 	ext4_mark_super_dirty(sb);
 error_return:
-	if (freed)
+	if (freed && !(flags & EXT4_FREE_BLOCKS_NO_QUOT_UPDATE))
 		dquot_free_block(inode, freed);
 	brelse(bitmap_bh);
 	ext4_std_error(sb, err);
@@ -4666,12 +4677,10 @@ void ext4_add_groupblocks(handle_t *handle, struct super_block *sb,
 	struct ext4_buddy e4b;
 	int err = 0, ret, blk_free_count;
 	ext4_grpblk_t blocks_freed;
-	struct ext4_group_info *grp;
 
 	ext4_debug("Adding block(s) %llu-%llu\n", block, block + count - 1);
 
 	ext4_get_group_no_and_offset(sb, block, &block_group, &bit);
-	grp = ext4_get_group_info(sb, block_group);
 	/*
 	 * Check to see if we are freeing blocks across a group
 	 * boundary.
@@ -4782,6 +4791,8 @@ static void ext4_trim_extent(struct super_block *sb, int start, int count,
 {
 	struct ext4_free_extent ex;
 
+	trace_ext4_trim_extent(sb, group, start, count);
+
 	assert_spin_locked(ext4_group_lock_ptr(sb, group));
 
 	ex.fe_start = start;
@@ -4802,7 +4813,7 @@ static void ext4_trim_extent(struct super_block *sb, int start, int count,
 /**
  * ext4_trim_all_free -- function to trim all free space in alloc. group
  * @sb:			super block for file system
- * @e4b:		ext4 buddy
+ * @group:		group to be trimmed
  * @start:		first group block to examine
  * @max:		last group block to examine
  * @minblocks:		minimum extent block count
@@ -4823,9 +4834,11 @@ ext4_trim_all_free(struct super_block *sb, ext4_group_t group,
 		   ext4_grpblk_t minblocks)
 {
 	void *bitmap;
-	ext4_grpblk_t next, count = 0;
+	ext4_grpblk_t next, count = 0, free_count = 0;
 	struct ext4_buddy e4b;
 	int ret;
+
+	trace_ext4_trim_all_free(sb, group, start, max);
 
 	ret = ext4_mb_load_buddy(sb, group, &e4b);
 	if (ret) {
@@ -4836,6 +4849,10 @@ ext4_trim_all_free(struct super_block *sb, ext4_group_t group,
 	bitmap = e4b.bd_bitmap;
 
 	ext4_lock_group(sb, group);
+	if (EXT4_MB_GRP_WAS_TRIMMED(e4b.bd_info) &&
+	    minblocks >= atomic_read(&EXT4_SB(sb)->s_last_trim_minblks))
+		goto out;
+
 	start = (e4b.bd_info->bb_first_free > start) ?
 		e4b.bd_info->bb_first_free : start;
 
@@ -4850,6 +4867,7 @@ ext4_trim_all_free(struct super_block *sb, ext4_group_t group,
 					 next - start, group, &e4b);
 			count += next - start;
 		}
+		free_count += next - start;
 		start = next + 1;
 
 		if (fatal_signal_pending(current)) {
@@ -4863,9 +4881,13 @@ ext4_trim_all_free(struct super_block *sb, ext4_group_t group,
 			ext4_lock_group(sb, group);
 		}
 
-		if ((e4b.bd_info->bb_free - count) < minblocks)
+		if ((e4b.bd_info->bb_free - free_count) < minblocks)
 			break;
 	}
+
+	if (!ret)
+		EXT4_MB_GRP_SET_TRIMMED(e4b.bd_info);
+out:
 	ext4_unlock_group(sb, group);
 	ext4_mb_unload_buddy(&e4b);
 
@@ -4904,6 +4926,8 @@ int ext4_trim_fs(struct super_block *sb, struct fstrim_range *range)
 
 	if (unlikely(minlen > EXT4_BLOCKS_PER_GROUP(sb)))
 		return -EINVAL;
+	if (start + len <= first_data_blk)
+		goto out;
 	if (start < first_data_blk) {
 		len -= first_data_blk - start;
 		start = first_data_blk;
@@ -4952,5 +4976,9 @@ int ext4_trim_fs(struct super_block *sb, struct fstrim_range *range)
 	}
 	range->len = trimmed * sb->s_blocksize;
 
+	if (!ret)
+		atomic_set(&EXT4_SB(sb)->s_last_trim_minblks, minlen);
+
+out:
 	return ret;
 }
