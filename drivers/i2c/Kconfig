@@ -6,6 +6,7 @@ menuconfig I2C
 	tristate "I2C support"
 	depends on HAS_IOMEM
 	select RT_MUTEXES
+	select I2C_REGMAP if REGMAP
 	---help---
 	  I2C (pronounce: I-squared-C) is a slow serial bus protocol used in
 	  many micro controller applications and developed by Philips.  SMBus,
@@ -109,5 +110,8 @@ config I2C_DEBUG_BUS
 	  debug messages to the system log.  Select this if you are having
 	  a problem with I2C support and want to see more of what is going
 	  on.
+
+config I2C_REGMAP
+	tristate
 
 endif # I2C
