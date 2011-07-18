@@ -513,13 +513,10 @@ static const struct file_operations debug_clock_fops = {
 static int clk_debugfs_register_one(struct clk *c)
 {
 	int err;
-	struct dentry *d, *child, *child_tmp;
+	struct dentry *d;
 	struct clk *pa = c->parent;
-	char s[255];
-	char *p = s;
 
-	p += sprintf(p, "%s", c->name);
-	d = debugfs_create_dir(s, pa ? pa->dent : clk_debugfs_root);
+	d = debugfs_create_dir(c->name, pa ? pa->dent : clk_debugfs_root);
 	if (!d)
 		return -ENOMEM;
 	c->dent = d;
@@ -542,10 +539,7 @@ static int clk_debugfs_register_one(struct clk *c)
 	return 0;
 
 err_out:
-	d = c->dent;
-	list_for_each_entry_safe(child, child_tmp, &d->d_subdirs, d_u.d_child)
-		debugfs_remove(child);
-	debugfs_remove(c->dent);
+	debugfs_remove_recursive(c->dent);
 	return err;
 }
 
