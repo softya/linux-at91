@@ -85,6 +85,12 @@ config ARCH_AT91SAM9X5
 	select HAVE_FB_ATMEL
 	select HAVE_NET_MACB
 
+config ARCH_AT91SAM9N12
+	bool "AT91SAM9N12"
+	select CPU_ARM926T
+	select GENERIC_CLOCKEVENTS
+	select HAVE_FB_ATMEL
+
 config ARCH_AT91CAP9
 	bool "AT91CAP9"
 	select CPU_ARM926T
@@ -442,6 +448,19 @@ config MACH_AT91SAM9X5EK
 	help
 	  Select this if you re using Atmel's AT91SAM9x5-EK Evaluation Kit.
 	  Supported chips are sam9g15, sam9g25, sam9x25, sam9g35 and sam9x35.
+
+endif
+
+# ----------------------------------------------------------
+
+if ARCH_AT91SAM9N12
+
+comment "AT91SAM9N12 Board Type"
+
+config MACH_AT91SAM9N12EK
+	bool "Atmel AT91SAM9N12 Evaluation Kit"
+	help
+	  Select this if you are using Atmel's AT91SAM9N12-EK Evaluation Kit.
 
 endif
 
