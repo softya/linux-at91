@@ -1,5 +1,5 @@
 /*
- *  On-Chip devices setup code for the AT91SAM9N12 family
+ *  On-Chip devices setup code for the AT91SAM9N12 SoC
  *
  *  Copyright (C) 2011 Atmel Corporation.
  *
