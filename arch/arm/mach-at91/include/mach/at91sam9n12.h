@@ -30,7 +30,7 @@
 #define AT91SAM9N12_ID_TWI0	9	/* Two-Wire Interface 0 */
 #define AT91SAM9N12_ID_TWI1	10	/* Two-Wire Interface 1 */
 /* Reserved			11	*/
-#define AT91SAM9N12_ID_MCI0	12	/* High Speed Multimedia Card Interface 0 */
+#define AT91SAM9N12_ID_MCI	12	/* High Speed Multimedia Card Interface 0 */
 #define AT91SAM9N12_ID_SPI0	13	/* Serial Peripheral Interface 0 */
 #define AT91SAM9N12_ID_SPI1	14	/* Serial Peripheral Interface 1 */
 #define AT91SAM9N12_ID_UART0	15	/* UART 0 */
@@ -151,8 +151,8 @@
 #define AT_DMA_ID_TWI1_RX	16
 #define AT_DMA_ID_UART0_TX	17
 #define AT_DMA_ID_UART0_RX	18
-#define AT_DMA_ID_UART0_TX	19
-#define AT_DMA_ID_UART0_RX	20
+#define AT_DMA_ID_UART1_TX	19
+#define AT_DMA_ID_UART1_RX	20
 #define AT_DMA_ID_SSC_TX	21
 #define AT_DMA_ID_SSC_RX	22
 #define AT_DMA_ID_ADC_RX	23
