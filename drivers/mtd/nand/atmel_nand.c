@@ -174,7 +174,7 @@ struct atmel_nand_host {
 static int cpu_has_dma(void)
 {
 	return cpu_is_at91sam9rl() || cpu_is_at91sam9g45()
-	       || cpu_is_at91sam9x5();
+	       || cpu_is_at91sam9x5() || cpu_is_at91sam9n12();
 }
 
 /*
