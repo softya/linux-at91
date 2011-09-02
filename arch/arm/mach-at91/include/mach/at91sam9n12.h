@@ -120,9 +120,7 @@
 #define AT91SAM9N12_ROM_SIZE	SZ_1M		/* Internal ROM size (1Mb) */
 
 #define AT91SAM9N12_SMD_BASE	0x00400000	/* SMD Controller */
-/* eric REVISIT: not clear in current datasheet, need to confirm */
-#define AT91SAM9N12_UDPFS_FIFO	0x00500000	/* USB Device FS controller */
-#define AT91SAM9N12_OHCI_BASE	0x00600000	/* USB Host controller (OHCI) */
+#define AT91SAM9N12_OHCI_BASE	0x00500000	/* USB Host controller (OHCI) */
 
 #define CONFIG_DRAM_BASE	AT91_CHIPSELECT_1
 
