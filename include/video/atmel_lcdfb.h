@@ -80,18 +80,21 @@ struct atmel_lcdfb_info {
 	struct backlight_device	*backlight;
 	u8			bl_power;
 #endif
-	bool			lcdcon_is_backlight;
-	bool			lcdcon_pol_negative;
-	bool			alpha_enabled;
-	u8			saved_lcdcon;
-
-	u8			default_bpp;
-	u8			lcd_wiring_mode;
-	unsigned int		default_lcdcon2;
-	unsigned int		default_dmacon;
+	bool		lcdcon_is_backlight;
+	bool		lcdcon_pol_negative;
+	bool		alpha_enabled;
+	u8		saved_lcdcon;
+	u8		pixel_clock_polarity;
+	u8		pwm_clock_select;
+	u8		pwm_clock_prescaler;
+	u8		pwm_polarity;
+	u8		default_bpp;
+	u8		lcd_wiring_mode;
+	unsigned int	default_lcdcon2;
+	unsigned int	default_dmacon;
 	void (*atmel_lcdfb_power_control)(int on);
 	struct fb_monspecs	*default_monspecs;
-	u32			pseudo_palette[16];
+	u32		pseudo_palette[16];
 };
 
 #define lcdc_readl(sinfo, reg)		__raw_readl((sinfo)->mmio+(reg))
