@@ -250,18 +250,17 @@ static void __init ek_add_device_nand(void)
 /*
  * LCD Controller
  */
-/* eric REVISIT */
 #if defined(CONFIG_FB_ATMEL) || defined(CONFIG_FB_ATMEL_MODULE)
 static struct fb_videomode at91_tft_vga_modes[] = {
 	{
-		.name           = "LG",
+		.name		= "QD",
 		.refresh	= 60,
-		.xres		= 480,		.yres		= 272,
+		.xres		= 480,		.yres	= 272,
 		.pixclock	= KHZ2PICOS(9000),
 
-		.left_margin	= 1,		.right_margin	= 1,
-		.upper_margin	= 40,		.lower_margin	= 1,
-		.hsync_len	= 45,		.vsync_len	= 1,
+		.left_margin	= 8,		.right_margin	= 43,
+		.upper_margin	= 4,		.lower_margin	= 12,
+		.hsync_len	= 5,		.vsync_len	= 10,
 
 		.sync		= 0,
 		.vmode		= FB_VMODE_NONINTERLACED,
@@ -269,8 +268,8 @@ static struct fb_videomode at91_tft_vga_modes[] = {
 };
 
 static struct fb_monspecs at91fb_default_monspecs = {
-	.manufacturer	= "LG",
-	.monitor        = "LB043WQ1",
+	.manufacturer	= "QD",
+	.monitor        = "QD43003C1",
 
 	.modedb		= at91_tft_vga_modes,
 	.modedb_len	= ARRAY_SIZE(at91_tft_vga_modes),
@@ -282,21 +281,23 @@ static struct fb_monspecs at91fb_default_monspecs = {
 
 /* Default output mode is TFT 24 bit */
 #define AT91SAM9N12_DEFAULT_LCDCFG5	(LCDC_LCDCFG5_MODE_OUTPUT_24BPP)
-
 /* Driver datas */
 static struct atmel_lcdfb_info __initdata ek_lcdc_data = {
 	.lcdcon_is_backlight		= true,
 	.alpha_enabled			= false,
+	.pixel_clock_polarity		= 0,
+	.pwm_clock_select		= LCDC_LCDCFG0_CLKPWMSEL,
+	.pwm_clock_prescaler		= LCDC_LCDCFG6_PWMPS_DIV_64,
+	.pwm_polarity			= LCDC_LCDCFG6_PWMPOL,
 	.default_bpp			= 16,
-	/* Reserve enough memory for 32bpp */
-	.smem_len			= 800 * 480 * 4,
-	/* In AT91SAM9N12 default_lcdcon2 is used for LCDCFG5 */
+	/* For 32bpp */
+	.smem_len			= 480 * 272 * 4,
+	/* default_lcdcon2 -> LCDCFG5 */
 	.default_lcdcon2		= AT91SAM9N12_DEFAULT_LCDCFG5,
 	.default_monspecs		= &at91fb_default_monspecs,
 	.guard_time			= 9,
 	.lcd_wiring_mode		= ATMEL_LCDC_WIRING_RGB,
 };
-
 #else
 static struct atmel_lcdfb_info __initdata ek_lcdc_data;
 #endif
@@ -454,6 +455,7 @@ static void __init ek_board_init(void)
 	/* KS8851 ethernet */
 	ek_add_device_ks8851();
 	/* LCD Controller */
+	at91_set_gpio_output(AT91_PIN_PC25, 0); /* Enable LCD power*/
 	at91_add_device_lcdc(&ek_lcdc_data);
 	/* Touch Screen */
 	at91_add_device_tsadcc(&ek_tsadcc_data);

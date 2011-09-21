@@ -624,7 +624,6 @@ void __init at91_add_device_spi(struct spi_board_info *devices, int nr_devices) 
 /* --------------------------------------------------------------------
  *  LCD Controller
  * -------------------------------------------------------------------- */
-/* eric REVISIT */
 #if defined(CONFIG_FB_ATMEL) || defined(CONFIG_FB_ATMEL_MODULE)
 static u64 lcdc_dmamask = DMA_BIT_MASK(32);
 static struct atmel_lcdfb_info lcdc_data;
@@ -648,7 +647,7 @@ static struct resource lcdc_base_resources[] = {
 };
 
 static struct platform_device at91_lcdc_base_device = {
-	.name		= "atmel_hlcdfb_base",  /* eric REVISIT driver name */
+	.name		= "atmel_hlcdfb_base",
 	.id		= 0,
 	.dev		= {
 				.dma_mask		= &lcdc_dmamask,
@@ -664,7 +663,7 @@ void __init at91_add_device_lcdc(struct atmel_lcdfb_info *data)
 	if (!data)
 		return;
 
-/* eric REVISIT Pin definition */
+	/* Pin definition */
 	at91_set_A_periph(AT91_PIN_PC26, 0);	/* LCDPWM */
 
 	at91_set_A_periph(AT91_PIN_PC27, 0);	/* LCDVSYNC */
@@ -674,7 +673,7 @@ void __init at91_add_device_lcdc(struct atmel_lcdfb_info *data)
 	at91_set_A_periph(AT91_PIN_PC29, 0);	/* LCDDEN */
 	at91_set_A_periph(AT91_PIN_PC30, 0);	/* LCDPCK */
 
-	/* at91_set_A_periph(AT91_PIN_PC0, 0);*/	/* LCDD0 */
+	at91_set_A_periph(AT91_PIN_PC0, 0);	/* LCDD0 */
 	at91_set_A_periph(AT91_PIN_PC1, 0);	/* LCDD1 */
 	at91_set_A_periph(AT91_PIN_PC2, 0);	/* LCDD2 */
 	at91_set_A_periph(AT91_PIN_PC3, 0);	/* LCDD3 */
