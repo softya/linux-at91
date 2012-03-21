@@ -240,7 +240,7 @@ ohci_at91_start (struct usb_hcd *hcd)
 
 static void ohci_at91_usb_set_power(struct at91_usbh_data *pdata, int port, int enable)
 {
-	if (port < 0 || port >= 2)
+	if (port < 0 || port >= ARRAY_SIZE(pdata->vbus_pin))
 		return;
 
 	if (!gpio_is_valid(pdata->vbus_pin[port]))
@@ -252,7 +252,7 @@ static void ohci_at91_usb_set_power(struct at91_usbh_data *pdata, int port, int 
 
 static int ohci_at91_usb_get_power(struct at91_usbh_data *pdata, int port)
 {
-	if (port < 0 || port >= 2)
+	if (port < 0 || port >= ARRAY_SIZE(pdata->vbus_pin))
 		return -EINVAL;
 
 	if (!gpio_is_valid(pdata->vbus_pin[port]))
@@ -301,7 +301,11 @@ static int ohci_at91_hub_control(struct usb_hcd *hcd, u16 typeReq, u16 wValue,
 	case SetPortFeature:
 		if (wValue == USB_PORT_FEAT_POWER) {
 			dev_dbg(hcd->self.controller, "SetPortFeat: POWER\n");
-			ohci_at91_usb_set_power(pdata, wIndex - 1, 1);
+			if (wIndex && wIndex <= ARRAY_SIZE(pdata->vbus_pin)) {
+				ohci_at91_usb_set_power(pdata, wIndex - 1, 1);
+				ret = 0;
+			}
+
 			goto out;
 		}
 		break;
@@ -312,7 +316,7 @@ static int ohci_at91_hub_control(struct usb_hcd *hcd, u16 typeReq, u16 wValue,
 			dev_dbg(hcd->self.controller,
 				"ClearPortFeature: C_OVER_CURRENT\n");
 
-			if (wIndex == 1 || wIndex == 2) {
+			if (wIndex && wIndex <= ARRAY_SIZE(pdata->vbus_pin)) {
 				pdata->overcurrent_changed[wIndex-1] = 0;
 				pdata->overcurrent_status[wIndex-1] = 0;
 			}
@@ -323,7 +327,7 @@ static int ohci_at91_hub_control(struct usb_hcd *hcd, u16 typeReq, u16 wValue,
 			dev_dbg(hcd->self.controller,
 				"ClearPortFeature: OVER_CURRENT\n");
 
-			if (wIndex == 1 || wIndex == 2) {
+			if (wIndex && wIndex <= ARRAY_SIZE(pdata->vbus_pin)) {
 				pdata->overcurrent_status[wIndex-1] = 0;
 			}
 
@@ -333,7 +337,7 @@ static int ohci_at91_hub_control(struct usb_hcd *hcd, u16 typeReq, u16 wValue,
 			dev_dbg(hcd->self.controller,
 				"ClearPortFeature: POWER\n");
 
-			if (wIndex == 1 || wIndex == 2) {
+			if (wIndex && wIndex <= ARRAY_SIZE(pdata->vbus_pin)) {
 				ohci_at91_usb_set_power(pdata, wIndex - 1, 0);
 				return 0;
 			}
@@ -377,7 +381,7 @@ static int ohci_at91_hub_control(struct usb_hcd *hcd, u16 typeReq, u16 wValue,
 
 		dev_dbg(hcd->self.controller, "GetPortStatus(%d)\n", wIndex);
 
-		if (wIndex == 1 || wIndex == 2) {
+		if (wIndex && wIndex <= ARRAY_SIZE(pdata->vbus_pin)) {
 			if (! ohci_at91_usb_get_power(pdata, wIndex-1)) {
 				*data &= ~cpu_to_le32(RH_PS_PPS);
 			}
@@ -514,7 +518,7 @@ static int __devinit ohci_at91_of_init(struct platform_device *pdev)
 	if (!of_property_read_u32(np, "num-ports", &ports))
 		pdata->ports = ports;
 
-	for (i = 0; i < 2; i++) {
+	for (i = 0; i < ARRAY_SIZE(pdata->vbus_pin); i++) {
 		gpio = of_get_named_gpio_flags(np, "atmel,vbus-gpio", i, &flags);
 		pdata->vbus_pin[i] = gpio;
 		if (!gpio_is_valid(gpio))
@@ -522,7 +526,7 @@ static int __devinit ohci_at91_of_init(struct platform_device *pdev)
 		pdata->vbus_pin_active_low[i] = flags & OF_GPIO_ACTIVE_LOW;
 	}
 
-	for (i = 0; i < 2; i++)
+	for (i = 0; i < ARRAY_SIZE(pdata->overcurrent_pin); i++)
 		pdata->overcurrent_pin[i] =
 			of_get_named_gpio_flags(np, "atmel,oc-gpio", i, &flags);
 
