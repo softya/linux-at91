@@ -327,9 +327,8 @@ static int ohci_at91_hub_control(struct usb_hcd *hcd, u16 typeReq, u16 wValue,
 			dev_dbg(hcd->self.controller,
 				"ClearPortFeature: OVER_CURRENT\n");
 
-			if (wIndex && wIndex <= ARRAY_SIZE(pdata->vbus_pin)) {
+			if (wIndex && wIndex <= ARRAY_SIZE(pdata->vbus_pin))
 				pdata->overcurrent_status[wIndex-1] = 0;
-			}
 
 			goto out;
 
@@ -382,17 +381,14 @@ static int ohci_at91_hub_control(struct usb_hcd *hcd, u16 typeReq, u16 wValue,
 		dev_dbg(hcd->self.controller, "GetPortStatus(%d)\n", wIndex);
 
 		if (wIndex && wIndex <= ARRAY_SIZE(pdata->vbus_pin)) {
-			if (! ohci_at91_usb_get_power(pdata, wIndex-1)) {
+			if (! ohci_at91_usb_get_power(pdata, wIndex-1))
 				*data &= ~cpu_to_le32(RH_PS_PPS);
-			}
 
-			if (pdata->overcurrent_changed[wIndex-1]) {
+			if (pdata->overcurrent_changed[wIndex-1])
 				*data |= cpu_to_le32(RH_PS_OCIC);
-			}
 
-			if (pdata->overcurrent_status[wIndex-1]) {
+			if (pdata->overcurrent_status[wIndex-1])
 				*data |= cpu_to_le32(RH_PS_POCI);
-			}
 		}
 	}
 
