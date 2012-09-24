@@ -1660,6 +1660,8 @@ err_scan_tail:
 		pmecc_writel(host->ecc, CTRL, PMECC_CTRL_DISABLE);
 		pmecc_data_free(host);
 	}
+
+err_ecc_ioremap:
 	if (host->ecc)
 		iounmap(host->ecc);
 	if (host->pmerrloc_base)
