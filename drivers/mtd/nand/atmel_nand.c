@@ -45,7 +45,7 @@
 
 #include <mach/cpu.h>
 
-static int use_dma = 1;
+static int use_dma;
 module_param(use_dma, int, 0);
 
 static int on_flash_bbt = 0;
@@ -91,6 +91,9 @@ struct atmel_nfc {
 	void __iomem		*hsmc_regs;
 	void __iomem		*sram_bank0;
 	void __iomem		*sram_bank1;
+
+	/* Point to the sram bank which include readed data via NFC */
+	void __iomem		*data_in_sram;
 };
 
 struct atmel_nand_host {
@@ -106,6 +109,7 @@ struct atmel_nand_host {
 	struct dma_chan		*dma_chan;
 
 	bool			has_nfc;
+	bool			use_nfc_sram;
 	struct atmel_nfc	nfc;
 
 	bool			has_pmecc;
@@ -207,15 +211,27 @@ static int atmel_nand_device_ready(struct mtd_info *mtd)
 static void atmel_read_buf8(struct mtd_info *mtd, u8 *buf, int len)
 {
 	struct nand_chip	*nand_chip = mtd->priv;
+	struct atmel_nand_host *host = nand_chip->priv;
 
-	__raw_readsb(nand_chip->IO_ADDR_R, buf, len);
+	if (host->use_nfc_sram && host->nfc.data_in_sram) {
+		memcpy(buf, host->nfc.data_in_sram, len);
+		host->nfc.data_in_sram += len;
+	} else {
+		__raw_readsb(nand_chip->IO_ADDR_R, buf, len);
+	}
 }
 
 static void atmel_read_buf16(struct mtd_info *mtd, u8 *buf, int len)
 {
 	struct nand_chip	*nand_chip = mtd->priv;
+	struct atmel_nand_host *host = nand_chip->priv;
 
-	__raw_readsw(nand_chip->IO_ADDR_R, buf, len / 2);
+	if (host->use_nfc_sram && host->nfc.data_in_sram) {
+		memcpy(buf, host->nfc.data_in_sram, len);
+		host->nfc.data_in_sram += len;
+	} else {
+		__raw_readsw(nand_chip->IO_ADDR_R, buf, len / 2);
+	}
 }
 
 static void atmel_write_buf8(struct mtd_info *mtd, const u8 *buf, int len)
@@ -779,13 +795,15 @@ static int atmel_nand_pmecc_read_page(struct mtd_info *mtd,
 	unsigned long end_time;
 	int bitflips = 0;
 
-	pmecc_writel(host->ecc, CTRL, PMECC_CTRL_RST);
-	pmecc_writel(host->ecc, CTRL, PMECC_CTRL_DISABLE);
-	pmecc_writel(host->ecc, CFG, (pmecc_readl_relaxed(host->ecc, CFG)
-		& ~PMECC_CFG_WRITE_OP) | PMECC_CFG_AUTO_ENABLE);
+	if (!host->use_nfc_sram) {
+		pmecc_writel(host->ecc, CTRL, PMECC_CTRL_RST);
+		pmecc_writel(host->ecc, CTRL, PMECC_CTRL_DISABLE);
+		pmecc_writel(host->ecc, CFG, (pmecc_readl_relaxed(host->ecc, CFG)
+			& ~PMECC_CFG_WRITE_OP) | PMECC_CFG_AUTO_ENABLE);
 
-	pmecc_writel(host->ecc, CTRL, PMECC_CTRL_ENABLE);
-	pmecc_writel(host->ecc, CTRL, PMECC_CTRL_DATA);
+		pmecc_writel(host->ecc, CTRL, PMECC_CTRL_ENABLE);
+		pmecc_writel(host->ecc, CTRL, PMECC_CTRL_DATA);
+	}
 
 	chip->read_buf(mtd, buf, eccsize);
 	chip->read_buf(mtd, oob, mtd->oobsize);
@@ -1343,6 +1361,7 @@ static int atmel_of_init_port(struct atmel_nand_host *host,
 
 	host->has_pmecc = of_property_read_bool(np, "atmel,has-pmecc");
 	host->has_nfc = of_property_read_bool(np, "atmel,has-nfc");
+	host->use_nfc_sram = of_property_read_bool(np, "atmel,use-nfc-sram");
 
 	if (!(board->ecc_mode == NAND_ECC_HW) || !host->has_pmecc)
 		return 0;	/* Not using PMECC */
@@ -1643,6 +1662,15 @@ static int __init atmel_nand_probe(struct platform_device *pdev)
 
 		if (res != 0)
 			goto err_hw_ecc;
+	}
+
+	/* initialize the nfc configuration register */
+	if (host->has_nfc && host->use_nfc_sram) {
+		res = atmel_nfc_sram_init(mtd);
+		if (res) {
+			host->use_nfc_sram = false;
+			dev_err(host->dev, "Disable use nfc sram for data transfer.\n");
+		}
 	}
 
 	/* second phase scan */
