@@ -32,6 +32,30 @@
 #define ADC_DEFAULT_CLOCK	100000
 #define ZTHRESHOLD		3200
 
+#ifdef CONFIG_ANDROID
+int calibrated;
+int tx1;
+int ty1;
+int tz1;
+int tx2;
+int ty2;
+int tz2;
+int rawX;
+int rawY;
+int ts;
+
+module_param(tx1, int, 0664);
+module_param(ty1, int, 0664);
+module_param(tz1, int, 0664);
+module_param(tx2, int, 0664);
+module_param(ty2, int, 0664);
+module_param(tz2, int, 0664);
+module_param(rawX, int, 0664);
+module_param(rawY, int, 0664);
+module_param(ts, int, 0664);
+module_param(calibrated, int, 0664);
+#endif
+
 struct atmel_tsadcc {
 	struct input_dev	*input;
 	char			phys[32];
@@ -60,6 +84,29 @@ static void atmel_tsadcc_dump_conf(struct platform_device *pdev)
 	dev_info(&pdev->dev, "---------------------\n");
 }
 
+#ifdef CONFIG_ANDROID
+static void do_calibrate(int *x, int *y)
+{
+	int cal_x, cal_y;
+	rawX = *x;
+	rawY = *y;
+
+	cal_x = *x;
+	cal_y = *y;
+
+	if (calibrated && ts) {
+		cal_x = (rawX * tx1 + rawY * ty1 + tz1)/ts ;
+		cal_y = (rawX * tx2 + rawY * ty2 + tz2)/ts ;
+	}
+	*x = cal_x;
+	*y = cal_y;
+}
+#else
+static void do_calibrate(int *x, int *y)
+{
+}
+#endif
+
 static irqreturn_t atmel_tsadcc_interrupt(int irq, void *dev)
 {
 	struct atmel_tsadcc	*ts_dev = (struct atmel_tsadcc *)dev;
@@ -69,6 +116,7 @@ static irqreturn_t atmel_tsadcc_interrupt(int irq, void *dev)
 	unsigned int status;
 	unsigned int reg;
 	unsigned int z1, z2;
+	unsigned int absx = 0, absy = 0;
 	unsigned int Rxp = 1;
 	unsigned int factor = 1000;
 
@@ -159,8 +207,15 @@ static irqreturn_t atmel_tsadcc_interrupt(int irq, void *dev)
 					"x = %d, y = %d, pressure = %d\n",
 					ts_dev->prev_absx, ts_dev->prev_absy,
 					ts_dev->prev_absz);
-			input_report_abs(input_dev, ABS_X, ts_dev->prev_absx);
-			input_report_abs(input_dev, ABS_Y, ts_dev->prev_absy);
+
+			absx = ts_dev->prev_absx;
+			absy = ts_dev->prev_absy;
+
+			do_calibrate(&absx, &absy);
+
+			input_report_abs(input_dev, ABS_X, absx);
+			input_report_abs(input_dev, ABS_Y, absy);
+
 			if (cpu_has_9x5_adc())
 				input_report_abs(input_dev, ABS_PRESSURE, ts_dev->prev_absz);
 			input_report_key(input_dev, BTN_TOUCH, 1);
@@ -310,6 +365,10 @@ static int __devinit atmel_tsadcc_probe(struct platform_device *pdev)
 	input_dev->name = "atmel touch screen controller";
 	input_dev->phys = ts_dev->phys;
 	input_dev->dev.parent = &pdev->dev;
+
+#ifdef CONFIG_ANDROID
+	calibrated = 0;
+#endif
 
 	__set_bit(EV_ABS, input_dev->evbit);
 	input_set_abs_params(input_dev, ABS_X, 0, 0x3FF, 0, 0);
