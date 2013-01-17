@@ -135,7 +135,7 @@ config HAS_EARLYSUSPEND
 
 config EARLYSUSPEND
     bool "Early suspend"
-    depends on PM_WAKELOCKS
+    depends on PM_RUNTIME
     default y
     select HAS_EARLYSUSPEND
     ---help---
