@@ -1005,6 +1005,37 @@ usba_udc_set_selfpowered(struct usb_gadget *gadget, int is_selfpowered)
 	return 0;
 }
 
+#ifdef CONFIG_ANDROID
+static int udc_pullup(struct usba_udc *udc, int is_on)
+{
+	unsigned long flags;
+	u32 ctrl;
+	u32 value;
+
+	spin_lock_irqsave(&udc->lock, flags);
+	ctrl = usba_readl(udc, CTRL);
+	ctrl = ctrl & (~USBA_DETACH);
+
+	if (is_on)
+		value = USBA_ENABLE_MASK;
+	else
+		value = USBA_DISABLE_MASK;
+
+	usba_writel(udc, CTRL, ctrl | value);
+	spin_unlock_irqrestore(&udc->lock, flags);
+
+	return 0;
+}
+
+static int
+atmel_usba_pullup(struct usb_gadget *gadget, int is_on)
+{
+	struct usba_udc *udc = to_usba_udc(gadget);
+
+	return udc_pullup(udc, is_on);
+}
+#endif
+
 static int atmel_usba_start(struct usb_gadget *gadget,
 		struct usb_gadget_driver *driver);
 static int atmel_usba_stop(struct usb_gadget *gadget,
@@ -1013,6 +1044,9 @@ static const struct usb_gadget_ops usba_udc_ops = {
 	.get_frame		= usba_udc_get_frame,
 	.wakeup			= usba_udc_wakeup,
 	.set_selfpowered	= usba_udc_set_selfpowered,
+#ifdef CONFIG_ANDROID
+	.pullup			= atmel_usba_pullup,
+#endif
 	.udc_start		= atmel_usba_start,
 	.udc_stop		= atmel_usba_stop,
 };
@@ -1817,9 +1851,14 @@ static int atmel_usba_start(struct usb_gadget *gadget,
 	/* If Vbus is present, enable the controller and wait for reset */
 	spin_lock_irqsave(&udc->lock, flags);
 	if (vbus_is_present(udc) && udc->vbus_prev == 0) {
+#ifndef CONFIG_ANDROID
 		toggle_bias(1);
 		usba_writel(udc, CTRL, USBA_ENABLE_MASK);
 		usba_writel(udc, INT_ENB, USBA_END_OF_RESET);
+#else
+		/* the vbus status should be changed */
+		udc->vbus_prev = 1;
+#endif
 	}
 	spin_unlock_irqrestore(&udc->lock, flags);
 
