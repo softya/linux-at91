@@ -372,7 +372,8 @@ static int atmel_hlcdfb_setup_core_ovl(struct fb_info *info)
 	}
 
 	lcdc_writel(sinfo, ATMEL_LCDC_OVRCFG0,
-			LCDC_OVRCFG0_BLEN_AHB_INCR16 | LCDC_OVRCFG0_DLBO);
+			LCDC_OVRCFG0_SIF | LCDC_OVRCFG0_BLEN_AHB_INCR16
+			| LCDC_OVRCFG0_DLBO);
 	lcdc_writel(sinfo, ATMEL_LCDC_OVRCFG1,
 			atmel_hlcdfb_get_rgbmode(info));
 	lcdc_writel(sinfo, ATMEL_LCDC_OVRCFG2, xpos |
