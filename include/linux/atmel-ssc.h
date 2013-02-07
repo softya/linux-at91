@@ -72,6 +72,8 @@ void ssc_free(struct ssc_device *ssc);
 #define SSC_RFMR_FSEDGE_OFFSET			24
 #define SSC_RFMR_FSLEN_SIZE			 4
 #define SSC_RFMR_FSLEN_OFFSET			16
+#define SSC_RFMR_FSLEN_EXT_SIZE			 4
+#define SSC_RFMR_FSLEN_EXT_OFFSET		28
 #define SSC_RFMR_FSOS_SIZE			 4
 #define SSC_RFMR_FSOS_OFFSET			20
 #define SSC_RFMR_LOOP_SIZE			 1
@@ -110,6 +112,8 @@ void ssc_free(struct ssc_device *ssc);
 #define SSC_TFMR_FSEDGE_OFFSET			24
 #define SSC_TFMR_FSLEN_SIZE			 4
 #define SSC_TFMR_FSLEN_OFFSET			16
+#define SSC_TFMR_FSLEN_EXT_SIZE			 4
+#define SSC_TFMR_FSLEN_EXT_OFFSET		28
 #define SSC_TFMR_FSOS_SIZE			 3
 #define SSC_TFMR_FSOS_OFFSET			20
 #define SSC_TFMR_MSBF_SIZE			 1
