@@ -31,7 +31,7 @@
 #include "../codecs/wm8904.h"
 #include "atmel_ssc_dai.h"
 
-#define MCLK_RATE 32768
+#define MCLK_RATE 12000000
 
 static struct clk *mclk;
 
@@ -45,17 +45,47 @@ static int sama5d3_hw_params(struct snd_pcm_substream *substream,
 	struct snd_pcm_hw_params *params)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
+	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
 	struct snd_soc_dai *codec_dai = rtd->codec_dai;
+	struct clk *mclk;
+	unsigned long mclk_rate;
+	int bclk_rate, bclk_div, period;
 	int ret;
 
-	ret = snd_soc_dai_set_pll(codec_dai, WM8904_FLL_MCLK, WM8904_FLL_MCLK,
-		32768, params_rate(params) * 256);
+	mclk = clk_get(NULL, "mck");
+	if (IS_ERR(mclk)) {
+		pr_err("%s - Failed to get mck\n", __func__);
+		return -ENODEV;
+	}
+
+	mclk_rate = clk_get_rate(mclk);
+
+	bclk_rate = snd_soc_params_to_bclk(params);
+	if (bclk_rate < 0) {
+		pr_err("%s - Failed to get bclk\n", __func__);
+		return -EINVAL;
+	}
+
+	bclk_div = (mclk_rate / 4) / bclk_rate;
+	ret = snd_soc_dai_set_clkdiv(cpu_dai, ATMEL_SSC_CMR_DIV, bclk_div);
 	if (ret < 0) {
-		pr_err("%s - Failed to set CODEC PLL.", __func__);
+		pr_err("%s - Failed to set cpu dai clk divider\n", __func__);
 		return ret;
 	}
 
-	ret = snd_soc_dai_set_sysclk(codec_dai, WM8904_CLK_FLL,
+	period = (bclk_rate / params_rate(params)) / 2 - 1;
+	ret = snd_soc_dai_set_clkdiv(cpu_dai, ATMEL_SSC_TCMR_PERIOD, period);
+	if (ret < 0) {
+		pr_err("%s - Failed to set cpu dai lrclk divider\n", __func__);
+		return ret;
+	}
+	ret = snd_soc_dai_set_clkdiv(cpu_dai, ATMEL_SSC_RCMR_PERIOD, period);
+	if (ret < 0) {
+		pr_err("%s - Failed to set cpu dai lrclk divider\n", __func__);
+		return ret;
+	}
+
+	ret = snd_soc_dai_set_sysclk(codec_dai, WM8904_CLK_MCLK,
 		12000000, SND_SOC_CLOCK_IN);
 	if (ret < 0) {
 		pr_err("%s - Failed to set WM8904 SYSCLK\n", __func__);
@@ -87,7 +117,7 @@ static struct snd_soc_dai_link sama5d3ek_dai = {
 	.codec_dai_name = "wm8904-hifi",
 	.dai_fmt = SND_SOC_DAIFMT_I2S
 		| SND_SOC_DAIFMT_NB_NF
-		| SND_SOC_DAIFMT_CBM_CFM,
+		| SND_SOC_DAIFMT_CBS_CFS,
 	.ops = &sama5d3_soc_ops,
 };
 
@@ -179,9 +209,9 @@ static int sama5d3ek_wm8904_probe(struct platform_device *pdev)
 		goto err_set_audio;
 	}
 
-	clk_src = clk_get(NULL, "clk32k");
+	clk_src = clk_get(NULL, "main");
 	if (IS_ERR(clk_src)) {
-		dev_err(&pdev->dev, "failed to get clk32k\n");
+		dev_err(&pdev->dev, "failed to get main clock\n");
 		ret = PTR_ERR(clk_src);
 		goto err_set_audio;
 	}
