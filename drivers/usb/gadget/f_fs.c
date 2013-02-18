@@ -1194,17 +1194,21 @@ ffs_fs_mount(struct file_system_type *t, int flags,
 	if (unlikely(ret < 0))
 		return ERR_PTR(ret);
 
+#ifndef CONFIG_ANDROID
 	ffs_dev = functionfs_acquire_dev_callback(dev_name);
 	if (IS_ERR(ffs_dev))
 		return ffs_dev;
+#endif
 
 	data.dev_name = dev_name;
 	data.private_data = ffs_dev;
 	rv = mount_nodev(t, flags, &data, ffs_sb_fill);
 
+#ifndef CONFIG_ANDROID
 	/* data.ffs_data is set by ffs_sb_fill */
 	if (IS_ERR(rv))
 		functionfs_release_dev_callback(data.ffs_data);
+#endif
 
 	return rv;
 }
@@ -1216,7 +1220,9 @@ ffs_fs_kill_sb(struct super_block *sb)
 
 	kill_litter_super(sb);
 	if (sb->s_fs_info) {
+#ifndef CONFIG_ANDROID
 		functionfs_release_dev_callback(sb->s_fs_info);
+#endif
 		ffs_data_put(sb->s_fs_info);
 	}
 }
