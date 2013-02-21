@@ -500,9 +500,26 @@ static int atmel_hlcdfb_resume(struct platform_device *pdev)
 	return 0;
 }
 
+static void atmel_hlcdfb_shutdown(struct platform_device *pdev)
+{
+	const struct platform_device_id *id = platform_get_device_id(pdev);
+	struct fb_info *info = platform_get_drvdata(pdev);
+	struct atmel_lcdfb_info *sinfo = info->par;
+
+	if (strcmp(id->name, "atmel_hlcdfb_base"))
+		return;
+
+	if (sinfo->atmel_lcdfb_power_control)
+		sinfo->atmel_lcdfb_power_control(0);
+
+	atmel_hlcdfb_stop(sinfo, ATMEL_LCDC_STOP_NOWAIT);
+	atmel_lcdfb_stop_clock(sinfo);
+
+}
 #else
 #define atmel_hlcdfb_suspend	NULL
 #define atmel_hlcdfb_resume	NULL
+#define atmel_hlcdfb_shutdown   NULL
 #endif
 
 static struct atmel_lcdfb_devdata dev_data_base = {
@@ -546,6 +563,7 @@ static int __exit atmel_hlcdfb_remove(struct platform_device *pdev)
 
 static struct platform_driver atmel_hlcdfb_driver = {
 	.remove		= __exit_p(atmel_hlcdfb_remove),
+	.shutdown	= atmel_hlcdfb_shutdown,
 	.suspend	= atmel_hlcdfb_suspend,
 	.resume		= atmel_hlcdfb_resume,
 
