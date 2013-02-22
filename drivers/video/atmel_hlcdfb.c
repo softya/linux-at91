@@ -37,6 +37,10 @@ struct atmel_hlcd_dma_desc {
 	u32	next;
 };
 
+extern unsigned int frame_update_done;
+extern spinlock_t lock;
+extern wait_queue_head_t wait;
+
 static void atmel_hlcdfb_update_dma_base(struct fb_info *info,
 
 			       struct fb_var_screeninfo *var)
@@ -58,12 +62,23 @@ static void atmel_hlcdfb_update_dma_base(struct fb_info *info,
 	/* Disable DMA transfer interrupt & descriptor loaded interrupt. */
 	desc->control = LCDC_BASECTRL_ADDIEN | LCDC_BASECTRL_DSCRIEN
 			| LCDC_BASECTRL_DMAIEN | LCDC_BASECTRL_DFETCH;
+	/* Enable End of DMA transfer interrupt. */
+	desc->control &= (~LCDC_BASECTRL_DMAIEN);
 	desc->next = sinfo->dma_desc_phys;
 
 	lcdc_writel(sinfo, ATMEL_LCDC_BASEADDR, dma_addr);
 	lcdc_writel(sinfo, ATMEL_LCDC_BASECTRL, desc->control);
 	lcdc_writel(sinfo, ATMEL_LCDC_BASENEXT, sinfo->dma_desc_phys);
 	lcdc_writel(sinfo, ATMEL_LCDC_BASECHER, LCDC_BASECHER_CHEN | LCDC_BASECHER_UPDATEEN);
+}
+
+static void atmel_hlcdfb_stop_ovl(struct fb_info *info,
+				struct fb_var_screeninfo *var)
+{
+	struct atmel_lcdfb_info *sinfo = info->par;
+	if (!(lcdc_readl(sinfo, ATMEL_LCDC_OVRCHSR) & LCDC_OVRCHSR_CHSR))
+		return;
+	lcdc_writel(sinfo, ATMEL_LCDC_OVRCHDR, LCDC_OVRCHDR_CHDIS);
 }
 
 static void atmel_hlcdfb_update_dma_ovl(struct fb_info *info,
@@ -73,6 +88,8 @@ static void atmel_hlcdfb_update_dma_ovl(struct fb_info *info,
 	struct fb_fix_screeninfo *fix = &info->fix;
 	unsigned long dma_addr;
 	struct atmel_hlcd_dma_desc *desc;
+
+	atmel_hlcdfb_stop_ovl(info, var);
 
 	dma_addr = (fix->smem_start + var->yoffset * fix->line_length
 		    + var->xoffset * var->bits_per_pixel / 8);
@@ -161,8 +178,6 @@ static const struct backlight_ops atmel_hlcdc_bl_ops = {
 
 void atmel_hlcdfb_start(struct atmel_lcdfb_info *sinfo)
 {
-	u32 value;
-
 	lcdc_writel(sinfo, ATMEL_LCDC_LCDEN, LCDC_LCDEN_CLKEN);
 	while (!(lcdc_readl(sinfo, ATMEL_LCDC_LCDSR) & LCDC_LCDSR_CLKSTS))
 		msleep(1);
@@ -236,7 +251,11 @@ static u32 atmel_hlcdfb_get_rgbmode(struct fb_info *info)
 		value = LCDC_BASECFG1_RGBMODE_24BPP_RGB_888_PACKED;
 		break;
 	case 32:
-		value = LCDC_BASECFG1_RGBMODE_32BPP_ARGB_8888;
+		if (info->var.accel_flags)
+			value = LCDC_BASECFG1_RGBMODE_32BPP_ARGB_8888;
+		else
+			value = LCDC_BASECFG1_RGBMODE_32BPP_RGBA_8888;
+
 		break;
 	default:
 		dev_err(info->device, "Cannot set video mode for %dbpp\n",
@@ -322,10 +341,11 @@ static int atmel_hlcdfb_setup_core_base(struct fb_info *info)
 	lcdc_writel(sinfo, ATMEL_LCDC_LCDIDR, ~0UL);
 	lcdc_writel(sinfo, ATMEL_LCDC_BASEIDR, ~0UL);
 	/* Enable BASE LAYER overflow interrupts, if want to enable DMA interrupt, also need set it at LCDC_BASECTRL reg */
-	lcdc_writel(sinfo, ATMEL_LCDC_BASEIER, LCDC_BASEIER_OVR);
+	lcdc_writel(sinfo, ATMEL_LCDC_BASEIER, LCDC_BASEIER_OVR
+		| LCDC_BASEISR_DMA);
 	//FIXME: Let video-driver register a callback
-	lcdc_writel(sinfo, ATMEL_LCDC_LCDIER, LCDC_LCDIER_FIFOERRIE |
-				LCDC_LCDIER_BASEIE | LCDC_LCDIER_HEOIE);
+	lcdc_writel(sinfo, ATMEL_LCDC_LCDIER, LCDC_BASEISR_DMA |
+		LCDC_LCDIER_FIFOERRIE | LCDC_LCDIER_BASEIE | LCDC_LCDIER_HEOIE);
 
 	return 0;
 }
@@ -361,6 +381,8 @@ static int atmel_hlcdfb_setup_core_ovl(struct fb_info *info)
 			(yres << LCDC_OVRCFG3_YSIZE_OFFSET));
 	lcdc_writel(sinfo, ATMEL_LCDC_OVRCFG9, cfg9);
 
+	lcdc_writel(sinfo, ATMEL_LCDC_OVRCHER, LCDC_OVRCHER_CHEN
+					| LCDC_OVRCHER_UPDATEEN);
 	return 0;
 }
 static void atmelfb_limit_screeninfo(struct fb_var_screeninfo *var)
@@ -396,6 +418,7 @@ static irqreturn_t atmel_hlcdfb_interrupt(int irq, void *dev_id)
 	struct fb_info *info = dev_id;
 	struct atmel_lcdfb_info *sinfo = info->par;
 	u32 status, baselayer_status;
+	unsigned long irq_saved;
 
 	/* Check for error status via interrupt.*/
 	status = lcdc_readl(sinfo, ATMEL_LCDC_LCDISR);
@@ -412,6 +435,12 @@ static irqreturn_t atmel_hlcdfb_interrupt(int irq, void *dev_id)
 		if (baselayer_status & LCDC_BASEISR_OVR)
 			dev_warn(info->device, "base layer overflow %#x\n",
 						baselayer_status);
+		else if (baselayer_status & LCDC_BASEISR_DMA) {
+			spin_lock_irqsave(&lock, irq_saved);
+			frame_update_done = 1;
+			wake_up(&wait);
+			spin_unlock_irqrestore(&lock, irq_saved);
+		}
 	}
 
 	return IRQ_HANDLED;
@@ -460,9 +489,12 @@ static int atmel_hlcdfb_resume(struct platform_device *pdev)
 		sinfo->atmel_lcdfb_power_control(1);
 
 	/* Enable fifo error & BASE LAYER overflow interrupts */
-	lcdc_writel(sinfo, ATMEL_LCDC_BASEIER, LCDC_BASEIER_OVR);
-	lcdc_writel(sinfo, ATMEL_LCDC_LCDIER, LCDC_LCDIER_FIFOERRIE |
-				LCDC_LCDIER_BASEIE | LCDC_LCDIER_HEOIE);
+	lcdc_writel(sinfo, ATMEL_LCDC_BASEIER, LCDC_BASEIER_OVR
+					| LCDC_BASEIER_DMA);
+	lcdc_writel(sinfo, ATMEL_LCDC_LCDIER, LCDC_LCDIER_FIFOERRIE
+		| LCDC_LCDIER_BASEIE | LCDC_LCDIER_HEOIE);
+
+	lcdc_writel(sinfo, ATMEL_LCDC_BASECHER, LCDC_BASECHER_CHEN);
 
 	return 0;
 }

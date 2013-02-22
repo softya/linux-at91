@@ -31,6 +31,12 @@
 /* configurable parameters */
 #define ATMEL_LCDC_CVAL_DEFAULT		0xc8
 
+struct atmel_hlcd_dma_desc {
+	u32	address;
+	u32	control;
+	u32	next;
+};
+
 #ifdef CONFIG_BACKLIGHT_ATMEL_LCDC
 
 static void init_backlight(struct atmel_lcdfb_info *sinfo)
@@ -79,6 +85,53 @@ static void exit_backlight(struct atmel_lcdfb_info *sinfo)
 
 #endif
 
+#ifdef CONFIG_ANDROID
+
+unsigned int frame_update_done;
+spinlock_t lock;
+wait_queue_head_t wait;
+
+static int lcdc_is_fb_changed(struct fb_info *info)
+{
+	struct atmel_lcdfb_info *sinfo = info->par;
+
+	if (!sinfo->is_cached ||
+		info->var.xres != sinfo->cached_var_info.xres ||
+		info->var.yres != sinfo->cached_var_info.yres ||
+		info->var.xres_virtual != sinfo->cached_var_info.xres_virtual ||
+		info->var.yres_virtual != sinfo->cached_var_info.yres_virtual
+		) {
+			sinfo->cached_var_info = info->var;
+			sinfo->is_cached = 1;
+
+			return 1;
+	} else {
+		return 0;
+	}
+
+}
+
+static int lcdc_is_ovl_fb_changed(struct fb_info *info)
+{
+	struct atmel_lcdfb_info *sinfo = info->par;
+	if (!sinfo->is_cached ||
+		info->var.nonstd != sinfo->cached_var_info.nonstd ||
+		info->var.xres != sinfo->cached_var_info.xres ||
+		info->var.yres != sinfo->cached_var_info.yres ||
+		info->var.transp.offset !=
+				sinfo->cached_var_info.transp.offset ||
+		info->var.accel_flags != sinfo->cached_var_info.accel_flags) {
+			sinfo->cached_var_info = info->var;
+			sinfo->is_cached = 1;
+
+			return 1;
+	} else {
+		return 0;
+	}
+}
+
+#endif
+
 static struct fb_fix_screeninfo atmel_lcdfb_fix = {
 	.type		= FB_TYPE_PACKED_PIXELS,
 	.visual		= FB_VISUAL_TRUECOLOR,
@@ -113,7 +166,7 @@ static int atmel_lcdfb_alloc_video_memory(struct atmel_lcdfb_info *sinfo)
 	struct fb_var_screeninfo *var = &info->var;
 	unsigned int smem_len;
 
-	smem_len = (var->xres_virtual * var->yres_virtual
+	smem_len = (var->xres_virtual * var->yres_virtual * 2
 		    * ((var->bits_per_pixel + 7) / 8));
 	info->fix.smem_len = max(smem_len, sinfo->smem_len);
 
@@ -213,14 +266,24 @@ static int atmel_lcdfb_check_var(struct fb_var_screeninfo *var,
 	if (var->yres > var->yres_virtual)
 		var->yres_virtual = var->yres;
 
+#ifndef CONFIG_ANDROID
 	/* Force same alignment for each line */
 	var->xres = (var->xres + 3) & ~3UL;
+#endif
 	var->xres_virtual = (var->xres_virtual + 3) & ~3UL;
+
+#ifdef CONFIG_ANDROID
+	if (!strcmp(info->fix.id, "atmel_hlcdfb_bas")
+		&& !lcdc_is_fb_changed(info))
+		return 0;
+#endif
 
 	var->red.msb_right = var->green.msb_right = var->blue.msb_right = 0;
 	var->transp.msb_right = 0;
 	var->transp.offset = var->transp.length = 0;
+#ifndef CONFIG_ANDROID
 	var->xoffset = var->yoffset = 0;
+#endif
 
 	if (info->fix.smem_len) {
 		unsigned int smem_len = (var->xres_virtual * var->yres_virtual
@@ -334,6 +397,15 @@ static int atmel_lcdfb_set_par(struct fb_info *info)
 	dev_dbg(info->device, "  * resolution: %ux%u (%ux%u virtual)\n",
 		 info->var.xres, info->var.yres,
 		 info->var.xres_virtual, info->var.yres_virtual);
+
+#ifdef CONFIG_ANDROID
+	if (!strcmp(info->fix.id, "atmel_hlcdfb_bas")
+		&& !lcdc_is_fb_changed(info))
+		return 0;
+	else if (!strcmp(info->fix.id, "atmel_hlcdfb_ovl")
+		 && !lcdc_is_ovl_fb_changed(info))
+		return 0;
+#endif
 
 	if (sinfo->dev_data->stop)
 		sinfo->dev_data->stop(sinfo, ATMEL_LCDC_STOP_NOWAIT);
@@ -454,10 +526,43 @@ static int atmel_lcdfb_pan_display(struct fb_var_screeninfo *var,
 			       struct fb_info *info)
 {
 	struct atmel_lcdfb_info *sinfo = info->par;
+#ifdef CONFIG_ANDROID
+	unsigned long dma_addr;
+	struct atmel_hlcd_dma_desc *desc;
+	struct fb_fix_screeninfo *fix = &info->fix;
+	unsigned long irq_saved;
+#endif
 
 	dev_dbg(info->device, "%s\n", __func__);
 
+#ifdef CONFIG_ANDROID
+	if (!strcmp(info->fix.id, "atmel_hlcdfb_ovl"))
+		return 0;
+
+	dma_addr = (fix->smem_start + var->yoffset * fix->line_length
+			+ var->xoffset * var->bits_per_pixel / 8);
+
+	dma_addr &= ~3UL;
+	/* Setup the DMA descriptor, this descriptor will loop to itself */
+	desc = sinfo->dma_desc;
+
+	desc->address = dma_addr;
+	/* Disable DMA transfer interrupt & descriptor loaded interrupt. */
+	desc->next = sinfo->dma_desc_phys;
+
+	spin_lock_irqsave(&lock, irq_saved);
+	frame_update_done = 0;
+	spin_unlock_irqrestore(&lock, irq_saved);
+
+	/* 24 frame per second is the lowest limit of the human eye,
+	 (1000/24)ms is the maximum delay time */
+	wait_event_timeout(wait, frame_update_done != 0,
+		msecs_to_jiffies(1000 / 24));
+	if (frame_update_done == 0)
+		dev_dbg(info->device, "... ops, no vsync detected? ...\n");
+#else
 	sinfo->dev_data->update_dma(info, var);
+#endif
 
 	return 0;
 }
@@ -562,6 +667,9 @@ int __atmel_lcdfb_probe(struct platform_device *pdev,
 
 	dev_dbg(dev, "%s BEGIN\n", __func__);
 
+	spin_lock_init(&lock);
+	init_waitqueue_head(&wait);
+
 	ret = -ENOMEM;
 	info = framebuffer_alloc(sizeof(struct atmel_lcdfb_info), dev);
 	if (!info) {
@@ -590,14 +698,15 @@ int __atmel_lcdfb_probe(struct platform_device *pdev,
 	}
 	sinfo->info = info;
 	sinfo->pdev = pdev;
+	sinfo->is_cached = false;
 
-	strcpy(info->fix.id, sinfo->pdev->name);
 	info->flags = dev_data->fbinfo_flags;
 	info->pseudo_palette = sinfo->pseudo_palette;
 	info->fbops = &atmel_lcdfb_ops;
 
 	memcpy(&info->monspecs, sinfo->default_monspecs, sizeof(info->monspecs));
 	info->fix = atmel_lcdfb_fix;
+	strcpy(info->fix.id, sinfo->pdev->name);
 
 	/* Enable LCDC Clocks */
 	if (cpu_is_at91sam9261() || cpu_is_at91sam9g10()
@@ -844,9 +953,10 @@ static int atmel_lcdfb_bus_probe(struct platform_device *pdev)
 {
 	struct pinctrl *pinctrl;
 	struct device *dev = &pdev->dev;
+	struct fb_info *info = dev_get_drvdata(dev);
 
 	pinctrl = devm_pinctrl_get_select_default(dev);
-	if (IS_ERR(pinctrl)) {
+	if (IS_ERR(pinctrl) && !strcmp(info->fix.id, "atmel_hlcdfb_bas")) {
 		dev_err(dev, "Failed to request pinctrl\n");
 		return PTR_ERR(pinctrl);
 	}

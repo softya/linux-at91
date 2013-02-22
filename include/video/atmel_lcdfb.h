@@ -61,6 +61,8 @@ extern int __atmel_lcdfb_remove(struct platform_device *pdev);
 struct atmel_lcdfb_info {
 	spinlock_t		lock;
 	struct fb_info		*info;
+	struct fb_var_screeninfo  cached_var_info;
+	bool                      is_cached;
 	void __iomem		*mmio;
 	void __iomem		*clut;
 	int			irq_base;
