@@ -29,6 +29,11 @@
 #ifdef CONFIG_ANDROID_POWER
 #include <linux/android_power.h>
 #endif
+#define IO_ADDRESS(x) ((x) + IO_BASE)
+
+#define IO_BASE                 0xfe000000
+#define IO_SIZE                 0x00800000
+#define IO_START                0xff000000
 
 #include <mach/hardware.h>
 
