@@ -161,6 +161,19 @@ const struct vb2_mem_ops vb2_dma_contig_memops = {
 };
 EXPORT_SYMBOL_GPL(vb2_dma_contig_memops);
 
+const struct vb2_mem_ops vb2_dma_contig_atmel_isi_memops = {
+	.alloc		= vb2_dma_contig_alloc,
+	.put		= vb2_dma_contig_put,
+	.cookie		= vb2_dma_contig_cookie,
+	.vaddr		= vb2_dma_contig_vaddr,
+	.mmap		= vb2_dma_contig_mmap,
+	.get_userptr	= vb2_dma_contig_get_userptr,
+	.put_userptr	= vb2_dma_contig_put_userptr,
+	.num_users	= vb2_dma_contig_num_users,
+};
+EXPORT_SYMBOL_GPL(vb2_dma_contig_atmel_isi_memops);
+
+
 void *vb2_dma_contig_init_ctx(struct device *dev)
 {
 	struct vb2_dc_conf *conf;

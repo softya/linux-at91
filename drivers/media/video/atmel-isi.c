@@ -27,13 +27,20 @@
 #include <media/soc_camera.h>
 #include <media/soc_mediabus.h>
 #include <media/videobuf2-dma-contig.h>
+#include <media/videobuf2-memops.h>
 
 #define MAX_BUFFER_NUM			32
 #define MAX_SUPPORT_WIDTH		2048
 #define MAX_SUPPORT_HEIGHT		2048
-#define VID_LIMIT_BYTES			(16 * 1024 * 1024)
+/* 3(min buffer count under android) * 640 * 480 * 2 */
+#define VID_LIMIT_BYTES			(1843200)
 #define MIN_FRAME_RATE			15
 #define FRAME_INTERVAL_MILLI_SEC	(1000 / MIN_FRAME_RATE)
+
+/* Allocate dma buf for video buf
+ * We allocate it before android bootup because after android bootup,
+ * allocate will failed as OUT OF MEMORY
+ */
 
 /* ISI states */
 enum {
@@ -41,6 +48,52 @@ enum {
 	ISI_STATE_READY,
 	ISI_STATE_WAIT_SOF,
 };
+
+extern const struct vb2_mem_ops vb2_dma_contig_atmel_isi_memops;
+
+#ifdef CONFIG_ANDROID
+static unsigned long offset;
+struct vb2_vmarea_handler	mmap_handler;
+
+#define call_memop(q, plane, op, args...)				\
+	(((q)->mem_ops->op) ?						\
+		((q)->mem_ops->op(args)) : 0)
+
+struct vb2_dc_conf {
+	struct device		*dev;
+};
+
+struct vb2_dc_buf {
+	struct vb2_dc_conf		*conf;
+	void				*vaddr;
+	dma_addr_t			paddr;
+	unsigned long			size;
+	struct vm_area_struct		*vma;
+	atomic_t			refcount;
+	struct vb2_vmarea_handler	handler;
+};
+
+static void vb2_dma_contig_put(void *buf_priv)
+{
+	struct vb2_dc_buf *buf = buf_priv;
+
+	if (atomic_dec_and_test(&buf->refcount))
+		kfree(buf);
+
+	offset = 0;
+}
+
+static void __vb2_buf_mem_free(struct vb2_buffer *vb)
+{
+	unsigned int plane;
+
+	for (plane = 0; plane < vb->num_planes; ++plane) {
+		struct vb2_dc_buf *buf = vb->planes[plane].mem_priv;
+		atomic_dec_return(&buf->refcount);
+	}
+}
+
+#endif
 
 /* Frame buffer descriptor */
 struct fbd {
@@ -90,6 +143,11 @@ struct atmel_isi {
 	struct				list_head dma_desc_head;
 	struct isi_dma_desc		dma_desc[MAX_BUFFER_NUM];
 
+#ifdef CONFIG_ANDROID
+	void				*video_buf;
+	u32				video_buf_phys;
+#endif
+
 	struct completion		complete;
 	/* ISI peripherial clock */
 	struct clk			*pclk;
@@ -127,6 +185,7 @@ static int configure_geometry(struct atmel_isi *isi, u32 width,
 		cr = ISI_CFG2_GRAYSCALE;
 		break;
 	case V4L2_MBUS_FMT_UYVY8_2X8:
+		/* In HEO: REG_HEOCFG1_YUVMODE_16YCBCR_MODE0 */
 		cr = ISI_CFG2_YCC_SWAP_MODE_3;
 		break;
 	case V4L2_MBUS_FMT_VYUY8_2X8:
@@ -136,6 +195,7 @@ static int configure_geometry(struct atmel_isi *isi, u32 width,
 		cr = ISI_CFG2_YCC_SWAP_MODE_1;
 		break;
 	case V4L2_MBUS_FMT_YVYU8_2X8:
+		/* In HEO: REG_HEOCFG1_YUVMODE_16YCBCR_MODE3 */
 		cr = ISI_CFG2_YCC_SWAP_DEFAULT;
 		break;
 	/* RGB, TODO */
@@ -464,6 +524,9 @@ static int stop_streaming(struct vb2_queue *vq)
 	list_for_each_entry_safe(buf, node, &isi->video_buffer_list, list) {
 		list_del_init(&buf->list);
 		vb2_buffer_done(&buf->vb, VB2_BUF_STATE_ERROR);
+#ifdef CONFIG_ANDROID
+		__vb2_buf_mem_free(&buf->vb);
+#endif
 	}
 	spin_unlock_irq(&isi->lock);
 
@@ -503,6 +566,116 @@ static struct vb2_ops isi_video_qops = {
 	.wait_finish		= soc_camera_lock,
 };
 
+#ifdef CONFIG_ANDROID
+static void *vb2_dma_contig_alloc(void *alloc_ctx, unsigned long size)
+{
+	struct vb2_dc_conf *conf = alloc_ctx;
+	struct vb2_dc_buf *buf;
+	struct soc_camera_host *soc_host = to_soc_camera_host(conf->dev);
+	struct atmel_isi *isi = container_of(soc_host,
+					struct atmel_isi, soc_host);
+
+	buf = kzalloc(sizeof(*buf), GFP_KERNEL);
+	if (!buf)
+		return ERR_PTR(-ENOMEM);
+
+	offset = PAGE_ALIGN(offset);
+	buf->vaddr = isi->video_buf + offset;
+	buf->paddr = isi->video_buf_phys + offset;
+
+	if (!buf->vaddr || (offset > VID_LIMIT_BYTES)) {
+		dev_err(conf->dev, "dma_alloc_coherent of size %ld failed\n",
+			size);
+		kfree(buf);
+		return ERR_PTR(-ENOMEM);
+	}
+
+	offset += size;
+
+	buf->conf = conf;
+	buf->size = size;
+
+	buf->handler.refcount = &buf->refcount;
+	buf->handler.put = vb2_dma_contig_put;
+	buf->handler.arg = buf;
+
+	atomic_inc(&buf->refcount);
+
+	return buf;
+}
+
+static void atmel_isi_vm_open(struct vm_area_struct *vma)
+{
+	pr_debug("atmel_isi: vm_open\n");
+}
+
+static void atmel_isi_vm_close(struct vm_area_struct *vma)
+{
+	pr_debug("atmel_isi: vm_close\n");
+}
+
+static struct vm_operations_struct atmel_isi_vm_ops = {
+	.open = atmel_isi_vm_open,
+	.close = atmel_isi_vm_close,
+};
+
+int mmap_pfn_range(struct vm_area_struct *vma, unsigned long paddr,
+				unsigned long size,
+				const struct vm_operations_struct *vm_ops,
+				void *priv)
+{
+	int ret;
+
+	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
+	ret = remap_pfn_range(vma, vma->vm_start, paddr >> PAGE_SHIFT,
+				size, vma->vm_page_prot);
+	if (ret) {
+		pr_err("Remapping memory failed, error: %d\n", ret);
+		return ret;
+	}
+	if (!priv)
+		pr_debug("mmap_pfn_range get a NULL point\n");
+
+	vma->vm_flags		|= VM_DONTEXPAND | VM_RESERVED;
+	vma->vm_private_data	= priv;
+	vma->vm_ops		= vm_ops;
+
+	vma->vm_ops->open(vma);
+
+	pr_debug("%s: mapped paddr 0x%08lx at 0x%08lx, size %ld\n",
+			__func__, paddr, vma->vm_start, size);
+
+	return 0;
+}
+
+static int vb2_dma_contig_mmap(void *buf_priv, struct vm_area_struct *vma)
+{
+	struct vb2_dc_buf *buf = buf_priv;
+	struct soc_camera_host *soc_host = to_soc_camera_host(buf->conf->dev);
+	struct atmel_isi *isi = container_of(soc_host,
+					struct atmel_isi, soc_host);
+
+	unsigned long size = vma->vm_end - vma->vm_start;
+
+	if (!buf) {
+		pr_err("No buffer to map\n");
+		return -EINVAL;
+	}
+
+	pr_debug(KERN_DEBUG "size: %ld, buf->size: %ld\n", size, buf->size);
+
+	if (size <= PAGE_ALIGN(buf->size))
+		return vb2_mmap_pfn_range(vma, buf->paddr, buf->size,
+				  &vb2_common_vm_ops, &buf->handler);
+	else
+		pr_debug("Warning, we will mmap all the buffer to" \
+				 "the application by one operate! May be this" \
+				"is called by android\n");
+	return mmap_pfn_range(vma, isi->video_buf_phys, size,
+				  &atmel_isi_vm_ops, NULL);
+}
+#endif
+
 /* ------------------------------------------------------------------
 	SOC camera operations for the device
    ------------------------------------------------------------------*/
@@ -514,7 +687,12 @@ static int isi_camera_init_videobuf(struct vb2_queue *q,
 	q->drv_priv = icd;
 	q->buf_struct_size = sizeof(struct frame_buffer);
 	q->ops = &isi_video_qops;
-	q->mem_ops = &vb2_dma_contig_memops;
+	q->mem_ops = &vb2_dma_contig_atmel_isi_memops;
+#ifdef CONFIG_ANDROID
+	q->mem_ops->alloc = vb2_dma_contig_alloc;
+	q->mem_ops->put = vb2_dma_contig_put;
+	q->mem_ops->mmap = vb2_dma_contig_mmap;
+#endif
 
 	return vb2_queue_init(q);
 }
@@ -915,6 +1093,12 @@ static int __devexit atmel_isi_remove(struct platform_device *pdev)
 	free_irq(isi->irq, isi);
 	soc_camera_host_unregister(soc_host);
 	vb2_dma_contig_cleanup_ctx(isi->alloc_ctx);
+#ifdef CONFIG_ANDROID
+	dma_free_coherent(&pdev->dev,
+			VID_LIMIT_BYTES,
+			isi->video_buf,
+			isi->video_buf_phys);
+#endif
 	dma_free_coherent(&pdev->dev,
 			sizeof(struct fbd) * MAX_BUFFER_NUM,
 			isi->p_fb_descriptors,
@@ -1024,6 +1208,19 @@ static int __devinit atmel_isi_probe(struct platform_device *pdev)
 		list_add(&isi->dma_desc[i].list, &isi->dma_desc_head);
 	}
 
+#ifdef CONFIG_ANDROID
+	isi->video_buf = dma_alloc_coherent(&pdev->dev,
+				VID_LIMIT_BYTES,
+				&isi->video_buf_phys,
+				GFP_KERNEL);
+	if (!isi->video_buf) {
+		ret = -ENOMEM;
+		dev_err(&pdev->dev, "Can't allocate video buffer.Size: 0x%x!\n",
+				VID_LIMIT_BYTES);
+		goto err_alloc_videobuf;
+	}
+#endif
+
 	isi->alloc_ctx = vb2_dma_contig_init_ctx(&pdev->dev);
 	if (IS_ERR(isi->alloc_ctx)) {
 		ret = PTR_ERR(isi->alloc_ctx);
@@ -1077,7 +1274,15 @@ err_req_irq:
 err_ioremap:
 	vb2_dma_contig_cleanup_ctx(isi->alloc_ctx);
 err_alloc_ctx:
+#ifdef CONFIG_ANDROID
 	dma_free_coherent(&pdev->dev,
+			VID_LIMIT_BYTES,
+			isi->video_buf,
+			isi->video_buf_phys);
+
+#endif
+err_alloc_videobuf:
+		dma_free_coherent(&pdev->dev,
 			sizeof(struct fbd) * MAX_BUFFER_NUM,
 			isi->p_fb_descriptors,
 			isi->fb_descriptors_phys);

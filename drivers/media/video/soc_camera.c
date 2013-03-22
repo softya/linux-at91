@@ -572,6 +572,11 @@ static int soc_camera_open(struct file *file)
 		v4l2_ctrl_handler_setup(&icd->ctrl_handler);
 	}
 
+	/*
+	  * In some case, we just open then close it
+	  */
+	icd->streamer = file;
+
 	file->private_data = icd;
 	dev_dbg(icd->pdev, "camera device open\n");
 

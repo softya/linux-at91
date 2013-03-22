@@ -288,7 +288,7 @@ struct vb2_queue {
 	struct v4l2_fh			*owner;
 
 	const struct vb2_ops		*ops;
-	const struct vb2_mem_ops	*mem_ops;
+	struct vb2_mem_ops		*mem_ops;
 	void				*drv_priv;
 	unsigned int			buf_struct_size;
 
