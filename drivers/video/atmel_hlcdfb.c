@@ -31,13 +31,18 @@
 
 #define ATMEL_LCDC_CVAL_DEFAULT         0xc8
 
+static struct atmel_lcdfb_info *sinfo_ovl1;
+static struct atmel_lcdfb_info *sinfo_ovl2;
+
 struct atmel_hlcd_dma_desc {
 	u32	address;
 	u32	control;
 	u32	next;
 };
 
-extern unsigned int frame_update_done;
+extern unsigned int base_frame_update_done;
+extern unsigned int ovl1_frame_update_done;
+extern unsigned int ovl2_frame_update_done;
 extern spinlock_t lock;
 extern wait_queue_head_t wait;
 
@@ -49,6 +54,9 @@ static void atmel_hlcdfb_update_dma_base(struct fb_info *info,
 	struct fb_fix_screeninfo *fix = &info->fix;
 	unsigned long dma_addr;
 	struct atmel_hlcd_dma_desc *desc;
+
+	if (sinfo->is_dma_updated)
+		return;
 
 	dma_addr = (fix->smem_start + var->yoffset * fix->line_length
 		    + var->xoffset * var->bits_per_pixel / 8);
@@ -63,13 +71,15 @@ static void atmel_hlcdfb_update_dma_base(struct fb_info *info,
 	desc->control = LCDC_BASECTRL_ADDIEN | LCDC_BASECTRL_DSCRIEN
 			| LCDC_BASECTRL_DMAIEN | LCDC_BASECTRL_DFETCH;
 	/* Enable End of DMA transfer interrupt. */
-	desc->control &= (~LCDC_BASECTRL_DMAIEN);
+	desc->control &= ~(LCDC_BASECTRL_DMAIEN | LCDC_BASECTRL_DSCRIEN);
 	desc->next = sinfo->dma_desc_phys;
 
 	lcdc_writel(sinfo, ATMEL_LCDC_BASEADDR, dma_addr);
 	lcdc_writel(sinfo, ATMEL_LCDC_BASECTRL, desc->control);
 	lcdc_writel(sinfo, ATMEL_LCDC_BASENEXT, sinfo->dma_desc_phys);
 	lcdc_writel(sinfo, ATMEL_LCDC_BASECHER, LCDC_BASECHER_CHEN | LCDC_BASECHER_UPDATEEN);
+
+	sinfo->is_dma_updated = true;
 }
 
 static void atmel_hlcdfb_stop_ovl(struct fb_info *info,
@@ -89,6 +99,17 @@ static void atmel_hlcdfb_update_dma_ovl(struct fb_info *info,
 	unsigned long dma_addr;
 	struct atmel_hlcd_dma_desc *desc;
 
+	if (sinfo->is_dma_updated)
+		return;
+
+	if (!sinfo_ovl1 &&
+		!strcmp((dev_name(info->device)), "atmel_hlcdfb_ovl1"))
+		sinfo_ovl1 = sinfo;
+
+	if (!sinfo_ovl2 &&
+		!strcmp((dev_name(info->device)), "atmel_hlcdfb_ovl2"))
+		sinfo_ovl2 = sinfo;
+
 	atmel_hlcdfb_stop_ovl(info, var);
 
 	dma_addr = (fix->smem_start + var->yoffset * fix->line_length
@@ -103,12 +124,16 @@ static void atmel_hlcdfb_update_dma_ovl(struct fb_info *info,
 	/* Disable DMA transfer interrupt & descriptor loaded interrupt. */
 	desc->control = LCDC_OVRCTRL_ADDIEN | LCDC_OVRCTRL_DSCRIEN
 			| LCDC_OVRCTRL_DMAIEN | LCDC_OVRCTRL_DFETCH;
+	/* Enable End of DMA transfer interrupt. */
+	desc->control &= ~(LCDC_OVRCTRL_DMAIEN | LCDC_OVRCTRL_DSCRIEN);
 	desc->next = sinfo->dma_desc_phys;
 
 	lcdc_writel(sinfo, ATMEL_LCDC_OVRADDR, dma_addr);
 	lcdc_writel(sinfo, ATMEL_LCDC_OVRCTRL, desc->control);
 	lcdc_writel(sinfo, ATMEL_LCDC_OVRNEXT, sinfo->dma_desc_phys);
 	lcdc_writel(sinfo, ATMEL_LCDC_OVRCHER, LCDC_OVRCHER_CHEN | LCDC_OVRCHER_UPDATEEN);
+
+	sinfo->is_dma_updated = true;
 }
 
 #if defined(CONFIG_BACKLIGHT_ATMEL_LCDC)
@@ -342,10 +367,12 @@ static int atmel_hlcdfb_setup_core_base(struct fb_info *info)
 	lcdc_writel(sinfo, ATMEL_LCDC_BASEIDR, ~0UL);
 	/* Enable BASE LAYER overflow interrupts, if want to enable DMA interrupt, also need set it at LCDC_BASECTRL reg */
 	lcdc_writel(sinfo, ATMEL_LCDC_BASEIER, LCDC_BASEIER_OVR
-		| LCDC_BASEISR_DMA);
+		| LCDC_BASEISR_DMA | LCDC_BASEISR_DSCR);
 	//FIXME: Let video-driver register a callback
 	lcdc_writel(sinfo, ATMEL_LCDC_LCDIER, LCDC_BASEISR_DMA |
-		LCDC_LCDIER_FIFOERRIE | LCDC_LCDIER_BASEIE | LCDC_LCDIER_HEOIE);
+		LCDC_LCDIER_FIFOERRIE | LCDC_LCDIER_SOFIE |
+		LCDC_LCDIER_BASEIE | LCDC_LCDIER_OVR1IE |
+		LCDC_LCDIER_OVR2IE | LCDC_LCDIER_HEOIE);
 
 	return 0;
 }
@@ -381,6 +408,10 @@ static int atmel_hlcdfb_setup_core_ovl(struct fb_info *info)
 	lcdc_writel(sinfo, ATMEL_LCDC_OVRCFG3, xres |
 			(yres << LCDC_OVRCFG3_YSIZE_OFFSET));
 	lcdc_writel(sinfo, ATMEL_LCDC_OVRCFG9, cfg9);
+
+	lcdc_writel(sinfo, ATMEL_LCDC_OVRIDR, ~0UL);
+	lcdc_writel(sinfo, ATMEL_LCDC_OVRIER, LCDC_OVRIER_DMA |
+			LCDC_OVRIER_DSCR);
 
 	lcdc_writel(sinfo, ATMEL_LCDC_OVRCHER, LCDC_OVRCHER_CHEN
 					| LCDC_OVRCHER_UPDATEEN);
@@ -418,7 +449,7 @@ static irqreturn_t atmel_hlcdfb_interrupt(int irq, void *dev_id)
 {
 	struct fb_info *info = dev_id;
 	struct atmel_lcdfb_info *sinfo = info->par;
-	u32 status, baselayer_status;
+	u32 status, baselayer_status, ovllayer_status;
 	unsigned long irq_saved;
 
 	/* Check for error status via interrupt.*/
@@ -438,8 +469,45 @@ static irqreturn_t atmel_hlcdfb_interrupt(int irq, void *dev_id)
 						baselayer_status);
 		else if (baselayer_status & LCDC_BASEISR_DMA) {
 			spin_lock_irqsave(&lock, irq_saved);
-			frame_update_done = 1;
+			base_frame_update_done = 1;
 			wake_up(&wait);
+		} else if (baselayer_status & LCDC_BASEISR_DSCR) {
+			spin_lock_irqsave(&lock, irq_saved);
+			base_frame_update_done = 0;
+			spin_unlock_irqrestore(&lock, irq_saved);
+		}
+	}
+
+	if (status & LCDC_LCDISR_OVR1) {
+		if (!sinfo_ovl1) {
+			dev_err(info->device, "we don't have ovl1 layer register info\n");
+			return IRQ_HANDLED;
+		}
+		ovllayer_status = lcdc_readl(sinfo_ovl1, ATMEL_LCDC_OVRISR);
+		if (ovllayer_status & LCDC_OVRISR_DMA) {
+			spin_lock_irqsave(&lock, irq_saved);
+			ovl1_frame_update_done = 1;
+			spin_unlock_irqrestore(&lock, irq_saved);
+		} else if (ovllayer_status & LCDC_OVRISR_DSCR) {
+			spin_lock_irqsave(&lock, irq_saved);
+			ovl1_frame_update_done = 0;
+			spin_unlock_irqrestore(&lock, irq_saved);
+		}
+	}
+
+	if (status & LCDC_LCDISR_OVR2) {
+		if (!sinfo_ovl2) {
+			dev_err(info->device, "we don't have ovl2 layer register info\n");
+			return IRQ_HANDLED;
+		}
+		ovllayer_status = lcdc_readl(sinfo_ovl2, ATMEL_LCDC_OVRISR);
+		if (ovllayer_status & LCDC_OVRISR_DMA) {
+			spin_lock_irqsave(&lock, irq_saved);
+			ovl2_frame_update_done = 1;
+			spin_unlock_irqrestore(&lock, irq_saved);
+		} else if (ovllayer_status & LCDC_OVRISR_DSCR) {
+			spin_lock_irqsave(&lock, irq_saved);
+			ovl2_frame_update_done = 0;
 			spin_unlock_irqrestore(&lock, irq_saved);
 		}
 	}

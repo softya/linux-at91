@@ -87,7 +87,9 @@ static void exit_backlight(struct atmel_lcdfb_info *sinfo)
 
 #ifdef CONFIG_ANDROID
 
-unsigned int frame_update_done;
+unsigned int base_frame_update_done = 1;
+unsigned int ovl1_frame_update_done = 1;
+unsigned int ovl2_frame_update_done = 1;
 spinlock_t lock;
 wait_queue_head_t wait;
 
@@ -272,11 +274,6 @@ static int atmel_lcdfb_check_var(struct fb_var_screeninfo *var,
 #endif
 	var->xres_virtual = (var->xres_virtual + 3) & ~3UL;
 
-#ifdef CONFIG_ANDROID
-	if (!strcmp(info->fix.id, "atmel_hlcdfb_bas")
-		&& !lcdc_is_fb_changed(info))
-		return 0;
-#endif
 
 	var->red.msb_right = var->green.msb_right = var->blue.msb_right = 0;
 	var->transp.msb_right = 0;
@@ -399,10 +396,10 @@ static int atmel_lcdfb_set_par(struct fb_info *info)
 		 info->var.xres_virtual, info->var.yres_virtual);
 
 #ifdef CONFIG_ANDROID
-	if (!strcmp(info->fix.id, "atmel_hlcdfb_bas")
+	if (!strncmp(info->fix.id, "atmel_hlcdfb_bas", 16)
 		&& !lcdc_is_fb_changed(info))
 		return 0;
-	else if (!strcmp(info->fix.id, "atmel_hlcdfb_ovl")
+	else if (!strncmp(info->fix.id, "atmel_hlcdfb_ovl", 16)
 		 && !lcdc_is_ovl_fb_changed(info))
 		return 0;
 #endif
@@ -536,9 +533,6 @@ static int atmel_lcdfb_pan_display(struct fb_var_screeninfo *var,
 	dev_dbg(info->device, "%s\n", __func__);
 
 #ifdef CONFIG_ANDROID
-	if (!strcmp(info->fix.id, "atmel_hlcdfb_ovl"))
-		return 0;
-
 	dma_addr = (fix->smem_start + var->yoffset * fix->line_length
 			+ var->xoffset * var->bits_per_pixel / 8);
 
@@ -550,16 +544,24 @@ static int atmel_lcdfb_pan_display(struct fb_var_screeninfo *var,
 	/* Disable DMA transfer interrupt & descriptor loaded interrupt. */
 	desc->next = sinfo->dma_desc_phys;
 
-	spin_lock_irqsave(&lock, irq_saved);
-	frame_update_done = 0;
-	spin_unlock_irqrestore(&lock, irq_saved);
+	if (!strncmp(info->fix.id, "atmel_hlcdfb_ovl", 16))
+		return 0;
 
-	/* 24 frame per second is the lowest limit of the human eye,
-	 (1000/24)ms is the maximum delay time */
-	wait_event_timeout(wait, frame_update_done != 0,
-		msecs_to_jiffies(1000 / 24));
-	if (frame_update_done == 0)
-		dev_dbg(info->device, "... ops, no vsync detected? ...\n");
+	if (!strncmp(info->fix.id, "atmel_hlcdfb_bas", 16)) {
+		/* 24 frame per second is the lowest limit of the human eye,
+		(1000/24)ms is the maximum delay time */
+		wait_event_timeout(wait, base_frame_update_done &&
+					ovl1_frame_update_done &&
+					ovl2_frame_update_done,
+					msecs_to_jiffies(1000 / 24));
+	if (!(base_frame_update_done &&
+		ovl1_frame_update_done &&
+		ovl2_frame_update_done))
+		dev_dbg(info->device, "no vsync detected: base %d, ovl1 %d, ovl2 %d\n",
+							base_frame_update_done,
+							ovl1_frame_update_done,
+							ovl2_frame_update_done);
+	}
 #else
 	sinfo->dev_data->update_dma(info, var);
 #endif
@@ -699,6 +701,7 @@ int __atmel_lcdfb_probe(struct platform_device *pdev,
 	sinfo->info = info;
 	sinfo->pdev = pdev;
 	sinfo->is_cached = false;
+	sinfo->is_dma_updated = false;
 
 	info->flags = dev_data->fbinfo_flags;
 	info->pseudo_palette = sinfo->pseudo_palette;
@@ -773,6 +776,9 @@ int __atmel_lcdfb_probe(struct platform_device *pdev,
 		 */
 	} else {
 		/* alocate memory buffer */
+		/* for ovl layer, use double buffer for android */
+		if (!strncmp(info->fix.id, "atmel_hlcdfb_ovl", 16))
+			sinfo->smem_len *= 2;
 		ret = atmel_lcdfb_alloc_video_memory(sinfo);
 		if (ret < 0) {
 			dev_err(dev, "cannot allocate framebuffer: %d\n", ret);

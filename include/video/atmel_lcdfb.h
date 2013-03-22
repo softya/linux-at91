@@ -63,6 +63,7 @@ struct atmel_lcdfb_info {
 	struct fb_info		*info;
 	struct fb_var_screeninfo  cached_var_info;
 	bool                      is_cached;
+	bool				is_dma_updated;
 	void __iomem		*mmio;
 	void __iomem		*clut;
 	int			irq_base;
