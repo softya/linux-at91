@@ -105,7 +105,12 @@
 #define REG_HEOCFG1		0x50
 #define REG_HEOCFG1_CLUTEN		0x00000001
 #define REG_HEOCFG1_YUVEN		0x00000002
+#define REG_HEOCFG1_YUVMODE_16YCBCR_MODE0 0x00001000
+#define REG_HEOCFG1_YUVMODE_16YCBCR_MODE1 0x00002000
+#define REG_HEOCFG1_YUVMODE_16YCBCR_MODE2 0x00003000
+#define REG_HEOCFG1_YUVMODE_16YCBCR_MODE3 0x00004000
 #define REG_HEOCFG1_YUVMODE_12YCBCRP	0x00008000
+#define REG_HEOCFG1_YUV422SWP   0x00020000
 
 #define REG_HEOCFG2		0x54
 #define REG_HEOCFG2_XPOS		0x000007ff
@@ -703,9 +708,24 @@ static void at91sam9x5_video_update_config_real(
 	/* XXX:
 	 *  - clipping
 	 */
-	at91sam9x5_video_write32(priv, REG_HEOCFG1,
-			REG_HEOCFG1_YUVMODE_12YCBCRP |
-			REG_HEOCFG1_YUVEN);
+	switch (pix->pixelformat) {
+	case V4L2_PIX_FMT_NV12:
+		at91sam9x5_video_write32(priv, REG_HEOCFG1,
+				REG_HEOCFG1_YUVMODE_12YCBCRP |
+				REG_HEOCFG1_YUVEN);
+		break;
+	case V4L2_PIX_FMT_YUYV:
+		at91sam9x5_video_write32(priv, REG_HEOCFG1,
+				REG_HEOCFG1_YUVMODE_16YCBCR_MODE0 |
+				REG_HEOCFG1_YUV422SWP |
+				REG_HEOCFG1_YUVEN);
+		break;
+	default:
+		at91sam9x5_video_write32(priv, REG_HEOCFG1,
+				REG_HEOCFG1_YUVMODE_12YCBCRP |
+				REG_HEOCFG1_YUVEN);
+	}
+
 	at91sam9x5_video_write32(priv, REG_HEOCFG12,
 			REG_HEOCFG12_GAEN |
 			REG_HEOCFG12_OVR |
@@ -865,9 +885,21 @@ static int at91sam9x5_video_vb_queue_setup(struct vb2_queue *q,
 	 * XXX: is that allowed and done right?
 	 * XXX: format-dependant
 	 */
-	sizes[0] = pix->width * pix->height +
-		ALIGN(pix->width, 2) * ALIGN(pix->height, 2) / 2 +
-		9 * 32 + 128;
+	switch (pix->pixelformat) {
+	case V4L2_PIX_FMT_NV12:
+		sizes[0] = pix->width * pix->height +
+			ALIGN(pix->width, 2) * ALIGN(pix->height, 2) / 2 +
+			9 * 32 + 128;
+		break;
+	case V4L2_PIX_FMT_YUYV:
+		sizes[0] = pix->width * pix->height +
+			ALIGN(pix->width, 2) * ALIGN(pix->height, 2) +
+			9 * 32 + 128;
+		break;
+	default:
+		return -EINVAL;
+	}
+
 	priv->plane_size[0] = sizes[0];
 
 	alloc_ctxs[0] = priv->alloc_ctx;
@@ -1021,8 +1053,13 @@ static int at91sam9x5_video_vidioc_s_fmt_vid_out(struct file *filp,
 	if (f->type != V4L2_BUF_TYPE_VIDEO_OUTPUT)
 		return -EINVAL;
 
-	if (pix->pixelformat != V4L2_PIX_FMT_YUV420)
+	switch (pix->pixelformat) {
+	case V4L2_PIX_FMT_YUYV:
+	case V4L2_PIX_FMT_NV12:
+		break;
+	default:
 		return -EINVAL;
+	}
 
 	debug("vout=%ux%u\n", pix->width, pix->height);
 
@@ -1085,10 +1122,17 @@ static int at91sam9x5_video_vidioc_enum_fmt_vid_out(struct file *filp,
 		void *fh, struct v4l2_fmtdesc *f)
 {
 	/* XXX: support more formats */
-	if (f->index > 0)
+	if (f->index > 1)
 		return -EINVAL;
 
-	f->pixelformat = V4L2_PIX_FMT_YUV420;
+	switch (f->index) {
+	case 0:
+		f->pixelformat = V4L2_PIX_FMT_NV12;
+		break;
+	case 1:
+		f->pixelformat = V4L2_PIX_FMT_YUYV;
+		break;
+	}
 	return 0;
 }
 
