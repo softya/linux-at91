@@ -52,9 +52,9 @@ static struct fb_videomode at91_tft_vga_modes[] = {
 		.name		= "LG",
 		.refresh	= 60,
 		.xres		= 800,		.yres		= 480,
-		.pixclock	= KHZ2PICOS(33260),
+		.pixclock	= KHZ2PICOS(44340),
 
-		.left_margin	= 88,		.right_margin	= 168,
+		.left_margin	= 88,		.right_margin	= 520,
 		.upper_margin	= 8,		.lower_margin	= 37,
 		.hsync_len	= 128,		.vsync_len	= 2,
 
@@ -420,9 +420,9 @@ static void __init at91_dt_device_init(void)
 				ek_lcdc_data.default_monspecs->modedb->name = "Inlx";
 				ek_lcdc_data.default_monspecs->modedb->xres = 480;
 				ek_lcdc_data.default_monspecs->modedb->yres = 272;
-				ek_lcdc_data.default_monspecs->modedb->pixclock = KHZ2PICOS(9000);
+				ek_lcdc_data.default_monspecs->modedb->pixclock = KHZ2PICOS(9500);
 				ek_lcdc_data.default_monspecs->modedb->left_margin = 2;
-				ek_lcdc_data.default_monspecs->modedb->right_margin = 2;
+				ek_lcdc_data.default_monspecs->modedb->right_margin = 37;
 				ek_lcdc_data.default_monspecs->modedb->upper_margin = 2;
 				ek_lcdc_data.default_monspecs->modedb->lower_margin = 2;
 				ek_lcdc_data.default_monspecs->modedb->hsync_len = 41;
