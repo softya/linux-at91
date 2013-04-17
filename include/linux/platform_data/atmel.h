@@ -85,7 +85,9 @@ struct atmel_uart_data {
  /* Touchscreen Controller */
 struct at91_tsadcc_data {
 	unsigned int    adc_clock;
+	u8		filtering_average;
 	u8		pendet_debounce;
+	u8		pendet_sensitivity;
 	u8		ts_sample_hold_time;
 };
 
