@@ -255,11 +255,31 @@ static const struct of_device_id sama5d3ek_wm8904_dt_ids[] = {
 };
 #endif
 
+static int sama5d3ek_wm8904_suspend(struct device *dev)
+{
+	clk_disable(mclk);
+
+	return 0;
+}
+
+static int sama5d3ek_wm8904_resume(struct device *dev)
+{
+	clk_enable(mclk);
+
+	return 0;
+}
+
+static const struct dev_pm_ops sama5d3ek_wm8904_pm_ops = {
+	.suspend = sama5d3ek_wm8904_suspend,
+	.resume = sama5d3ek_wm8904_resume,
+};
+
 static struct platform_driver sama5d3ek_wm8904_driver = {
 	.driver = {
 		.name = "sama5d3ek-audio",
 		.owner = THIS_MODULE,
 		.of_match_table = of_match_ptr(sama5d3ek_wm8904_dt_ids),
+		.pm = &sama5d3ek_wm8904_pm_ops,
 	},
 	.probe = sama5d3ek_wm8904_probe,
 	.remove = sama5d3ek_wm8904_remove,
