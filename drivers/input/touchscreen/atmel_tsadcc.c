@@ -223,7 +223,7 @@ static int atmel_of_init_tsadcc(struct device_node *np,
 	return 0;
 }
 #else
-static int __devinit atmel_of_init_tsadcc(struct device_node *np,
+static int atmel_of_init_tsadcc(struct device_node *np,
 				struct at91_tsadcc_data *pdata,
 				struct platform_device *pdev)
 {
