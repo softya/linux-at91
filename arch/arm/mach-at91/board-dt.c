@@ -295,7 +295,7 @@ static struct resource goldfish_lcdc__resources[] = {
 	},
 };
 
-static struct platform_device goldfish_lcd = {
+static struct platform_device goldfish_lcd __initdata = {
 	.name	= "goldfish_fb",
 	.id	= 0,
 	.dev	= {
@@ -439,8 +439,10 @@ static void __init at91_dt_device_init(void)
 		if (np) {
 			if (of_device_is_available(np))
 				pr_info("at91sam9x5-lcd device is available.");
+#ifdef CONFIG_ANDROID
 			else
 				at91_init_dummy_lcd();
+#endif
 		}
 	}
 

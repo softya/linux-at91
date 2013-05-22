@@ -85,14 +85,13 @@ static void exit_backlight(struct atmel_lcdfb_info *sinfo)
 
 #endif
 
-#ifdef CONFIG_ANDROID
-
 unsigned int base_frame_update_done = 1;
 unsigned int ovl1_frame_update_done = 1;
 unsigned int ovl2_frame_update_done = 1;
 spinlock_t lock;
 wait_queue_head_t wait;
 
+#ifdef CONFIG_ANDROID
 static int lcdc_is_fb_changed(struct fb_info *info)
 {
 	struct atmel_lcdfb_info *sinfo = info->par;
@@ -527,7 +526,6 @@ static int atmel_lcdfb_pan_display(struct fb_var_screeninfo *var,
 	unsigned long dma_addr;
 	struct atmel_hlcd_dma_desc *desc;
 	struct fb_fix_screeninfo *fix = &info->fix;
-	unsigned long irq_saved;
 #endif
 
 	dev_dbg(info->device, "%s\n", __func__);

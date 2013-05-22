@@ -136,7 +136,7 @@ config HAS_EARLYSUSPEND
 config EARLYSUSPEND
     bool "Early suspend"
     depends on PM_RUNTIME
-    default y
+    default n
     select HAS_EARLYSUSPEND
     ---help---
       Call early suspend handlers when the user requested sleep state
