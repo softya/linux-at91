@@ -81,6 +81,7 @@ static struct fb_monspecs at91fb_default_monspecs = {
 /* Driver datas */
 static struct atmel_lcdfb_info __initdata ek_lcdc_data = {
 	.lcdcon_is_backlight		= true,
+	.pwm_clk_prescaler		= LCDC_LCDCFG6_PWMPS_DIV32,
 	.alpha_enabled			= false,
 	.default_bpp			= 16,
 	/* Reserve enough memory for 32bpp */
