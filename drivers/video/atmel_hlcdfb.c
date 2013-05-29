@@ -178,9 +178,15 @@ static int atmel_bl_get_brightness(struct backlight_device *bl)
 
 static void atmel_hlcdfb_init_contrast(struct atmel_lcdfb_info *sinfo)
 {
-	/* have some default contrast/backlight settings */
-	lcdc_writel(sinfo, ATMEL_LCDC_LCDCFG6, LCDC_LCDCFG6_PWMPOL |
-		(ATMEL_LCDC_CVAL_DEFAULT << LCDC_LCDCFG6_PWMCVAL_OFFSET));
+	u32 reg = 0;
+
+	if (sinfo->pwm_clk_prescaler)
+		reg |= (sinfo->pwm_clk_prescaler & LCDC_LCDCFG6_PWMPS);
+
+	reg |= (LCDC_LCDCFG6_PWMPOL |
+		ATMEL_LCDC_CVAL_DEFAULT << LCDC_LCDCFG6_PWMCVAL_OFFSET);
+
+	lcdc_writel(sinfo, ATMEL_LCDC_LCDCFG6, reg);
 }
 #else
 static int atmel_bl_update_status(struct backlight_device *bl)

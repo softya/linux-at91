@@ -689,6 +689,7 @@ int __atmel_lcdfb_probe(struct platform_device *pdev,
 		sinfo->guard_time = pdata_sinfo->guard_time;
 		sinfo->smem_len = pdata_sinfo->smem_len;
 		sinfo->lcdcon_is_backlight = pdata_sinfo->lcdcon_is_backlight;
+		sinfo->pwm_clk_prescaler = pdata_sinfo->pwm_clk_prescaler;
 		sinfo->lcdcon_pol_negative = pdata_sinfo->lcdcon_pol_negative;
 		sinfo->lcd_wiring_mode = pdata_sinfo->lcd_wiring_mode;
 		sinfo->dev_data = dev_data;

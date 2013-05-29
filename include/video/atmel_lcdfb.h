@@ -82,6 +82,7 @@ struct atmel_lcdfb_info {
 #ifdef CONFIG_BACKLIGHT_ATMEL_LCDC
 	struct backlight_device	*backlight;
 	u8			bl_power;
+	int			pwm_clk_prescaler;
 #endif
 	bool			lcdcon_is_backlight;
 	bool			lcdcon_pol_negative;
