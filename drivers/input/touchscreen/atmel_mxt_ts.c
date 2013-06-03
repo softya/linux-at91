@@ -2918,6 +2918,7 @@ static int mxt_probe(struct i2c_client *client,
 {
 	struct mxt_data *data;
 	int error;
+	int i = 0x4;
 
 	data = kzalloc(sizeof(struct mxt_data), GFP_KERNEL);
 	if (!data) {
@@ -2955,6 +2956,8 @@ static int mxt_probe(struct i2c_client *client,
 	error = mxt_initialize(data);
 	if (error)
 		goto err_free_irq;
+
+	mxt_write_reg(client, data->T18_address, i);
 
 	error = sysfs_create_group(&client->dev.kobj, &mxt_attr_group);
 	if (error) {
