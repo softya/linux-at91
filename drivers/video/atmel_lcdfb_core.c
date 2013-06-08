@@ -21,10 +21,12 @@
 #include <linux/gfp.h>
 #include <linux/of.h>
 #include <linux/of_device.h>
+#include <linux/uaccess.h>
 
 #include <mach/board.h>
 #include <mach/cpu.h>
 #include <mach/gpio.h>
+#include <mach/atmel_hlcdc.h>
 
 #include <video/atmel_lcdfb.h>
 
@@ -85,13 +87,12 @@ static void exit_backlight(struct atmel_lcdfb_info *sinfo)
 
 #endif
 
+#ifdef CONFIG_ANDROID
+
 unsigned int base_frame_update_done = 1;
-unsigned int ovl1_frame_update_done = 1;
-unsigned int ovl2_frame_update_done = 1;
 spinlock_t lock;
 wait_queue_head_t wait;
 
-#ifdef CONFIG_ANDROID
 static int lcdc_is_fb_changed(struct fb_info *info)
 {
 	struct atmel_lcdfb_info *sinfo = info->par;
@@ -132,6 +133,38 @@ static int lcdc_is_ovl_fb_changed(struct fb_info *info)
 }
 
 #endif
+
+static int atmel_fb_wait_for_vsync_thread(void *data)
+{
+	struct atmel_lcdfb_info *sinfo = data;
+	struct fb_info *info = sinfo->info;
+	
+	while (!kthread_should_stop()) {
+		ktime_t timestamp = sinfo->vsync_info.timestamp;
+		int ret = wait_event_interruptible(sinfo->vsync_info.wait,
+			!ktime_equal(timestamp, sinfo->vsync_info.timestamp) &&
+			sinfo->vsync_info.active);
+		if (!ret) {
+			sysfs_notify(&info->device->kobj, NULL, "vsync");
+		}
+	}
+
+	return 0;
+}
+
+
+/*------------------------------------------------------------------ */
+
+static ssize_t atmel_fb_vsync_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct fb_info *info = dev_get_drvdata(dev);
+	struct atmel_lcdfb_info *sinfo = info->par;
+	return scnprintf(buf, PAGE_SIZE, "%llu\n",
+			ktime_to_ns(sinfo->vsync_info.timestamp));
+}
+
+static DEVICE_ATTR(vsync, S_IRUGO, atmel_fb_vsync_show, NULL);
 
 static struct fb_fix_screeninfo atmel_lcdfb_fix = {
 	.type		= FB_TYPE_PACKED_PIXELS,
@@ -542,24 +575,14 @@ static int atmel_lcdfb_pan_display(struct fb_var_screeninfo *var,
 	/* Disable DMA transfer interrupt & descriptor loaded interrupt. */
 	desc->next = sinfo->dma_desc_phys;
 
-	if (!strncmp(info->fix.id, "atmel_hlcdfb_ovl", 16))
-		return 0;
-
 	if (!strncmp(info->fix.id, "atmel_hlcdfb_bas", 16)) {
 		/* 24 frame per second is the lowest limit of the human eye,
 		(1000/24)ms is the maximum delay time */
-		wait_event_timeout(wait, base_frame_update_done &&
-					ovl1_frame_update_done &&
-					ovl2_frame_update_done,
-					msecs_to_jiffies(1000 / 24));
-	if (!(base_frame_update_done &&
-		ovl1_frame_update_done &&
-		ovl2_frame_update_done))
-		dev_dbg(info->device, "no vsync detected: base %d, ovl1 %d, ovl2 %d\n",
-							base_frame_update_done,
-							ovl1_frame_update_done,
-							ovl2_frame_update_done);
+		wait_event_timeout(wait, base_frame_update_done, msecs_to_jiffies(1000 / 24));
+		if (!base_frame_update_done)
+			dev_dbg(info->device, "no vsync detected: base %d\n", base_frame_update_done);
 	}
+	
 #else
 	sinfo->dev_data->update_dma(info, var);
 #endif
@@ -592,6 +615,88 @@ static int atmel_lcdfb_blank(int blank_mode, struct fb_info *info)
 	return ((blank_mode == FB_BLANK_NORMAL) ? 1 : 0);
 }
 
+static void atmel_lcdfb_enable_sof_irq(struct atmel_lcdfb_info *sinfo)
+{
+	lcdc_writel(sinfo, ATMEL_LCDC_LCDIER, LCDC_LCDIER_SOFIE);
+}
+
+static void atmel_lcdfb_disable_sof_irq(struct atmel_lcdfb_info *sinfo)
+{
+	lcdc_writel(sinfo, ATMEL_LCDC_LCDIDR, LCDC_LCDIDR_SOFID);
+}
+
+static void atmel_lcdfb_activate_vsync(struct atmel_lcdfb_info *sinfo)
+{
+	int prev_refcount;
+
+	mutex_lock(&sinfo->vsync_info.irq_lock);
+
+	prev_refcount = sinfo->vsync_info.irq_refcount++;
+	if (!prev_refcount)
+		atmel_lcdfb_enable_sof_irq(sinfo);
+
+	mutex_unlock(&sinfo->vsync_info.irq_lock);
+}
+
+static void atmel_lcdfb_deactivate_vsync(struct atmel_lcdfb_info *sinfo)
+{
+	int new_refcount;
+
+	mutex_lock(&sinfo->vsync_info.irq_lock);
+
+	new_refcount = --sinfo->vsync_info.irq_refcount;
+	WARN_ON(new_refcount < 0);
+	if (!new_refcount)
+		atmel_lcdfb_disable_sof_irq(sinfo);
+
+	mutex_unlock(&sinfo->vsync_info.irq_lock);
+}
+
+
+int atmel_lcdfb_set_vsync_int(struct fb_info *info,
+		bool active)
+{
+	struct atmel_lcdfb_info *sinfo = info->par;
+	bool prev_active = sinfo->vsync_info.active;
+
+	sinfo->vsync_info.active = active;
+	smp_wmb();
+
+	if (active && !prev_active)
+		atmel_lcdfb_activate_vsync(sinfo);
+	else if (!active && prev_active)
+		atmel_lcdfb_deactivate_vsync(sinfo);
+
+	return 0;
+}
+
+static int atmel_lcdfb_ioctl(struct fb_info *info, unsigned int cmd,
+			unsigned long arg)
+{
+	struct atmel_lcdfb_info *sinfo = info->par;
+	int ret = 0;
+	u32 vsync;
+	
+	switch (cmd) {
+		case ATMEL_LCDFB_SET_VSYNC_INT:
+			if (strncmp(info->fix.id, "atmel_hlcdfb_bas", 16)) {
+				dev_err(info->device, "not base layer\n");
+				ret = -ENOTTY;
+				break;
+			}
+			if (get_user(vsync, (int __user *)arg)) {
+				ret = -EFAULT;
+				break;
+			}
+			ret = atmel_lcdfb_set_vsync_int(info, vsync);
+		break;
+
+		default:
+			ret = -ENOTTY;
+	}
+	return ret;
+}
+
 static struct fb_ops atmel_lcdfb_ops = {
 	.owner		= THIS_MODULE,
 	.fb_check_var	= atmel_lcdfb_check_var,
@@ -602,6 +707,7 @@ static struct fb_ops atmel_lcdfb_ops = {
 	.fb_fillrect	= cfb_fillrect,
 	.fb_copyarea	= cfb_copyarea,
 	.fb_imageblit	= cfb_imageblit,
+	.fb_ioctl	= atmel_lcdfb_ioctl,
 };
 
 /*
@@ -832,10 +938,26 @@ int __atmel_lcdfb_probe(struct platform_device *pdev,
 	 * require a preemptible task context */
 	INIT_WORK(&sinfo->task, atmel_lcdfb_task);
 
+	if (!strncmp(info->fix.id, "atmel_hlcdfb_bas", 16)) {
+		mutex_init(&sinfo->vsync_info.irq_lock);
+		ret = device_create_file(dev, &dev_attr_vsync);
+		if (ret) {
+			dev_err(dev, "failed to create vsync file\n");
+			goto unregister_irqs;
+		}
+		sinfo->vsync_info.thread = kthread_run(atmel_fb_wait_for_vsync_thread,
+			sinfo, "atmel-fb-vsync");
+		if (sinfo->vsync_info.thread == ERR_PTR(-ENOMEM)) {
+			dev_err(dev, "failed to run vsync thread\n");
+			sinfo->vsync_info.thread = NULL;
+		}
+		init_waitqueue_head(&sinfo->vsync_info.wait);
+	}
+
 	ret = atmel_lcdfb_init_fbinfo(sinfo);
 	if (ret < 0) {
 		dev_err(dev, "init fbinfo failed: %d\n", ret);
-		goto unregister_irqs;
+		goto remove_create_file;
 	}
 
 	/*
@@ -878,6 +1000,8 @@ reset_drvdata:
 	dev_set_drvdata(dev, NULL);
 free_cmap:
 	fb_dealloc_cmap(&info->cmap);
+remove_create_file:
+	device_remove_file(dev, &dev_attr_vsync);
 unregister_irqs:
 	cancel_work_sync(&sinfo->task);
 	if (sinfo->irq_base >= 0)
@@ -940,6 +1064,11 @@ int __atmel_lcdfb_remove(struct platform_device *pdev)
 		release_mem_region(info->fix.smem_start, info->fix.smem_len);
 	} else {
 		atmel_lcdfb_free_video_memory(sinfo);
+	}
+
+	if (sinfo->vsync_info.thread) {
+		kthread_stop(sinfo->vsync_info.thread);
+		device_remove_file(dev, &dev_attr_vsync);
 	}
 
 	dev_set_drvdata(dev, NULL);

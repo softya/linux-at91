@@ -41,10 +41,9 @@ struct atmel_hlcd_dma_desc {
 };
 
 extern unsigned int base_frame_update_done;
-extern unsigned int ovl1_frame_update_done;
-extern unsigned int ovl2_frame_update_done;
 extern spinlock_t lock;
 extern wait_queue_head_t wait;
+
 
 static void atmel_hlcdfb_update_dma_base(struct fb_info *info,
 
@@ -377,10 +376,14 @@ static int atmel_hlcdfb_setup_core_base(struct fb_info *info)
 	lcdc_writel(sinfo, ATMEL_LCDC_BASEIER, LCDC_BASEIER_OVR
 		| LCDC_BASEISR_DMA | LCDC_BASEISR_DSCR);
 	//FIXME: Let video-driver register a callback
-	lcdc_writel(sinfo, ATMEL_LCDC_LCDIER, LCDC_BASEISR_DMA |
-		LCDC_LCDIER_FIFOERRIE | LCDC_LCDIER_SOFIE |
-		LCDC_LCDIER_BASEIE | LCDC_LCDIER_OVR1IE |
-		LCDC_LCDIER_OVR2IE | LCDC_LCDIER_HEOIE);
+	lcdc_writel(sinfo, ATMEL_LCDC_LCDIER, 
+		LCDC_BASEISR_DMA | LCDC_LCDIER_FIFOERRIE | LCDC_LCDIER_BASEIE );
+
+	mutex_lock(&sinfo->vsync_info.irq_lock);
+	if (sinfo->vsync_info.irq_refcount) {
+		lcdc_writel(sinfo, ATMEL_LCDC_LCDIER, LCDC_LCDIER_SOFIE);
+	}
+	mutex_unlock(&sinfo->vsync_info.irq_lock);
 
 	return 0;
 }
@@ -418,8 +421,6 @@ static int atmel_hlcdfb_setup_core_ovl(struct fb_info *info)
 	lcdc_writel(sinfo, ATMEL_LCDC_OVRCFG9, cfg9);
 
 	lcdc_writel(sinfo, ATMEL_LCDC_OVRIDR, ~0UL);
-	lcdc_writel(sinfo, ATMEL_LCDC_OVRIER, LCDC_OVRIER_DMA |
-			LCDC_OVRIER_DSCR);
 
 	lcdc_writel(sinfo, ATMEL_LCDC_OVRCHER, LCDC_OVRCHER_CHEN
 					| LCDC_OVRCHER_UPDATEEN);
@@ -460,6 +461,8 @@ static irqreturn_t atmel_hlcdfb_interrupt(int irq, void *dev_id)
 	u32 status, baselayer_status, ovllayer_status;
 	unsigned long irq_saved;
 
+	ktime_t timestamp = ktime_get();
+
 	/* Check for error status via interrupt.*/
 	status = lcdc_readl(sinfo, ATMEL_LCDC_LCDISR);
 	if (status & LCDC_LCDISR_HEO)
@@ -467,6 +470,11 @@ static irqreturn_t atmel_hlcdfb_interrupt(int irq, void *dev_id)
 
 	if (status & LCDC_LCDISR_FIFOERR)
 		dev_warn(info->device, "FIFO underflow %#x\n", status);
+
+	if (status & LCDC_LCDISR_SOF & lcdc_readl(sinfo, ATMEL_LCDC_LCDIMR)) {
+		sinfo->vsync_info.timestamp = timestamp;
+		wake_up_interruptible_all(&sinfo->vsync_info.wait);
+	}
 
 	if (status & LCDC_LCDISR_BASE) {
 		/* Check base layer's overflow error. */
@@ -479,43 +487,11 @@ static irqreturn_t atmel_hlcdfb_interrupt(int irq, void *dev_id)
 			spin_lock_irqsave(&lock, irq_saved);
 			base_frame_update_done = 1;
 			wake_up(&wait);
+			spin_unlock_irqrestore(&lock, irq_saved);
 		} else if (baselayer_status & LCDC_BASEISR_DSCR) {
 			spin_lock_irqsave(&lock, irq_saved);
 			base_frame_update_done = 0;
 			spin_unlock_irqrestore(&lock, irq_saved);
-		}
-	}
-
-	if (status & LCDC_LCDISR_OVR1) {
-		if (!sinfo_ovl1) {
-			dev_err(info->device, "we don't have ovl1 layer register info\n");
-			return IRQ_HANDLED;
-		}
-		ovllayer_status = lcdc_readl(sinfo_ovl1, ATMEL_LCDC_OVRISR);
-		if (ovllayer_status & LCDC_OVRISR_DMA) {
-			spin_lock_irqsave(&lock, irq_saved);
-			ovl1_frame_update_done = 1;
-			spin_unlock_irqrestore(&lock, irq_saved);
-		} else if (ovllayer_status & LCDC_OVRISR_DSCR) {
-			spin_lock_irqsave(&lock, irq_saved);
-			ovl1_frame_update_done = 0;
-			spin_unlock_irqrestore(&lock, irq_saved);
-		}
-	}
-
-	if (status & LCDC_LCDISR_OVR2) {
-		if (!sinfo_ovl2) {
-			dev_err(info->device, "we don't have ovl2 layer register info\n");
-			return IRQ_HANDLED;
-		}
-		ovllayer_status = lcdc_readl(sinfo_ovl2, ATMEL_LCDC_OVRISR);
-		if (ovllayer_status & LCDC_OVRISR_DMA) {
-			spin_lock_irqsave(&lock, irq_saved);
-			ovl2_frame_update_done = 1;
-			spin_unlock_irqrestore(&lock, irq_saved);
-		} else if (ovllayer_status & LCDC_OVRISR_DSCR) {
-			spin_lock_irqsave(&lock, irq_saved);
-			ovl2_frame_update_done = 0;
 			spin_unlock_irqrestore(&lock, irq_saved);
 		}
 	}
@@ -567,9 +543,9 @@ static int atmel_hlcdfb_resume(struct platform_device *pdev)
 
 	/* Enable fifo error & BASE LAYER overflow interrupts */
 	lcdc_writel(sinfo, ATMEL_LCDC_BASEIER, LCDC_BASEIER_OVR
-					| LCDC_BASEIER_DMA);
-	lcdc_writel(sinfo, ATMEL_LCDC_LCDIER, LCDC_LCDIER_FIFOERRIE
-		| LCDC_LCDIER_BASEIE | LCDC_LCDIER_HEOIE);
+					| LCDC_BASEIER_DMA | LCDC_BASEISR_DSCR);
+	lcdc_writel(sinfo, ATMEL_LCDC_LCDIER, LCDC_BASEISR_DMA | 
+		LCDC_LCDIER_FIFOERRIE | LCDC_LCDIER_BASEIE);
 
 	lcdc_writel(sinfo, ATMEL_LCDC_BASECHER, LCDC_BASECHER_CHEN);
 
