@@ -321,7 +321,8 @@ static int atmel_hlcdfb_setup_core_base(struct fb_info *info)
 		dev_dbg(info->device, "  * programming CLKDIV = 0x%08lx\n",
 					value);
 		value = (value << LCDC_LCDCFG0_CLKDIV_OFFSET)
-			| LCDC_LCDCFG0_CGDISBASE;
+			| LCDC_LCDCFG0_CGDISBASE
+			| LCDC_LCDCFG0_CLKPWMSEL;
 		lcdc_writel(sinfo, ATMEL_LCDC_LCDCFG0, value);
 	}
 
