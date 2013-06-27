@@ -28,6 +28,7 @@
 #include <asm/gpio.h>
 #include <mach/board.h>
 
+#include <linux/pm_wakeup.h>
 #include "atmel_usba_udc.h"
 
 
@@ -1803,6 +1804,8 @@ static irqreturn_t usba_vbus_irq(int irq, void *devid)
 	vbus = vbus_is_present(udc);
 	if (vbus != udc->vbus_prev) {
 		if (vbus) {
+			/* The kernel can't enter into suspend when USB is inserting */
+			__pm_stay_awake(&udc->ws);
 			toggle_bias(1);
 			usba_writel(udc, CTRL, USBA_ENABLE_MASK);
 			usba_writel(udc, INT_ENB, USBA_END_OF_RESET);
@@ -1816,6 +1819,8 @@ static irqreturn_t usba_vbus_irq(int irq, void *devid)
 				udc->driver->disconnect(&udc->gadget);
 				spin_lock(&udc->lock);
 			}
+			/*The kernel can enter into suspend */
+			__pm_relax(&udc->ws);
 		}
 		udc->vbus_prev = vbus;
 	}
@@ -1856,6 +1861,7 @@ static int atmel_usba_start(struct usb_gadget *gadget,
 		usba_writel(udc, CTRL, USBA_ENABLE_MASK);
 		usba_writel(udc, INT_ENB, USBA_END_OF_RESET);
 #else
+		__pm_stay_awake(&udc->ws);
 		/* the vbus status should be changed */
 		udc->vbus_prev = 1;
 #endif
@@ -1882,6 +1888,9 @@ static int atmel_usba_stop(struct usb_gadget *gadget,
 	/* This will also disable the DP pullup */
 	toggle_bias(0);
 	usba_writel(udc, CTRL, USBA_DISABLE_MASK);
+
+	if (udc->vbus_prev == 1)
+		__pm_relax(&udc->ws);
 
 	udc->gadget.dev.driver = NULL;
 	udc->driver = NULL;
@@ -2106,6 +2115,8 @@ static int __init usba_udc_probe(struct platform_device *pdev)
 		goto err_alloc_ep;
 	}
 
+	wakeup_source_init(&udc->ws, "atmel_usba_udc");
+
 	ret = request_irq(irq, usba_udc_irq, 0, "atmel_usba_udc", udc);
 	if (ret) {
 		dev_err(&pdev->dev, "Cannot request irq %d (error %d)\n",
@@ -2162,6 +2173,7 @@ err_add_udc:
 err_device_add:
 	free_irq(irq, udc);
 err_request_irq:
+	wakeup_source_trash(&udc->ws);
 	kfree(usba_ep);
 err_alloc_ep:
 	iounmap(udc->fifo);
@@ -2196,6 +2208,7 @@ static int __exit usba_udc_remove(struct platform_device *pdev)
 	}
 
 	free_irq(udc->irq, udc);
+	wakeup_source_trash(&udc->ws);
 	kfree(usba_ep);
 	iounmap(udc->fifo);
 	iounmap(udc->regs);

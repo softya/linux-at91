@@ -336,6 +336,8 @@ struct usba_udc {
 	struct dentry *debugfs_root;
 	struct dentry *debugfs_regs;
 #endif
+
+	struct wakeup_source ws;
 };
 
 static inline struct usba_ep *to_usba_ep(struct usb_ep *ep)
