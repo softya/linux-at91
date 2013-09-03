@@ -605,7 +605,7 @@ static int atmel_lcdfb_blank(int blank_mode, struct fb_info *info)
 		break;
 	case FB_BLANK_POWERDOWN:
 		if (sinfo->dev_data->stop)
-			sinfo->dev_data->stop(sinfo, 0);
+			sinfo->dev_data->stop(sinfo, 1);
 		break;
 	default:
 		return -EINVAL;
