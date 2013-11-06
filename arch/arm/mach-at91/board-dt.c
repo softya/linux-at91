@@ -280,40 +280,6 @@ static int i2c_camera_power_revB(struct device *dev, int on)
 }
 #endif
 
-#ifdef CONFIG_ANDROID
-static u64 hdmac_dmamask = DMA_BIT_MASK(32);
-
-static struct resource goldfish_lcdc__resources[] = {
-	[0] = {
-		.start = 0xffffff00,
-		.end   = 0xffffff00 + 0xff,
-		.flags = IORESOURCE_MEM,
-	},
-	[1] = {
-		.start  = 25,
-		.end    = 25,
-		.flags  = IORESOURCE_IRQ,
-	},
-};
-
-static struct platform_device goldfish_lcd __initdata = {
-	.name	= "goldfish_fb",
-	.id	= 0,
-	.dev	= {
-		.dma_mask               = &hdmac_dmamask,
-		.coherent_dma_mask      = DMA_BIT_MASK(32),
-		.platform_data	        = &ek_lcdc_data,
-	},
-	.resource       = goldfish_lcdc__resources,
-	.num_resources  = ARRAY_SIZE(goldfish_lcdc__resources),
-};
-
-static void __init at91_init_dummy_lcd(void)
-{
-	platform_device_register(&goldfish_lcd);
-}
-#endif
-
 struct of_dev_auxdata at91_auxdata_lookup[] __initdata = {
 	OF_DEV_AUXDATA("atmel,at91sam9x5-lcd", 0xf8038000, "atmel_hlcdfb_base", &ek_lcdc_data),
 	OF_DEV_AUXDATA("atmel,at91sam9x5-lcd", 0xf8038100, "atmel_hlcdfb_ovl1", &ek_lcdc_data),
@@ -429,21 +395,6 @@ static void __init at91_dt_device_init(void)
 				ek_lcdc_data.default_monspecs->modedb->hsync_len = 41;
 				ek_lcdc_data.default_monspecs->modedb->vsync_len = 11;
 			}
-		}
-	}
-
-	if (of_machine_is_compatible("atmel,sama5ek")) {
-		struct device_node *np;
-		np = of_find_compatible_node(NULL, NULL,
-					"atmel,at91sam9x5-lcd");
-
-		if (np) {
-			if (of_device_is_available(np))
-				pr_info("at91sam9x5-lcd device is available.");
-#ifdef CONFIG_ANDROID
-			else
-				at91_init_dummy_lcd();
-#endif
 		}
 	}
 
