@@ -1,17 +1,18 @@
 /*
- * at91-sama5d3_xplained.dts - Device Tree file for the SAMA5D3 Xplained board
+ * at91-sama5d3_xplained_pda4.dts - Device Tree file for the SAMA5D3 Xplained board
  *
  *  Copyright (C) 2014 Atmel,
- *		  2014 Nicolas Ferre <nicolas.ferre@atmel.com>
+ *		  2014 Ludovic Desroches <ludovic.desroches@atmel.com>
  *
  * Licensed under GPLv2 or later.
  */
 /dts-v1/;
-#include "sama5d3.dtsi"
+/include/ "sama5d3.dtsi"
+/include/ "at91-sama5d3_xplained_dm_pda4.dtsi"
 
 / {
 	model = "SAMA5D3 Xplained";
-	compatible = "atmel,sama5d3-xplained", "atmel,sama5d3", "atmel,sama5", "atmel,sama5ek";
+	compatible = "atmel,sama5d3-xplained", "pda,tm43xx", "atmel,sama5d3", "atmel,sama5", "atmel,sama5ek";
 
 	chosen {
 		bootargs = "console=ttyS0,115200";
@@ -41,7 +42,7 @@
 				slot@0 {
 					reg = <0>;
 					bus-width = <8>;
-					cd-gpios = <&pioE 0 GPIO_ACTIVE_LOW>;
+					cd-gpios = <&pioE 0 1>;
 				};
 			};
 
@@ -88,7 +89,7 @@
 				slot@0 {
 					reg = <0>;
 					bus-width = <4>;
-					cd-gpios = <&pioE 1 GPIO_ACTIVE_HIGH>;
+					cd-gpios = <&pioE 1 0>;
 				};
 			};
 
@@ -129,17 +130,17 @@
 				board {
 					pinctrl_mmc0_cd: mmc0_cd {
 						atmel,pins =
-							<AT91_PIOE 0 AT91_PERIPH_GPIO AT91_PINCTRL_PULL_UP_DEGLITCH>;
+							<4 0 0x0 0x5>;
 					};
 
 					pinctrl_mmc1_cd: mmc1_cd {
 						atmel,pins =
-							<AT91_PIOE 1 AT91_PERIPH_GPIO AT91_PINCTRL_PULL_UP_DEGLITCH>;
+							<4 1 0x0 0x5>;
 					};
 
 					pinctrl_usba_vbus: usba_vbus {
 						atmel,pins =
-							<AT91_PIOE 9 AT91_PERIPH_GPIO AT91_PINCTRL_DEGLITCH>;	/* PE9, conflicts with A9 */
+							<4 9 0x0 0x5>;	/* PE9, conflicts with A9 */
 					};
 				};
 			};
@@ -190,7 +191,7 @@
 		};
 
 		usb0: gadget@00500000 {
-			atmel,vbus-gpio = <&pioE 9 GPIO_ACTIVE_HIGH>;	/* PE9, conflicts with A9 */
+			atmel,vbus-gpio = <&pioE 9 0>;	/* PE9, conflicts with A9 */
 			pinctrl-names = "default";
 			pinctrl-0 = <&pinctrl_usba_vbus>;
 			status = "okay";
@@ -199,8 +200,8 @@
 		usb1: ohci@00600000 {
 			num-ports = <3>;
 			atmel,vbus-gpio = <0
-					   &pioE 3 GPIO_ACTIVE_LOW
-					   &pioE 4 GPIO_ACTIVE_LOW
+					   &pioE 3 1
+					   &pioE 4 1
 					  >;
 			status = "okay";
 		};
@@ -215,7 +216,7 @@
 
 		bp3 {
 			label = "PB_USER";
-			gpios = <&pioE 29 GPIO_ACTIVE_LOW>;
+			gpios = <&pioE 29 1>;
 			linux,code = <0x104>;
 			gpio-key,wakeup;
 		};
@@ -226,13 +227,13 @@
 
 		d2 {
 			label = "d2";
-			gpios = <&pioE 23 GPIO_ACTIVE_LOW>;	/* PE23, conflicts with A23, CTS2 */
+			gpios = <&pioE 23 1>;	/* PE23, conflicts with A23, CTS2 */
 			linux,default-trigger = "heartbeat";
 		};
 
 		d3 {
 			label = "d3";
-			gpios = <&pioE 24 GPIO_ACTIVE_HIGH>;
+			gpios = <&pioE 24 0>;
 		};
 	};
 };
