@@ -25,6 +25,7 @@
 #include <linux/interrupt.h>
 #include <linux/slab.h>
 #include <linux/regulator/consumer.h>
+#include <linux/pinctrl/consumer.h>
 #include <linux/gpio.h>
 
 /* Configuration file */
@@ -1086,7 +1087,7 @@ static irqreturn_t mxt_process_messages_t44(struct mxt_data *data)
 	count = data->msg_buf[0];
 
 	if (count == 0) {
-		dev_warn(dev, "Interrupt triggered but zero messages\n");
+		dev_dbg(dev, "Interrupt triggered but zero messages\n");
 		return IRQ_NONE;
 	} else if (count > data->max_reportid) {
 		dev_err(dev, "T44 count %d exceeded max report id\n", count);
@@ -2917,8 +2918,15 @@ static int mxt_probe(struct i2c_client *client,
 		const struct i2c_device_id *id)
 {
 	struct mxt_data *data;
+	struct pinctrl *pinctrl;
 	int error;
 	int i = 0x4;
+
+	pinctrl = devm_pinctrl_get_select_default(&client->dev);
+	if (IS_ERR(pinctrl)) {
+		dev_err(&client->dev, "Failed to request pinctrl\n");
+		return PTR_ERR(pinctrl);
+	}
 
 	data = kzalloc(sizeof(struct mxt_data), GFP_KERNEL);
 	if (!data) {
