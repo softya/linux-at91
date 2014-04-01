@@ -94,6 +94,7 @@
 			};
 
 			spi1: spi@f8008000 {
+				dma = <0>;
 				cs-gpios = <&pioC 25 0>, <0>, <0>, <&pioD 16 0>;
 				status = "okay";
 			};
