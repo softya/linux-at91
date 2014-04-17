@@ -46,6 +46,30 @@
 #define TOUCH_SAMPLE_PERIOD_US		2000	/* 2ms */
 #define TOUCH_PEN_DETECT_DEBOUNCE_US	200
 
+#ifdef CONFIG_ANDROID
+int calibrated;
+int tx1;
+int ty1;
+int tz1;
+int tx2;
+int ty2;
+int tz2;
+int rawX;
+int rawY;
+int ts;
+
+module_param(tx1, int, 0664);
+module_param(ty1, int, 0664);
+module_param(tz1, int, 0664);
+module_param(tx2, int, 0664);
+module_param(ty2, int, 0664);
+module_param(tz2, int, 0664);
+module_param(rawX, int, 0664);
+module_param(rawY, int, 0664);
+module_param(ts, int, 0664);
+module_param(calibrated, int, 0664);
+#endif
+
 struct at91_adc_caps {
 	bool	has_ts;		/* Support touch screen */
 	bool	has_tsmr;	/* only at91sam9x5, sama5d3 have TSMR reg */
@@ -115,6 +139,25 @@ struct at91_adc_state {
 	u16			ts_sample_period_val;
 	u32			ts_pressure_threshold;
 };
+
+#ifdef CONFIG_ANDROID
+static void do_calibrate(int *x, int *y)
+{
+       int cal_x, cal_y;
+       rawX = *y;
+       rawY = (1 << MAX_POS_BITS) - 1 - *x;
+
+       cal_x = rawX;
+       cal_y = rawY;
+
+       if (calibrated && ts) {
+               cal_x = (rawX * tx1 + rawY * ty1 + tz1)/ts ;
+               cal_y = (rawX * tx2 + rawY * ty2 + tz2)/ts ;
+       }
+       *x = cal_x;
+       *y = cal_y;
+}
+#endif
 
 static irqreturn_t at91_adc_trigger_handler(int irq, void *p)
 {
@@ -207,6 +250,10 @@ static int at91_ts_sample(struct at91_adc_state *st)
 			/ factor;
 	else
 		pres = st->ts_pressure_threshold;	/* no pen contacted */
+
+#ifdef CONFIG_ANDROID
+	do_calibrate(&x, &y);
+#endif
 
 	dev_dbg(&idev->dev, "xpos = %d, xscale = %d, ypos = %d, yscale = %d, z1 = %d, z2 = %d, press = %d\n",
 				xpos, xscale, ypos, yscale, z1, z2, pres);
@@ -760,6 +807,10 @@ static int at91_adc_probe_dt(struct at91_adc_state *st,
 		return at91_adc_probe_dt_ts(node, st, &idev->dev);
 	else
 		dev_info(&idev->dev, "not support touchscreen in the adc compatible string.\n");
+
+#ifdef CONFIG_ANDROID
+       calibrated = 0;
+#endif
 
 	return 0;
 
