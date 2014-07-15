@@ -170,6 +170,8 @@
 #define HEOCFG41_XPHIDEF_DEFAULT	4
 #define HEOCFG41_YPHIDEF_DEFAULT	4
 
+#define MAX_BUFFER_NUM			5
+
 #define valtomask(val, mask)	(((val) << __ffs((mask))) & (mask))
 #define valfrommask(val, mask)	(((val) & (mask)) >> __ffs((mask)))
 
@@ -264,6 +266,23 @@ struct at91sam9x5_video_bufinfo {
 	unsigned long plane_size[3];
 };
 
+/* Frame buffer descriptor */
+struct fbd {
+	u32 descriptor[12];
+};
+
+struct heo_dma_desc {
+	struct list_head list;
+	struct fbd *p_fbd;
+	u32 fbd_phys;
+};
+
+/* Frame buffer data */
+struct frame_buffer {
+	struct vb2_buffer vb;
+	struct heo_dma_desc *p_dma_desc;
+};
+
 struct at91sam9x5_video_priv {
 	struct platform_device *pdev;
 
@@ -308,7 +327,13 @@ struct at91sam9x5_video_priv {
 	int rotation;
 
 	struct v4l2_window fmt_vid_overlay;
-
+    
+	struct list_head    dma_desc_head;
+	struct heo_dma_desc	dma_desc[MAX_BUFFER_NUM];
+	/* Allocate descriptors for dma buffer use */
+	struct fbd		 *p_fb_descriptors;
+	u32				  fb_descriptors_phys;
+    
 	/*
 	 * For YUV formats Y data is always in plane 0. U, V are either both in
 	 * 0, both in 1, or U in 1 or V in 2. -1 for formats that don't use U
@@ -464,12 +489,10 @@ static void at91sam9x5_video_show_buf(struct at91sam9x5_video_priv *priv,
 		struct vb2_buffer *vb)
 {
 	dma_addr_t buffer = vb2_dma_contig_plane_dma_addr(vb, 0);
-	void *vaddr = vb2_plane_vaddr(vb, 0);
 	struct v4l2_pix_format *pix = &priv->fmt_vid_out_cur;
+	struct frame_buffer *buf = container_of(vb, struct frame_buffer, vb);
 	/* XXX: format dependant */
-	size_t offset_dmadesc = ALIGN(pix->width * pix->height +
-			ALIGN(pix->width, 2) * ALIGN(pix->height, 2) / 2, 64);
-	u32 *dmadesc = vaddr + offset_dmadesc;
+	u32 *dmadesc = buf->p_dma_desc->p_fbd->descriptor;
 	u32 heocher;
 
 	if (priv->cfgstate == at91sam9x5_video_CFG_GOOD_LATCH) {
@@ -487,7 +510,7 @@ static void at91sam9x5_video_show_buf(struct at91sam9x5_video_priv *priv,
 
 	dmadesc[0] = buffer + priv->y_offset;
 	dmadesc[1] = REG_HEOxCTRL_DFETCH;
-	dmadesc[2] = buffer + offset_dmadesc;
+	dmadesc[2] = buf->p_dma_desc->fbd_phys;
 	/* dmadesc[3] not used to align U plane descriptor */
 
 	if (priv->u_planeno >= 0) {
@@ -495,7 +518,7 @@ static void at91sam9x5_video_show_buf(struct at91sam9x5_video_priv *priv,
 			priv->u_offset;
 		dmadesc[5] = REG_HEOxCTRL_DFETCH;
 		/* link to physical address of this U descriptor */
-		dmadesc[6] = buffer + offset_dmadesc + 4 * 4;
+		dmadesc[6] = buf->p_dma_desc->fbd_phys + 4 * 4;
 	}
 	/* dmadesc[7] not used to align V plane descriptor */
 
@@ -504,7 +527,7 @@ static void at91sam9x5_video_show_buf(struct at91sam9x5_video_priv *priv,
 			priv->v_offset;
 		dmadesc[9] = REG_HEOxCTRL_DFETCH;
 		/* link to physical address of this V descriptor */
-		dmadesc[10] = buffer + offset_dmadesc + 8 * 4;
+		dmadesc[10] = buf->p_dma_desc->fbd_phys + 8 * 4;
 	}
 
 
@@ -893,6 +916,44 @@ static void at91sam9x5_video_update_config(struct at91sam9x5_video_priv *priv,
 	}
 }
 
+static int at91sam9x5_video_vb_buffer_init(struct vb2_buffer *vb)
+{
+    struct frame_buffer *buf = container_of(vb, struct frame_buffer, vb);
+
+    buf->p_dma_desc = NULL;
+
+    return 0;
+}
+
+static int at91sam9x5_video_vb_buf_finish(struct vb2_buffer *vb)
+{
+    struct vb2_queue *q = vb->vb2_queue;
+    struct at91sam9x5_video_priv *priv =
+		container_of(q, struct at91sam9x5_video_priv, queue);
+    struct frame_buffer *buf = container_of(vb, struct frame_buffer, vb);
+
+	/* This descriptor is available now and we add to head list */
+    if (buf->p_dma_desc)
+        list_add(&buf->p_dma_desc->list, &priv->dma_desc_head);
+
+    return 0;
+}
+
+static void at91sam9x5_video_vb_buf_cleanup(struct vb2_buffer *vb)
+{
+    struct vb2_queue *q = vb->vb2_queue;
+    struct at91sam9x5_video_priv *priv =
+		container_of(q, struct at91sam9x5_video_priv, queue);
+    struct frame_buffer *buf = container_of(vb, struct frame_buffer, vb);
+
+	/* This descriptor is available now and we add to head list */
+    if (buf->p_dma_desc)
+        list_add(&buf->p_dma_desc->list, &priv->dma_desc_head);
+
+}
+
+
+
 static int at91sam9x5_video_vb_queue_setup(struct vb2_queue *q,
 		const struct v4l2_format *fmt,
 		unsigned int *num_buffers, unsigned int *num_planes,
@@ -917,14 +978,12 @@ static int at91sam9x5_video_vb_queue_setup(struct vb2_queue *q,
 	switch(pix->pixelformat) {
 		case V4L2_PIX_FMT_YUV420:
 			sizes[0] = pix->width * pix->height +
-				ALIGN(pix->width, 2) * ALIGN(pix->height, 2) / 2 +
-				9 * 32 + 128;
+				ALIGN(pix->width, 2) * ALIGN(pix->height, 2) / 2;
 			break;
 		case V4L2_PIX_FMT_UYVY:
 		case V4L2_PIX_FMT_YUYV:
 			sizes[0] = pix->width * pix->height +
-			ALIGN(pix->width, 2) * ALIGN(pix->height, 2) +
-			9 * 32 + 128;
+			ALIGN(pix->width, 2) * ALIGN(pix->height, 2);
 			break;
 		default:
 			return -EINVAL;
@@ -982,7 +1041,9 @@ static int at91sam9x5_video_vb_buf_prepare(struct vb2_buffer *vb)
 	struct vb2_queue *q = vb->vb2_queue;
 	struct at91sam9x5_video_priv *priv =
 		container_of(q, struct at91sam9x5_video_priv, queue);
+	struct frame_buffer *buf = container_of(vb, struct frame_buffer, vb);
 	struct v4l2_pix_format *pix = &priv->fmt_vid_out_cur;
+	struct heo_dma_desc *desc;
 	unsigned long flags;
 
 	spin_lock_irqsave(&priv->lock, flags);
@@ -993,11 +1054,20 @@ static int at91sam9x5_video_vb_buf_prepare(struct vb2_buffer *vb)
 	debug("vout=%ux%u\n", pix->width, pix->height);
 	debug("buflen=%u\n", vb->v4l2_planes[0].length);
 
-	/* XXX: format-dependant */
-	if (vb->v4l2_planes[0].length < pix->width * pix->height +
-			ALIGN(pix->width, 2) * ALIGN(pix->height, 2) / 2 +
-			9 * 32 + 128)
-		return -EINVAL;
+	if (!buf->p_dma_desc) {
+            if (list_empty(&priv->dma_desc_head)) {
+                dev_err(&priv->pdev->dev, "Not enough dma descriptors.\n");
+                return -EINVAL;
+            } else {
+                /* Get an available descriptor */
+                desc = list_entry(priv->dma_desc_head.next,
+                            struct heo_dma_desc, list);
+                /* Delete the descriptor since now it is used */
+                list_del_init(&desc->list);
+                buf->p_dma_desc = desc;
+            }
+        }
+
 
 	return 0;
 }
@@ -1007,6 +1077,7 @@ static void at91sam9x5_video_vb_buf_queue(struct vb2_buffer *vb)
 	struct vb2_queue *q = vb->vb2_queue;
 	struct at91sam9x5_video_priv *priv =
 		container_of(q, struct at91sam9x5_video_priv, queue);
+	struct frame_buffer *buf = container_of(vb, struct frame_buffer, vb);
 	unsigned long flags;
 
 	spin_lock_irqsave(&priv->lock, flags);
@@ -1031,10 +1102,11 @@ static void at91sam9x5_video_vb_buf_queue(struct vb2_buffer *vb)
 
 const struct vb2_ops at91sam9x5_video_vb_ops = {
 	.queue_setup = at91sam9x5_video_vb_queue_setup,
-
+	.buf_init	= at91sam9x5_video_vb_buffer_init,
+	.buf_finish = at91sam9x5_video_vb_buf_finish,
+	.buf_cleanup = at91sam9x5_video_vb_buf_cleanup,
 	.wait_prepare = at91sam9x5_video_vb_wait_prepare,
 	.wait_finish = at91sam9x5_video_vb_wait_finish,
-
 	.buf_prepare = at91sam9x5_video_vb_buf_prepare,
 	.buf_queue = at91sam9x5_video_vb_buf_queue,
 };
@@ -1431,6 +1503,7 @@ static int at91sam9x5_video_register(struct at91sam9x5_video_priv *priv,
 	q->type = V4L2_BUF_TYPE_VIDEO_OUTPUT;
 	q->io_modes = VB2_MMAP | VB2_USERPTR | VB2_WRITE;
 	q->timestamp_type = V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC;
+	q->buf_struct_size = sizeof(struct frame_buffer);
 
 	ret = vb2_queue_init(q);
 	if (ret) {
@@ -1565,7 +1638,7 @@ static int at91sam9x5_video_probe(struct platform_device *pdev)
 
 	if (!priv) {
 		dev_err(&pdev->dev, "failed to allocate driver private data\n");
-		goto err_alloc_priv;
+		goto err_out;
 	}
 
 	priv->pdev = pdev;
@@ -1574,14 +1647,37 @@ static int at91sam9x5_video_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, priv);
 
 	spin_lock_init(&priv->lock);
+	INIT_LIST_HEAD(&priv->dma_desc_head);
+
+	priv->p_fb_descriptors = dma_alloc_coherent(&pdev->dev,
+				sizeof(struct fbd) * MAX_BUFFER_NUM,
+				&priv->fb_descriptors_phys,
+				GFP_KERNEL);
+
+	if (!priv->p_fb_descriptors) {
+		ret = -ENOMEM;
+		dev_err(&pdev->dev, "Can't allocate descriptors!\n");
+		goto err_alloc_priv;
+	}
+
+	for (i = 0; i < MAX_BUFFER_NUM; i++) {
+		priv->dma_desc[i].p_fbd = priv->p_fb_descriptors + i;
+		priv->dma_desc[i].fbd_phys = priv->fb_descriptors_phys +
+					i * sizeof(struct fbd);
+		list_add(&priv->dma_desc[i].list, &priv->dma_desc_head);
+	}
 
 	ret = fb_register_client(&priv->fb_notifier);
 	if (ret) {
 		dev_err(&pdev->dev, "failed to register fb client (%d)\n", ret);
-
-		kfree(priv);
+        
+        dma_free_coherent(&pdev->dev,
+			sizeof(struct fbd) * MAX_BUFFER_NUM,
+			priv->p_fb_descriptors,
+			priv->fb_descriptors_phys);
 err_alloc_priv:
-
+        kfree(priv);
+err_out:
 		return ret;
 	}
 
@@ -1604,6 +1700,10 @@ static int at91sam9x5_video_remove(struct platform_device *pdev)
 
 	fb_unregister_client(&priv->fb_notifier);
 	at91sam9x5_video_unregister(priv);
+	dma_free_coherent(&pdev->dev,
+			sizeof(struct fbd) * MAX_BUFFER_NUM,
+			priv->p_fb_descriptors,
+			priv->fb_descriptors_phys);
 	kfree(priv);
 
 	return 0;
