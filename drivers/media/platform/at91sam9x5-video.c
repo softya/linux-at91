@@ -262,7 +262,7 @@ struct at91sam9x5_video_pdata {
 
 struct at91sam9x5_video_bufinfo {
 	struct vb2_buffer *vb;
-	unsigned u_planeno, v_planeno;
+	int u_planeno, v_planeno;
 	unsigned long plane_size[3];
 };
 
@@ -371,7 +371,7 @@ static void at91sam9x5_video_write32(struct at91sam9x5_video_priv *priv,
 
 static int __at91sam9x5_video_buf_in_use(struct at91sam9x5_video_priv *priv,
 		struct at91sam9x5_video_bufinfo *bi,
-		size_t heoaddr_offset, unsigned planeno)
+		size_t heoaddr_offset, int planeno)
 {
 	if (planeno >= 0) {
 		u32 heoaddr = at91sam9x5_video_read32(priv, heoaddr_offset);
@@ -758,20 +758,29 @@ static void at91sam9x5_video_update_config_real(
 			at91sam9x5_video_write32(priv, REG_HEOCFG1,
 			REG_HEOCFG1_YUVMODE_16YCBCR_0 |
 			REG_HEOCFG1_YUVEN);
+			priv->u_planeno = -1;
+			priv->v_planeno = -1;
 			break;
 		case V4L2_PIX_FMT_UYVY:
 			at91sam9x5_video_write32(priv, REG_HEOCFG1,
 			REG_HEOCFG1_YUVMODE_16YCBCR_1 |
 			REG_HEOCFG1_YUVEN);
+			priv->u_planeno = -1;
+			priv->v_planeno = -1;
 			break;
 		case V4L2_PIX_FMT_YUV420:
 			at91sam9x5_video_write32(priv, REG_HEOCFG1,
 			REG_HEOCFG1_YUVMODE_12YCBCRP |
 			REG_HEOCFG1_YUVEN);
+			priv->u_planeno = 0;
+			priv->v_planeno = 0;
+			break;
 		default:
 			at91sam9x5_video_write32(priv, REG_HEOCFG1,
 			REG_HEOCFG1_YUVMODE_12YCBCRP |
 			REG_HEOCFG1_YUVEN);
+			priv->u_planeno = 0;
+			priv->v_planeno = 0;
 			break;
 	}
 
@@ -836,9 +845,6 @@ static void at91sam9x5_video_update_config_real(
 	at91sam9x5_video_write32(priv, REG_HEOCFG8,
 			valtomask(hwuvpstride - 1, REG_HEOCFG8_UVPSTRIDE));
 
-	/* XXX: format dependant */
-	priv->u_planeno = 0;
-	priv->v_planeno = 0;
 	priv->u_offset += pix->width * pix->height;
 	priv->v_offset = priv->u_offset +
 		DIV_ROUND_UP(pix->width, 2) * DIV_ROUND_UP(pix->height, 2);
