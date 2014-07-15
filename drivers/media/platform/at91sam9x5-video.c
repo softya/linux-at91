@@ -281,6 +281,8 @@ struct heo_dma_desc {
 struct frame_buffer {
 	struct vb2_buffer vb;
 	struct heo_dma_desc *p_dma_desc;
+	struct list_head list;
+	u32    displayed;
 };
 
 struct at91sam9x5_video_priv {
@@ -302,6 +304,9 @@ struct at91sam9x5_video_priv {
 
 	/* protects the members after lock and hardware access */
 	spinlock_t lock;
+
+	/*protects the members for dma descriptors list*/
+	spinlock_t desc_lock;
 
 	enum {
 		/* DMA not running */
@@ -328,6 +333,7 @@ struct at91sam9x5_video_priv {
 
 	struct v4l2_window fmt_vid_overlay;
     
+	struct list_head    video_buffer_list;
 	struct list_head    dma_desc_head;
 	struct heo_dma_desc	dma_desc[MAX_BUFFER_NUM];
 	/* Allocate descriptors for dma buffer use */
@@ -370,15 +376,15 @@ static void at91sam9x5_video_write32(struct at91sam9x5_video_priv *priv,
 }
 
 static int __at91sam9x5_video_buf_in_use(struct at91sam9x5_video_priv *priv,
-		struct at91sam9x5_video_bufinfo *bi,
+		struct vb2_buffer *vb,
 		size_t heoaddr_offset, int planeno)
 {
 	if (planeno >= 0) {
 		u32 heoaddr = at91sam9x5_video_read32(priv, heoaddr_offset);
 		dma_addr_t plane_paddr =
-			vb2_dma_contig_plane_dma_addr(bi->vb, planeno);
-
-		if (heoaddr - plane_paddr <= bi->plane_size[planeno])
+			vb2_dma_contig_plane_dma_addr(vb, planeno);
+		if (heoaddr > plane_paddr && 
+		    (heoaddr - plane_paddr) < priv->plane_size[planeno])
 			return 1;
 	}
 
@@ -386,93 +392,19 @@ static int __at91sam9x5_video_buf_in_use(struct at91sam9x5_video_priv *priv,
 }
 
 
-static int at91sam9x5_video_buf_in_use(struct at91sam9x5_video_priv *priv,
-		struct at91sam9x5_video_bufinfo *bi)
+static int __maybe_unused at91sam9x5_video_buf_in_use(struct at91sam9x5_video_priv *priv,
+		struct vb2_buffer *vb)
 {
-	if (__at91sam9x5_video_buf_in_use(priv, bi, REG_HEOADDR, 0))
+	if (__at91sam9x5_video_buf_in_use(priv, vb, REG_HEOADDR, 0))
 		return 1;
-	if (__at91sam9x5_video_buf_in_use(priv, bi,
-				REG_HEOUADDR, bi->u_planeno))
+	if (__at91sam9x5_video_buf_in_use(priv, vb,
+				REG_HEOUADDR, priv->u_planeno))
 		return 1;
-	if (__at91sam9x5_video_buf_in_use(priv, bi,
-				REG_HEOVADDR, bi->v_planeno))
+	if (__at91sam9x5_video_buf_in_use(priv, vb,
+				REG_HEOVADDR, priv->v_planeno))
 		return 1;
 
 	return 0;
-}
-
-static u32 at91sam9x5_video_handle_irqstat(struct at91sam9x5_video_priv *priv)
-{
-	u32 heoisr = at91sam9x5_video_read32(priv, REG_HEOISR);
-
-	debug("cur=%p, next=%p, heoisr=%08x\n", priv->cur.vb,
-			priv->next.vb, heoisr);
-	debug("cfgupdate=%d hwstate=%d cfgstate=%d\n",
-			priv->cfgupdate, priv->hwstate, priv->cfgstate);
-
-	if (!priv->cur.vb) {
-		priv->cur = priv->next;
-		priv->next.vb = NULL;
-	}
-
-	if (priv->hwstate == at91sam9x5_video_HW_IDLE &&
-			!(at91sam9x5_video_read32(priv, REG_HEOCHSR) &
-				REG_HEOCHSR_CHSR)) {
-		if (priv->cur.vb) {
-			vb2_buffer_done(priv->cur.vb, VB2_BUF_STATE_DONE);
-			priv->cur.vb = NULL;
-		}
-
-		if (priv->next.vb) {
-			vb2_buffer_done(priv->next.vb, VB2_BUF_STATE_DONE);
-			priv->next.vb = NULL;
-		}
-
-		at91sam9x5_video_write32(priv, REG_HEOIDR,
-				REG_HEOIxR_ADD | REG_HEOIxR_DMA |
-				REG_HEOIxR_UADD | REG_HEOIxR_UDMA |
-				REG_HEOIxR_VADD | REG_HEOIxR_VDMA);
-
-	} else if (priv->cur.vb && priv->next.vb) {
-		int hwrunning = 1;
-		if (priv->cfgstate == at91sam9x5_video_CFG_BAD &&
-				!(at91sam9x5_video_read32(priv, REG_HEOCHSR) &
-					REG_HEOCHSR_CHSR))
-			hwrunning = 0;
-
-		if (!hwrunning || !at91sam9x5_video_buf_in_use(priv,
-					&priv->cur)) {
-			vb2_buffer_done(priv->cur.vb, VB2_BUF_STATE_DONE);
-			priv->cur = priv->next;
-			priv->next.vb = NULL;
-		}
-	} else if (priv->next.vb) {
-		priv->cur = priv->next;
-		priv->next.vb = NULL;
-	}
-
-	return heoisr;
-}
-
-static irqreturn_t at91sam9x5_video_irq(int irq, void *data)
-{
-	struct at91sam9x5_video_priv *priv = data;
-	unsigned long flags;
-	u32 handled, heoimr;
-
-	spin_lock_irqsave(&priv->lock, flags);
-
-	heoimr = at91sam9x5_video_read32(priv, REG_HEOIMR);
-	handled = at91sam9x5_video_handle_irqstat(priv);
-
-	debug("HEOIMR = 0x%08x, HEOCHSR = 0x%08x\n", heoimr, handled);
-
-	spin_unlock_irqrestore(&priv->lock, flags);
-
-	if (handled & heoimr)
-		return IRQ_HANDLED;
-	else
-		return IRQ_NONE;
 }
 
 static inline int sign(int x)
@@ -485,12 +417,78 @@ static inline int sign(int x)
 		return 0;
 }
 
-static void at91sam9x5_video_show_buf(struct at91sam9x5_video_priv *priv,
-		struct vb2_buffer *vb)
+static void *at91sam9x5_video_get_buf_from_list(struct at91sam9x5_video_priv *priv,
+		u32 num)
 {
+    struct frame_buffer *buf, *node, *last_buf;
+    u32    list_buf_num = 0;
+
+    /* num: the 'num'th buf in the list
+         * return the num's next buf if it has not been displayed
+         * when queue a buf, try to return 1th buf's next buf.
+         * when dma transfer done, try to return 2th buf's next buf.
+         * so num will not larger than 2
+         */
+    if (num > 2) {
+        dev_err(&priv->pdev->dev, "invalid parameter to get buf from list.\n");
+        return NULL;
+    }
+
+    if (list_empty(&priv->video_buffer_list))
+        return NULL;
+    
+    list_for_each_entry_safe(buf, node, &priv->video_buffer_list, list) {
+        last_buf = buf;
+        if(++list_buf_num > num) {
+            if(!buf->displayed)
+                return buf;
+            return NULL;
+        }
+    }
+
+    /* if there only  one buffer in the list, return it if it has not been displayed
+         * this will happen when application queue the first buf.
+         */
+    if(list_buf_num == 1) {
+        if(!last_buf->displayed)
+            return last_buf;
+    }
+
+    /*don't find a suitable buf from the list*/
+    return NULL;
+
+}
+
+static void *at91sam9x5_video_free_buf_from_list(struct at91sam9x5_video_priv *priv)
+{
+    struct frame_buffer *buf;
+
+    if (list_empty(&priv->video_buffer_list))
+        return NULL;
+
+    buf = list_entry(priv->video_buffer_list.next, 
+          struct frame_buffer, list);
+
+//    if(at91sam9x5_video_buf_in_use(priv, &buf->vb))
+//        return NULL;
+
+    BUG_ON(!buf->displayed);
+
+    if(buf->displayed) {
+        list_del_init(&buf->list);
+        return buf;
+    }
+
+    return NULL;
+}
+
+static void at91sam9x5_video_show_buf(struct at91sam9x5_video_priv *priv,
+		struct frame_buffer *buf)
+{
+	struct vb2_buffer *vb = &buf->vb;
 	dma_addr_t buffer = vb2_dma_contig_plane_dma_addr(vb, 0);
-	struct v4l2_pix_format *pix = &priv->fmt_vid_out_cur;
-	struct frame_buffer *buf = container_of(vb, struct frame_buffer, vb);
+	struct v4l2_pix_format __maybe_unused *pix = &priv->fmt_vid_out_cur;
+
 	/* XXX: format dependant */
 	u32 *dmadesc = buf->p_dma_desc->p_fbd->descriptor;
 	u32 heocher;
@@ -577,29 +575,119 @@ static void at91sam9x5_video_show_buf(struct at91sam9x5_video_priv *priv,
 		priv->hwstate = at91sam9x5_video_HW_RUNNING;
 	}
 
-	if (priv->cur.vb && at91sam9x5_video_buf_in_use(priv, &priv->cur)) {
-		if (priv->next.vb) {
-			/* drop next; XXX: is this an error? */
-			debug("drop %p\n", priv->next.vb);
-			vb2_buffer_done(priv->next.vb, VB2_BUF_STATE_ERROR);
-		}
-	} else {
-		if (priv->cur.vb)
-			vb2_buffer_done(priv->cur.vb, VB2_BUF_STATE_DONE);
+	buf->displayed = true;
 
-		priv->cur = priv->next;
+}
+
+static void at91sam9x5_video_handle_buf_list(struct at91sam9x5_video_priv *priv, u32 num)
+{
+    unsigned long flags;
+    struct frame_buffer *buf = NULL;
+    
+    spin_lock_irqsave(&priv->lock, flags);
+    
+    buf = at91sam9x5_video_get_buf_from_list(priv, num);
+
+    /*TODO: try to use goto to avoid too many spin_unlock*/
+    if(buf == NULL) {
+        spin_unlock_irqrestore(&priv->lock, flags);
+        return;
+    }
+
+    if(!vb2_is_streaming(buf->vb.vb2_queue)) {
+        //debug("stream has not been started yet\n");
+        printk(KERN_ERR "stream has not been started yet\n");
+        spin_unlock_irqrestore(&priv->lock, flags);
+        return;
+    }
+        
+    at91sam9x5_video_show_buf(priv, buf);
+    
+    spin_unlock_irqrestore(&priv->lock, flags);
+}
+
+static void at91sam9x5_video_free_buf_list(struct at91sam9x5_video_priv *priv, bool all)
+{
+    unsigned long flags;
+    struct frame_buffer *buf, *node;
+    
+    spin_lock_irqsave(&priv->lock, flags);
+
+    if(all) {
+        list_for_each_entry_safe(buf, node, &priv->video_buffer_list, list) {
+            list_del_init(&buf->list);
+            vb2_buffer_done(&buf->vb, VB2_BUF_STATE_ERROR);
+        }
+    } else {
+        buf = at91sam9x5_video_free_buf_from_list(priv);
+
+        if(buf != NULL)
+            vb2_buffer_done(&buf->vb, VB2_BUF_STATE_DONE);
+    }
+
+    spin_unlock_irqrestore(&priv->lock, flags);
+}
+
+static u32 at91sam9x5_video_handle_irqstat(struct at91sam9x5_video_priv *priv, u32 imr)
+{
+	u32 heoisr = at91sam9x5_video_read32(priv, REG_HEOISR);
+
+	debug("heoisr=%08x, heoimr=%08x\n", heoisr, imr);
+	debug("cfgupdate=%d hwstate=%d cfgstate=%d\n",
+			priv->cfgupdate, priv->hwstate, priv->cfgstate);
+
+	if (heoisr & (imr & (REG_HEOIxR_DMA | REG_HEOIxR_UDMA | REG_HEOIxR_VDMA))) {
+        at91sam9x5_video_handle_buf_list(priv, 2);
 	}
-	priv->next.vb = vb;
-	priv->next.u_planeno = priv->u_planeno;
-	priv->next.v_planeno = priv->v_planeno;
-	priv->next.plane_size[0] = priv->plane_size[0];
-	priv->next.plane_size[1] = priv->plane_size[1];
-	priv->next.plane_size[2] = priv->plane_size[2];
+
+	if (heoisr & (imr & (REG_HEOIxR_ADD | REG_HEOIxR_UADD | REG_HEOIxR_VADD))) {
+        at91sam9x5_video_free_buf_list(priv, false);
+	}
+
+	return heoisr;
+}
+
+static irqreturn_t at91sam9x5_video_irq(int irq, void *data)
+{
+	struct at91sam9x5_video_priv *priv = data;
+	u32 handled, heoimr;
+
+	heoimr = at91sam9x5_video_read32(priv, REG_HEOIMR);
+    /*we don't enable any interrupts for HEO, maybe this interrupt is from LCD*/
+    if(heoimr == 0)
+        return IRQ_NONE;
+    
+	handled = at91sam9x5_video_handle_irqstat(priv, heoimr);
+
+	debug("HEOIMR = 0x%08x, HEOCHSR = 0x%08x\n", heoimr, handled);
+
+	if (handled & heoimr)
+		return IRQ_HANDLED;
+	else
+		return IRQ_NONE;
 }
 
 static bool experimental;
 module_param(experimental, bool, 0644);
 MODULE_PARM_DESC(experimental, "enable experimental features");
+
+static void at91sam9x5_video_dma_interrupt_flags(struct at91sam9x5_video_priv *priv, bool enable)
+{
+    u32 ier = 0;
+
+    ier |= REG_HEOIxR_ADD | REG_HEOIxR_DMA;
+    
+    if(priv->u_planeno >= 0)
+        ier |= REG_HEOIxR_UADD | REG_HEOIxR_UDMA;
+
+    if(priv->v_planeno >= 0)
+        ier |= REG_HEOIxR_VADD | REG_HEOIxR_VDMA;
+
+    if(enable)
+        at91sam9x5_video_write32(priv, REG_HEOIER, ier);
+    else
+        at91sam9x5_video_write32(priv, REG_HEOIDR, ier);
+}
 
 static void at91sam9x5_video_params(unsigned width, unsigned height,
 		int rotation, u32 *xstride, u32 *pstride, u32 *tloffset)
@@ -860,14 +948,12 @@ static void at91sam9x5_video_update_config(struct at91sam9x5_video_priv *priv,
 {
 	debug("cfgupdate=%d overlay_only=%d\n", priv->cfgupdate, overlay_only);
 
-	at91sam9x5_video_handle_irqstat(priv);
-
 	if (priv->cfgupdate || overlay_only) {
 		struct v4l2_pix_format *pix = &priv->fmt_vid_out_cur;
 		struct v4l2_window *win = &priv->fmt_vid_overlay;
 		struct v4l2_rect *rect = &win->w;
 
-		if (!overlay_only) {
+		if (priv->cfgupdate) {
 			*pix = priv->fmt_vid_out_next;
 			priv->cfgupdate = 0;
 		}
@@ -908,8 +994,6 @@ static void at91sam9x5_video_update_config(struct at91sam9x5_video_priv *priv,
 					priv->hwstate =
 						at91sam9x5_video_HW_IDLE;
 
-					at91sam9x5_video_show_buf(priv,
-							priv->cur.vb);
 				} else
 					at91sam9x5_video_write32(priv,
 							REG_HEOCHER,
@@ -927,6 +1011,8 @@ static int at91sam9x5_video_vb_buffer_init(struct vb2_buffer *vb)
     struct frame_buffer *buf = container_of(vb, struct frame_buffer, vb);
 
     buf->p_dma_desc = NULL;
+    buf->displayed = false;
+    INIT_LIST_HEAD(&buf->list);
 
     return 0;
 }
@@ -938,9 +1024,13 @@ static int at91sam9x5_video_vb_buf_finish(struct vb2_buffer *vb)
 		container_of(q, struct at91sam9x5_video_priv, queue);
     struct frame_buffer *buf = container_of(vb, struct frame_buffer, vb);
 
+    spin_lock(&priv->desc_lock);
 	/* This descriptor is available now and we add to head list */
     if (buf->p_dma_desc)
         list_add(&buf->p_dma_desc->list, &priv->dma_desc_head);
+    spin_unlock(&priv->desc_lock);
+
+    buf->displayed = false;
 
     return 0;
 }
@@ -952,10 +1042,13 @@ static void at91sam9x5_video_vb_buf_cleanup(struct vb2_buffer *vb)
 		container_of(q, struct at91sam9x5_video_priv, queue);
     struct frame_buffer *buf = container_of(vb, struct frame_buffer, vb);
 
+    spin_lock(&priv->desc_lock);
 	/* This descriptor is available now and we add to head list */
     if (buf->p_dma_desc)
         list_add(&buf->p_dma_desc->list, &priv->dma_desc_head);
+    spin_unlock(&priv->desc_lock);
 
+    buf->displayed = false;
 }
 
 
@@ -1004,42 +1097,20 @@ static int at91sam9x5_video_vb_queue_setup(struct vb2_queue *q,
 
 static void at91sam9x5_video_vb_wait_prepare(struct vb2_queue *q)
 {
-	struct at91sam9x5_video_priv *priv =
+	struct at91sam9x5_video_priv __maybe_unused *priv =
 		container_of(q, struct at91sam9x5_video_priv, queue);
-	unsigned long flags;
 
 	debug("cfgupdate=%d hwstate=%d cfgstate=%d\n",
 			priv->cfgupdate, priv->hwstate, priv->cfgstate);
-	debug("bufs=%p,%p\n", priv->cur.vb, priv->next.vb);
-	spin_lock_irqsave(&priv->lock, flags);
-
-	at91sam9x5_video_handle_irqstat(priv);
-
-	at91sam9x5_video_write32(priv, REG_HEOIER,
-			REG_HEOIxR_ADD | REG_HEOIxR_DMA |
-			REG_HEOIxR_UADD | REG_HEOIxR_UDMA |
-			REG_HEOIxR_VADD | REG_HEOIxR_VDMA);
-
-	spin_unlock_irqrestore(&priv->lock, flags);
 }
 
 static void at91sam9x5_video_vb_wait_finish(struct vb2_queue *q)
 {
-	struct at91sam9x5_video_priv *priv =
+	struct at91sam9x5_video_priv __maybe_unused *priv =
 		container_of(q, struct at91sam9x5_video_priv, queue);
-	unsigned long flags;
 
 	debug("cfgupdate=%d hwstate=%d cfgstate=%d\n",
 			priv->cfgupdate, priv->hwstate, priv->cfgstate);
-	debug("bufs=%p,%p\n", priv->cur.vb, priv->next.vb);
-	spin_lock_irqsave(&priv->lock, flags);
-
-	at91sam9x5_video_write32(priv, REG_HEOIDR,
-			REG_HEOIxR_ADD | REG_HEOIxR_DMA |
-			REG_HEOIxR_UADD | REG_HEOIxR_UDMA |
-			REG_HEOIxR_VADD | REG_HEOIxR_VDMA);
-
-	spin_unlock_irqrestore(&priv->lock, flags);
 }
 
 static int at91sam9x5_video_vb_buf_prepare(struct vb2_buffer *vb)
@@ -1048,18 +1119,14 @@ static int at91sam9x5_video_vb_buf_prepare(struct vb2_buffer *vb)
 	struct at91sam9x5_video_priv *priv =
 		container_of(q, struct at91sam9x5_video_priv, queue);
 	struct frame_buffer *buf = container_of(vb, struct frame_buffer, vb);
-	struct v4l2_pix_format *pix = &priv->fmt_vid_out_cur;
+	struct v4l2_pix_format __maybe_unused *pix = &priv->fmt_vid_out_cur;
 	struct heo_dma_desc *desc;
-	unsigned long flags;
-
-	spin_lock_irqsave(&priv->lock, flags);
-	if (priv->cfgupdate)
-		pix = &priv->fmt_vid_out_next;
-	spin_unlock_irqrestore(&priv->lock, flags);
 
 	debug("vout=%ux%u\n", pix->width, pix->height);
 	debug("buflen=%u\n", vb->v4l2_planes[0].length);
 
+	spin_lock(&priv->desc_lock);
+    
 	if (!buf->p_dma_desc) {
             if (list_empty(&priv->dma_desc_head)) {
                 dev_err(&priv->pdev->dev, "Not enough dma descriptors.\n");
@@ -1074,6 +1141,7 @@ static int at91sam9x5_video_vb_buf_prepare(struct vb2_buffer *vb)
             }
         }
 
+	spin_unlock(&priv->desc_lock);
 
 	return 0;
 }
@@ -1084,26 +1152,47 @@ static void at91sam9x5_video_vb_buf_queue(struct vb2_buffer *vb)
 	struct at91sam9x5_video_priv *priv =
 		container_of(q, struct at91sam9x5_video_priv, queue);
 	struct frame_buffer *buf = container_of(vb, struct frame_buffer, vb);
-	unsigned long flags;
 
-	spin_lock_irqsave(&priv->lock, flags);
+	//TODO: Handle the situation change pixcel format(s_fmt_vid_out)  after stream on.
 
-	at91sam9x5_video_update_config(priv, 0);
+	list_add_tail(&buf->list, &priv ->video_buffer_list);
+	at91sam9x5_video_handle_buf_list(priv, 1);
+}
 
-	switch (priv->cfgstate) {
-	case at91sam9x5_video_CFG_GOOD:
-	case at91sam9x5_video_CFG_GOOD_LATCH:
-		/* show_buf takes care of the eventual hwstate update */
-		at91sam9x5_video_show_buf(priv, vb);
-		break;
+static int at91sam9x5_video_vb_start_streaming(struct vb2_queue *q, unsigned int count)
+{
+    struct at91sam9x5_video_priv *priv =
+		container_of(q, struct at91sam9x5_video_priv, queue);
 
-	case at91sam9x5_video_CFG_BAD:
-		vb2_buffer_done(vb, VB2_BUF_STATE_DONE);
-		priv->hwstate = at91sam9x5_video_HW_RUNNING;
-		break;
-	}
+    /*Clear any pending interrupts*/
+    u32 __maybe_unused heoisr = at91sam9x5_video_read32(priv, REG_HEOISR);
 
-	spin_unlock_irqrestore(&priv->lock, flags);
+    /* Enable DMA interrupts.
+         * At this stage, vidioc_s_fmt_vid_out should has been called.
+         * so we can decide which DMA flags should be enabled
+         */
+     at91sam9x5_video_dma_interrupt_flags(priv, true);
+
+    if(count)
+        at91sam9x5_video_handle_buf_list(priv, 1);
+
+    return 0;
+}
+
+static int at91sam9x5_video_vb_stop_streaming(struct vb2_queue *q)
+{
+    struct at91sam9x5_video_priv *priv =
+		container_of(q, struct at91sam9x5_video_priv, queue);
+
+    /*Clear any pending interrupts*/
+    u32 __maybe_unused heoisr = at91sam9x5_video_read32(priv, REG_HEOISR);
+    
+    /* silence DMA */
+    at91sam9x5_video_dma_interrupt_flags(priv, false);
+
+	at91sam9x5_video_free_buf_list(priv, true);
+
+    return 0;
 }
 
 const struct vb2_ops at91sam9x5_video_vb_ops = {
@@ -1113,6 +1202,8 @@ const struct vb2_ops at91sam9x5_video_vb_ops = {
 	.buf_cleanup = at91sam9x5_video_vb_buf_cleanup,
 	.wait_prepare = at91sam9x5_video_vb_wait_prepare,
 	.wait_finish = at91sam9x5_video_vb_wait_finish,
+	.start_streaming = at91sam9x5_video_vb_start_streaming,
+	.stop_streaming = at91sam9x5_video_vb_stop_streaming,
 	.buf_prepare = at91sam9x5_video_vb_buf_prepare,
 	.buf_queue = at91sam9x5_video_vb_buf_queue,
 };
@@ -1297,24 +1388,11 @@ static int at91sam9x5_video_vidioc_streamoff(struct file *filp,
 {
 	struct video_device *vdev = video_devdata(filp);
 	struct at91sam9x5_video_priv *priv = video_get_drvdata(vdev);
-	unsigned long flags;
-
-	spin_lock_irqsave(&priv->lock, flags);
 
 	/* disable channel */
 	at91sam9x5_video_write32(priv, REG_HEOCHDR, REG_HEOCHDR_CHDIS);
 
-	at91sam9x5_video_handle_irqstat(priv);
-
-	if (priv->cur.vb)
-		at91sam9x5_video_write32(priv, REG_HEOIER,
-				REG_HEOIxR_ADD | REG_HEOIxR_DMA |
-				REG_HEOIxR_UADD | REG_HEOIxR_UDMA |
-				REG_HEOIxR_VADD | REG_HEOIxR_VDMA);
-
 	priv->hwstate = at91sam9x5_video_HW_IDLE;
-
-	spin_unlock_irqrestore(&priv->lock, flags);
 
 	return vb2_streamoff(&priv->queue, type);
 }
@@ -1603,9 +1681,7 @@ static void at91sam9x5_video_unregister(struct at91sam9x5_video_priv *priv)
 	spin_unlock_irqrestore(&priv->lock, flags);
 
 	/* silence DMA */
-	at91sam9x5_video_write32(priv, REG_HEOIDR,
-			REG_HEOIxR_ADD | REG_HEOIxR_DMA | REG_HEOIxR_UADD |
-			REG_HEOIxR_UDMA | REG_HEOIxR_VADD | REG_HEOIxR_VDMA);
+	at91sam9x5_video_dma_interrupt_flags(priv, false);
 
 	video_unregister_device(priv->video_dev);
 	free_irq(priv->irq, priv);
@@ -1653,6 +1729,8 @@ static int at91sam9x5_video_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, priv);
 
 	spin_lock_init(&priv->lock);
+	spin_lock_init(&priv->desc_lock);
+	INIT_LIST_HEAD(&priv->video_buffer_list);
 	INIT_LIST_HEAD(&priv->dma_desc_head);
 
 	priv->p_fb_descriptors = dma_alloc_coherent(&pdev->dev,
