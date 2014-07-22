@@ -24,6 +24,7 @@
 #include <linux/platform_data/atmel.h>
 #include <linux/of.h>
 #include <linux/of_gpio.h>
+#include <linux/pm_wakeup.h>
 
 #include <asm/gpio.h>
 
@@ -1780,6 +1781,8 @@ static irqreturn_t usba_vbus_irq(int irq, void *devid)
 	vbus = vbus_is_present(udc);
 	if (vbus != udc->vbus_prev) {
 		if (vbus) {
+			/* The kernel can't enter into suspend when USB is inserting */
+			pm_stay_awake(&udc->pdev->dev);
 			toggle_bias(1);
 			usba_writel(udc, CTRL, USBA_ENABLE_MASK);
 			usba_writel(udc, INT_ENB, USBA_END_OF_RESET);
@@ -1793,6 +1796,8 @@ static irqreturn_t usba_vbus_irq(int irq, void *devid)
 				udc->driver->disconnect(&udc->gadget);
 				spin_lock(&udc->lock);
 			}
+			/* The kernel can enter into suspend */
+			pm_relax(&udc->pdev->dev);
 		}
 		udc->vbus_prev = vbus;
 	}
@@ -1832,6 +1837,7 @@ static int atmel_usba_start(struct usb_gadget *gadget,
 		usba_writel(udc, CTRL, USBA_ENABLE_MASK);
 		usba_writel(udc, INT_ENB, USBA_END_OF_RESET);
 #else
+		pm_stay_awake(&udc->pdev->dev);
 		udc->vbus_prev = 1;
 #endif
 	}
@@ -1857,6 +1863,9 @@ static int atmel_usba_stop(struct usb_gadget *gadget,
 	/* This will also disable the DP pullup */
 	toggle_bias(0);
 	usba_writel(udc, CTRL, USBA_DISABLE_MASK);
+
+	if (udc->vbus_prev == 1)
+		pm_relax(&udc->pdev->dev);
 
 	udc->driver = NULL;
 
@@ -2106,6 +2115,7 @@ static int __init usba_udc_probe(struct platform_device *pdev)
 	if (ret)
 		goto err_add_udc;
 
+	device_init_wakeup(&pdev->dev, 1);
 	usba_init_debugfs(udc);
 	for (i = 1; i < udc->num_ep; i++)
 		usba_ep_init_debugfs(udc, &udc->usba_ep[i]);
@@ -2139,6 +2149,7 @@ static int __exit usba_udc_remove(struct platform_device *pdev)
 
 	usb_del_gadget_udc(&udc->gadget);
 
+	device_init_wakeup(&pdev->dev, 0);
 	for (i = 1; i < udc->num_ep; i++)
 		usba_ep_cleanup_debugfs(&udc->usba_ep[i]);
 	usba_cleanup_debugfs(udc);
@@ -2156,6 +2167,30 @@ static int __exit usba_udc_remove(struct platform_device *pdev)
 	return 0;
 }
 
+#ifdef CONFIG_PM_SLEEP
+static int usba_udc_suspend(struct device *dev)
+{
+	struct usba_udc *udc = dev_get_drvdata(dev);
+
+	if (device_may_wakeup(dev))
+		enable_irq_wake(gpio_to_irq(udc->vbus_pin));
+
+	return 0;
+}
+
+static int usba_udc_resume(struct device *dev)
+{
+	struct usba_udc *udc = dev_get_drvdata(dev);
+
+	if (device_may_wakeup(dev))
+		disable_irq_wake(gpio_to_irq(udc->vbus_pin));
+
+	return 0;
+}
+#endif
+
+static SIMPLE_DEV_PM_OPS(usba_udc_pm_ops, usba_udc_suspend, usba_udc_resume);
+
 #if defined(CONFIG_OF)
 static const struct of_device_id atmel_udc_dt_ids[] = {
 	{ .compatible = "atmel,at91sam9rl-udc" },
@@ -2171,6 +2206,7 @@ static struct platform_driver udc_driver = {
 		.name		= "atmel_usba_udc",
 		.owner		= THIS_MODULE,
 		.of_match_table	= of_match_ptr(atmel_udc_dt_ids),
+		.pm	= &usba_udc_pm_ops,
 	},
 };
 
