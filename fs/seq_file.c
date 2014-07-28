@@ -232,7 +232,7 @@ ssize_t seq_read(struct file *file, char __user *buf, size_t size, loff_t *ppos)
 			goto Fill;
 		m->op->stop(m, p);
 		kfree(m->buf);
-		m->buf = kmalloc(m->size <<= 1, GFP_KERNEL);
+		m->buf = kmalloc(m->size <<= 1, GFP_KERNEL | __GFP_NOWARN);
 		if (!m->buf)
 			goto Enomem;
 		m->count = 0;
