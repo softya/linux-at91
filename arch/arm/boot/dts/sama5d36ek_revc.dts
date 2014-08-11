@@ -62,4 +62,4 @@
 	};
 };
 
-/include/ "sama5d3mb_revc_isi.dtsi"
+/* /include/ "sama5d3mb_revc_isi.dtsi" */
