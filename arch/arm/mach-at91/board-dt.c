@@ -302,6 +302,34 @@ static void __init at91_dt_device_init(void)
 	char mb_rev = 255;
 	int ret;
 
+	if (of_machine_is_compatible("pda,tm43xx")) {
+		__u8 manufacturer[4] = "Inlx";
+		__u8 monitor[14] = "AT043TN24";
+
+		/* set LCD configuration */
+		at91_tft_vga_modes[0].name = "Inlx";
+		at91_tft_vga_modes[0].xres = 480;
+		at91_tft_vga_modes[0].yres = 272;
+		at91_tft_vga_modes[0].pixclock = KHZ2PICOS(9500);
+		at91_tft_vga_modes[0].left_margin = 2;
+		at91_tft_vga_modes[0].right_margin = 37;
+		at91_tft_vga_modes[0].upper_margin = 2;
+		at91_tft_vga_modes[0].lower_margin = 2;
+		at91_tft_vga_modes[0].hsync_len = 41;
+		at91_tft_vga_modes[0].vsync_len = 11;
+
+		memcpy(at91fb_default_monspecs.manufacturer, manufacturer, 4);
+		memcpy(at91fb_default_monspecs.monitor, monitor, 14);
+
+		ek_lcdc_data.smem_len = 480 * 272 * 4;
+
+		/* set mXT224 and QT1070 IRQ lines as inputs */
+		gpio_direction_input(AT91_PIN_PE31);
+		gpio_direction_input(AT91_PIN_PE30);
+
+		printk("LCD parameters updated for PDA4 display module\n");
+	}
+
 	if (of_machine_is_compatible("atmel,sama5ek")) {
 		struct device_node *np;
 
@@ -335,35 +363,6 @@ static void __init at91_dt_device_init(void)
 					at91_config_isi(true, "pck1");
 					break;
 				}
-			}
-		}
-
-		np = of_find_compatible_node(NULL, NULL, "atmel,atmel_mxt_ts");
-		if (np) {
-			if (of_device_is_available(np)) {
-				__u8 manufacturer[4] = "Inlx";
-				__u8 monitor[14] = "AT043TN24";
-				/* set mXT224 and QT1070 IRQ lines as inputs */
-				gpio_direction_input(AT91_PIN_PE31);
-				gpio_direction_input(AT91_PIN_PE30);
-				/* set LCD configuration */
-				ek_lcdc_data.smem_len = 480 * 272 * 4;
-				memcpy(ek_lcdc_data.default_monspecs->manufacturer, manufacturer, 4);
-				memcpy(ek_lcdc_data.default_monspecs->monitor, monitor, 14);
-				ek_lcdc_data.default_monspecs->hfmin = 14876;
-				ek_lcdc_data.default_monspecs->hfmax = 17142;
-				ek_lcdc_data.default_monspecs->vfmin = 50;
-				ek_lcdc_data.default_monspecs->vfmax = 67;
-				ek_lcdc_data.default_monspecs->modedb->name = "Inlx";
-				ek_lcdc_data.default_monspecs->modedb->xres = 480;
-				ek_lcdc_data.default_monspecs->modedb->yres = 272;
-				ek_lcdc_data.default_monspecs->modedb->pixclock = KHZ2PICOS(9500);
-				ek_lcdc_data.default_monspecs->modedb->left_margin = 2;
-				ek_lcdc_data.default_monspecs->modedb->right_margin = 37;
-				ek_lcdc_data.default_monspecs->modedb->upper_margin = 2;
-				ek_lcdc_data.default_monspecs->modedb->lower_margin = 2;
-				ek_lcdc_data.default_monspecs->modedb->hsync_len = 41;
-				ek_lcdc_data.default_monspecs->modedb->vsync_len = 11;
 			}
 		}
 	} else if (of_machine_is_compatible("atmel,at91sam9x5ek")) {
