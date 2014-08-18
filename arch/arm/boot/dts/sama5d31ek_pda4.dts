@@ -7,8 +7,8 @@
  * Licensed under GPLv2 or later.
  */
 /dts-v1/;
-/include/ "sama5d3mb_revc.dtsi"
-/include/ "sama5d3pda.dtsi"
+/include/ "sama5d3mb.dtsi"
+/include/ "sama5d3pda4.dtsi"
 
 / {
 	model = "Atmel SAMA5D31-EK_PDA";
