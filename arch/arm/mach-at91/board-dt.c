@@ -330,6 +330,29 @@ static void __init at91_dt_device_init(void)
 		printk("LCD parameters updated for PDA4 display module\n");
 	}
 
+	/* Hack for PDA display modules to update lcd settings */
+	if (of_machine_is_compatible("pda,tm70xx")) {
+		__u8 manufacturer[4] = "PALM";
+		__u8 monitor[14] = "AT07";
+
+		/* set LCD configuration */
+		at91_tft_vga_modes[0].name = "PALM";
+		at91_tft_vga_modes[0].pixclock = KHZ2PICOS(33260);
+		at91_tft_vga_modes[0].left_margin = 128;
+		at91_tft_vga_modes[0].right_margin = 0;
+		at91_tft_vga_modes[0].upper_margin = 23;
+		at91_tft_vga_modes[0].lower_margin = 22;
+		at91_tft_vga_modes[0].hsync_len = 5;
+		at91_tft_vga_modes[0].vsync_len = 5;
+
+		memcpy(at91fb_default_monspecs.manufacturer, manufacturer, 4);
+		memcpy(at91fb_default_monspecs.monitor, monitor, 14);
+
+		ek_lcdc_data.default_lcdcon2 = LCDC_LCDCFG5_MODE_OUTPUT_18BPP;
+
+		printk("LCD parameters updated for PDA7 display module\n");
+	}
+
 	if (of_machine_is_compatible("atmel,sama5ek")) {
 		struct device_node *np;
 
