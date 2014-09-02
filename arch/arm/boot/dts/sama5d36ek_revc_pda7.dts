@@ -33,6 +33,10 @@
 				status = "okay";
 			};
 
+			i2c0: i2c@f0014000 {
+				status = "okay";
+			};
+
 			i2c1: i2c@f0018000 {
 				status = "okay";
 
@@ -44,11 +48,6 @@
 			};
 
 			macb0: ethernet@f0028000 {
-				status = "okay";
-			};
-
-			/* ISI VSYNC/HSYNC Conflict with i2c0 */
-			isi: isi@f0034000 {
 				status = "okay";
 			};
 
