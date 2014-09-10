@@ -637,7 +637,7 @@ static u32 at91sam9x5_video_handle_irqstat(struct at91sam9x5_video_priv *priv, u
 			priv->cfgupdate, priv->hwstate, priv->cfgstate);
 
 	if (heoisr & (imr & (REG_HEOIxR_DMA | REG_HEOIxR_UDMA | REG_HEOIxR_VDMA))) {
-        at91sam9x5_video_handle_buf_list(priv, 2);
+        at91sam9x5_video_handle_buf_list(priv, 1);
 	}
 
 	if (heoisr & (imr & (REG_HEOIxR_ADD | REG_HEOIxR_UADD | REG_HEOIxR_VADD))) {
