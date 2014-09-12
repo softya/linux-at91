@@ -20,6 +20,15 @@
 				phy-mode = "rmii";
 				status = "okay";
 			};
+
+			isi: isi@f8048000 {
+				status = "okay";
+			};
+
+			/* Conflict with ISI, so disable it */
+			spi0: spi@f0000000 {
+				status = "disabled";
+			};
 		};
 	};
 };
