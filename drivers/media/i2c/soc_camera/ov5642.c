@@ -93,6 +93,7 @@ struct ov5640_size {
 
 static const struct ov5640_size ov5640_support_sizes[] = {
 	/* smaller resolution first */
+	{ .width = 320, .height = 240 },
 	{ .width = 640, .height = 480 },		/* VGA */
 	{ .width = 1280, .height = 960 },	/* 1280x960 */
 };
