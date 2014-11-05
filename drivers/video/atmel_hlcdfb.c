@@ -173,6 +173,8 @@ void atmel_hlcdfb_start(struct atmel_lcdfb_info *sinfo)
 	lcdc_writel(sinfo, ATMEL_LCDC_LCDEN, LCDC_LCDEN_PWMEN);
 	while (!(lcdc_readl(sinfo, ATMEL_LCDC_LCDSR) & LCDC_LCDSR_PWMSTS))
 		msleep(1);
+	while (lcdc_readl(sinfo, ATMEL_LCDC_LCDSR) & LCDC_LCDSR_SIPSTS)
+		msleep(1);
 }
 
 static void atmel_hlcdfb_stop(struct atmel_lcdfb_info *sinfo, u32 flags)
