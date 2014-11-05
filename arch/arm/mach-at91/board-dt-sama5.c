@@ -76,7 +76,7 @@ static struct fb_videomode at91_tft_vga_modes[] = {
 		.upper_margin	= 8,		.lower_margin	= 37,
 		.hsync_len	= 128,		.vsync_len	= 2,
 
-		.sync		= 0,
+		.sync		= LCDC_LCDCFG5_VSPDLYS | LCDC_LCDCFG5_DISPDLY,
 		.vmode		= FB_VMODE_NONINTERLACED,
 	},
 };
@@ -518,7 +518,10 @@ static void __init sama5_dt_device_init(void)
 			at91_tft_vga_modes[0].lower_margin = 4;
 			at91_tft_vga_modes[0].hsync_len = 44;
 			at91_tft_vga_modes[0].vsync_len = 5;
-			at91_tft_vga_modes[0].sync = FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,
+			at91_tft_vga_modes[0].sync = FB_SYNC_HOR_HIGH_ACT |
+						     FB_SYNC_VERT_HIGH_ACT |
+						     LCDC_LCDCFG5_VSPDLYS |
+						     LCDC_LCDCFG5_VSPDLYE;
 
 			ek_lcdc_data.smem_len = 1920 * 1080 * 2;
 
@@ -536,7 +539,10 @@ static void __init sama5_dt_device_init(void)
 			at91_tft_vga_modes[0].lower_margin = 17;
 			at91_tft_vga_modes[0].hsync_len = 32;
 			at91_tft_vga_modes[0].vsync_len = 6;
-			at91_tft_vga_modes[0].sync = FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,
+			at91_tft_vga_modes[0].sync = FB_SYNC_HOR_HIGH_ACT |
+						     FB_SYNC_VERT_HIGH_ACT |
+						     LCDC_LCDCFG5_VSPDLYS |
+						     LCDC_LCDCFG5_VSPDLYE;
 
 			ek_lcdc_data.smem_len = 1440 * 900 * 2;
 
@@ -554,7 +560,10 @@ static void __init sama5_dt_device_init(void)
 			at91_tft_vga_modes[0].lower_margin = 5;
 			at91_tft_vga_modes[0].hsync_len = 40;
 			at91_tft_vga_modes[0].vsync_len = 5;
-			at91_tft_vga_modes[0].sync = FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,
+			at91_tft_vga_modes[0].sync = FB_SYNC_HOR_HIGH_ACT |
+						     FB_SYNC_VERT_HIGH_ACT |
+						     LCDC_LCDCFG5_VSPDLYS |
+						     LCDC_LCDCFG5_VSPDLYE;
 
 			ek_lcdc_data.smem_len = 1280 * 720 * 2;
 
