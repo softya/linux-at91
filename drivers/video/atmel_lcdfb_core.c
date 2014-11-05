@@ -704,7 +704,6 @@ int __atmel_lcdfb_probe(struct platform_device *pdev,
 	struct fb_info *info;
 	struct atmel_lcdfb_info *sinfo;
 	struct atmel_lcdfb_info *pdata_sinfo;
-	struct fb_videomode fbmode;
 	struct resource *regs = NULL, *clut = NULL;
 	struct resource *map = NULL;
 	const struct platform_device_id *id = platform_get_device_id(pdev);
@@ -898,12 +897,6 @@ int __atmel_lcdfb_probe(struct platform_device *pdev,
 		goto remove_create_file;
 	}
 
-	/*
-	 * This makes sure that our colour bitfield
-	 * descriptors are correctly initialised.
-	 */
-	atmel_lcdfb_check_var(&info->var, info);
-
 	ret = fb_set_var(info, &info->var);
 	if (ret) {
 		dev_warn(dev, "unable to set display parameters\n");
@@ -925,10 +918,6 @@ int __atmel_lcdfb_probe(struct platform_device *pdev,
 	dev_dbg(info->device, "  * Initialize DMA engine\n");
 	if (sinfo->dev_data->update_dma)
 		sinfo->dev_data->update_dma(info, &info->var);
-
-	/* add selected videomode to modelist */
-	fb_var_to_videomode(&fbmode, &info->var);
-	fb_add_videomode(&fbmode, &info->modelist);
 
 	/* Power up the LCDC screen */
 	if (sinfo->atmel_lcdfb_power_control)
