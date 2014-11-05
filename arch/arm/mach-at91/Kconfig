@@ -17,15 +17,15 @@ config HAVE_AT91_XDMAC
 
 config AT91_PMC_UNIT
 	bool
-	default !ARCH_AT91X40
+	default y
 
 config AT91_SAM9_ALT_RESET
 	bool
-	default !ARCH_AT91X40
+	default y
 
 config AT91_SAM9G45_RESET
 	bool
-	default !ARCH_AT91X40
+	default y
 
 config AT91_SAM9_TIME
 	bool
@@ -55,8 +55,7 @@ choice
 config SOC_SAM_V4_V5
 	bool "ARM7/ARM9"
 	help
-	  Select this if you are using one of Atmel's AT91SAM9, AT91RM9200
-	  or AT91X40 SoC.
+	  Select this if you are using one of Atmel's AT91SAM9, AT91RM9200 SoC.
 
 config SOC_SAM_V7
 	bool "Cortex A5"
@@ -188,7 +187,6 @@ config MACH_SAMA5_DT
 	bool "Atmel SAMA5 Evaluation Kits with device-tree support"
 	depends on SOC_SAMA5
 	select USE_OF
-	select AT91_PROGRAMMABLE_CLOCKS
 	select PHYLIB if NETDEVICES
 	help
 	  Select this if you want to experiment device-tree with
@@ -197,12 +195,6 @@ config MACH_SAMA5_DT
 # ----------------------------------------------------------
 
 comment "AT91 Feature Selections"
-
-config AT91_PROGRAMMABLE_CLOCKS
-	bool "Programmable Clocks"
-	help
-	  Select this if you need to program one or more of the PCK0..PCK3
-	  programmable clock outputs.
 
 config AT91_SLOW_CLOCK
 	bool "Suspend-to-RAM disables main oscillator"

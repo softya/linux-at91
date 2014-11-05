@@ -47,6 +47,16 @@
 					CPVDD-supply = <&vdd_1v8_reg>;
 					MICVDD-supply = <&vdd_3v3_reg>;
 				};
+
+				sii9022a:sii9022a@39 {
+					compatible = "sii902x";
+					reg = <0x39>;
+					interrupt-parent = <&pioC>;
+					interrupts = <29 0x0>;
+					pinctrl-names = "default";
+					pinctrl-0 = <&pinctrl_sii9022a_irq>, <&pinctrl_sii9022a_reset>;
+					gpios = <&pioC 31 0>;
+				};
 			};
 
 			usart1: serial@f0020000 {
@@ -57,7 +67,7 @@
 
 			isi: isi@f0034000 {
 				pinctrl-names = "default";
-				pinctrl-0 = <&pinctrl_isi &pinctrl_isi_pck_as_mck &pinctrl_isi_power &pinctrl_isi_reset>;
+				pinctrl-0 = <&pinctrl_isi_data_0_7 &pinctrl_isi_pck_as_mck &pinctrl_isi_power &pinctrl_isi_reset>;
 			};
 
 			mmc1: mmc@f8000000 {
@@ -105,6 +115,11 @@
 							<AT91_PIOD 30 AT91_PERIPH_B AT91_PINCTRL_NONE>;	/* PD30 periph B */
 					};
 
+					pinctrl_isi_pck_as_mck: isi_pck_as_mck-0 {
+						atmel,pins =
+							<AT91_PIOD 31 AT91_PERIPH_B AT91_PINCTRL_NONE>;	/* PD31 periph B ISI_MCK */
+					};
+
 					pinctrl_isi_reset: isi_reset-0 {
 						atmel,pins =
 							<AT91_PIOE 24 AT91_PERIPH_GPIO AT91_PINCTRL_NONE>;   /* PE24 gpio */
@@ -118,6 +133,16 @@
 					pinctrl_usba_vbus: usba_vbus {
 						atmel,pins =
 							<AT91_PIOD 29 AT91_PERIPH_GPIO AT91_PINCTRL_DEGLITCH>; /* PD29 GPIO with deglitch */
+					};
+
+					pinctrl_sii9022a_irq: sii9022a_irq {
+						atmel,pins =
+							<AT91_PIOC 29 AT91_PERIPH_GPIO AT91_PINCTRL_PULL_UP_DEGLITCH>;
+					};
+
+					pinctrl_sii9022a_reset: sii9022a_reset {
+						atmel,pins =
+							<AT91_PIOC 31 AT91_PERIPH_GPIO AT91_PINCTRL_PULL_UP>;
 					};
 				};
 			};

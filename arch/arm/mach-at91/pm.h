@@ -125,4 +125,8 @@ static inline void at91sam_ddrc_standby(void)
 	at91_ramc_write(0, AT91_DDRSDRC_LPR, saved_lpr);
 }
 
+void __weak at91_cortexa5_standby(void) {}
+void __weak at91_cortexa5_disable_cache(void) {}
+void __weak at91_cortexa5_enable_cache(void) {}
+
 #endif
