@@ -288,14 +288,31 @@ static int atmel_hlcdfb_setup_core_base(struct fb_info *info)
 	/* Initialize control register 5 */
 	/* In 9x5, the default_lcdcon2 will use for LCDCFG5 */
 	value = sinfo->default_lcdcon2;
-	value |= (sinfo->guard_time << LCDC_LCDCFG5_GUARDTIME_OFFSET)
-		| LCDC_LCDCFG5_DISPDLY
-		| LCDC_LCDCFG5_VSPDLYS;
+	value |= sinfo->guard_time << LCDC_LCDCFG5_GUARDTIME_OFFSET;
 
 	if (!(info->var.sync & FB_SYNC_HOR_HIGH_ACT))
 		value |= LCDC_LCDCFG5_HSPOL;
 	if (!(info->var.sync & FB_SYNC_VERT_HIGH_ACT))
 		value |= LCDC_LCDCFG5_VSPOL;
+
+	if (info->var.sync & LCDC_LCDCFG5_VSPDLYS)
+		value |= LCDC_LCDCFG5_VSPDLYS;
+	if (info->var.sync & LCDC_LCDCFG5_VSPDLYE)
+		value |= LCDC_LCDCFG5_VSPDLYE;
+	if (info->var.sync & LCDC_LCDCFG5_DISPPOL)
+		value |= LCDC_LCDCFG5_DISPPOL;
+
+	if (info->var.sync & LCDC_LCDCFG5_DITHER)
+		value |= LCDC_LCDCFG5_DITHER;
+
+	if (info->var.sync & LCDC_LCDCFG5_DISPDLY)
+		value |= LCDC_LCDCFG5_DISPDLY;
+
+	if (info->var.sync & LCDC_LCDCFG5_VSPSU)
+		value |= LCDC_LCDCFG5_VSPSU;
+
+	if (info->var.sync & LCDC_LCDCFG5_VSPHO)
+		value |= LCDC_LCDCFG5_VSPHO;
 
 	dev_dbg(info->device, "  * LCDC_LCDCFG5 = %08lx\n", value);
 	lcdc_writel(sinfo, ATMEL_LCDC_LCDCFG5, value);
