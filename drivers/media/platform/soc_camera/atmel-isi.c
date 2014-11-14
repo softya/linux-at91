@@ -208,6 +208,7 @@ static int configure_geometry(struct atmel_isi *isi, u32 width,
 	 * otherwise use codec channel.
 	 */ 
 	switch (xlate->host_fmt->fourcc) {
+	case V4L2_PIX_FMT_GREY:
 	case V4L2_PIX_FMT_RGB565:
 	case V4L2_PIX_FMT_YUYV:
 	case V4L2_PIX_FMT_UYVY:
