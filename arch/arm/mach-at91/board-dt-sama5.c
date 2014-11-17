@@ -45,6 +45,7 @@
 	static struct soc_camera_desc iclink_##_sensor_name = {		\
 		.subdev_desc = {					\
 			.power = i2c_camera_power,			\
+			.reset = i2c_camera_reset,			\
 			.query_bus_param = isi_camera_query_bus_param,	\
 		},							\
 		.host_desc = {						\
@@ -168,47 +169,26 @@ static unsigned long isi_camera_query_bus_param(struct soc_camera_subdev_desc *l
 	return SOCAM_DATAWIDTH_8;
 }
 
-static int i2c_camera_power(struct device *dev, int on)
+static int i2c_camera_reset(struct device *dev)
 {
 	int res, ret = 0;
 
-	pr_debug("%s: %s the camera\n", __func__, on ? "ENABLE" : "DISABLE");
-
-	res = devm_gpio_request(dev, camera_power_pin, "ov2640_power");
+	res = devm_gpio_request(dev, camera_reset_pin, "camera_reset");
 	if (res < 0) {
-		printk("can't request ov2640_power pin\n");
+		printk("can't request camera reset pin\n");
 		return -1;
 	}
 
-	res = devm_gpio_request(dev, camera_reset_pin, "ov2640_reset");
-	if (res < 0) {
-		printk("can't request ov2640_reset pin\n");
-		devm_gpio_free(dev, camera_power_pin);
-		return -1;
-	}
-
-	/* enable or disable the camera */
-	res = gpio_direction_output(camera_power_pin, !on);
-	if (res < 0) {
-		printk("can't request output direction for ov2640_power pin\n");
-		ret = -1;
-		goto out;
-	}
-
-	if (!on)
-		goto out;
-
-	/* If enabled, give a reset impulse */
 	res = gpio_direction_output(camera_reset_pin, 0);
 	if (res < 0) {
-		printk("can't request output direction for ov2640_reset pin\n");
+		printk("can't request output direction for camera reset pin\n");
 		ret = -1;
 		goto out;
 	}
 	msleep(20);
 	res = gpio_direction_output(camera_reset_pin, 1);
 	if (res < 0) {
-		printk("can't request output direction for ov2640_reset pin\n");
+		printk("can't request output direction for camera reset pin\n");
 		ret = -1;
 		goto out;
 	}
@@ -216,6 +196,26 @@ static int i2c_camera_power(struct device *dev, int on)
 
 out:
 	devm_gpio_free(dev, camera_reset_pin);
+	return ret;
+}
+
+static int i2c_camera_power(struct device *dev, int on)
+{
+	int ret = 0;
+
+	pr_debug("%s: %s the camera\n", __func__, on ? "ENABLE" : "DISABLE");
+
+	if (devm_gpio_request(dev, camera_power_pin, "camera_power") < 0) {
+		printk("can't request camera power pin\n");
+		return -1;
+	}
+
+	/* enable or disable the camera */
+	if (gpio_direction_output(camera_power_pin, !on) < 0) {
+		printk("can't request output direction for camera power pin\n");
+		ret = -1;
+	}
+
 	devm_gpio_free(dev, camera_power_pin);
 	return ret;
 }
