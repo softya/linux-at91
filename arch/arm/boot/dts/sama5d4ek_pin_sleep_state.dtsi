@@ -34,11 +34,6 @@
 				pinctrl-1 = <&pinctrl_spi0_sleep>;
 			};
 
-			i2c0: i2c@f8014000 {
-				pinctrl-names = "default", "sleep";
-				pinctrl-1 = <&pinctrl_i2c0_sleep>;
-			};
-
 			macb0: ethernet@f8020000 {
 				pinctrl-names = "default", "sleep";
 				pinctrl-1 = <&pinctrl_macb0_rmii_sleep>;
