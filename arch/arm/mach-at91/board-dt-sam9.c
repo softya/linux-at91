@@ -245,6 +245,7 @@ static struct of_dev_auxdata at91_auxdata_lookup[] __initdata = {
 	OF_DEV_AUXDATA("atmel,at91sam9x5-lcd", 0xf8038000, "atmel_hlcdfb_base", &ek_lcdc_data),
 	OF_DEV_AUXDATA("atmel,at91sam9x5-lcd", 0xf8038100, "atmel_hlcdfb_ovl1", &ek_lcdc_data),
 	OF_DEV_AUXDATA("atmel,at91sam9g45-lcd", 0x00500000, "atmel_lcdfb", &ek_lcdc_data),
+	OF_DEV_AUXDATA("atmel,at91sam9g45-isi", 0xfffb4000, "atmel_isi", &isi_data),    /* 9m10g45ek */
 	OF_DEV_AUXDATA("atmel,at91sam9g45-isi", 0xf8048000, "atmel_isi", &isi_data),	/* 9x5ek */
 	{ /* sentinel */ }
 };
@@ -315,6 +316,14 @@ static void __init at91_dt_device_init(void)
 		at91_config_isi(true, "pck0");
 
 		printk("ISI parameters updated for at91sam9x5ek\n");
+	}
+
+	if (of_machine_is_compatible("atmel,at91sam9m10g45ek")) {
+
+		camera_set_gpio_pins(AT91_PIN_PD12, AT91_PIN_PD13);
+		at91_config_isi(true, "pck1");
+
+		printk("ISI parameters updated for at91sam9m10g45ek\n");
 	}
 
 	of_platform_populate(NULL, of_default_bus_match_table, at91_auxdata_lookup, NULL);
