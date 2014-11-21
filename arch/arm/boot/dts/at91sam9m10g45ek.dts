@@ -51,10 +51,6 @@
 				status = "okay";
 			};
 
-			i2c0: i2c@fff84000 {
-				status = "okay";
-			};
-
 			i2c1: i2c@fff88000 {
 				status = "okay";
 			};
@@ -104,6 +100,23 @@
 							<AT91_PIOD 11 AT91_PERIPH_GPIO AT91_PINCTRL_PULL_UP_DEGLITCH	/* PD11 gpio CD pin pull up and deglitch */
 							 AT91_PIOD 29 AT91_PERIPH_GPIO AT91_PINCTRL_PULL_UP>;	/* PD29 gpio WP pin pull up */
 					};
+				};
+
+				isi {
+					pinctrl_isi_pck_as_mck: isi_pck_as_mck-0 {
+						atmel,pins = <AT91_PIOB 31 AT91_PERIPH_B AT91_PINCTRL_NONE>;	/* PB31 periph B ISI_MCK (PCK1) */
+					};
+
+					pinctrl_isi_reset: isi_reset-0 {
+						atmel,pins =
+							<AT91_PIOD 12 AT91_PERIPH_GPIO AT91_PINCTRL_NONE>;	/* PD12 gpio, conflicted with TK1, PCK0 */
+					};
+
+					pinctrl_isi_power: isi_power-0 {
+						atmel,pins =
+							<AT91_PIOD 13 AT91_PERIPH_GPIO AT91_PINCTRL_NONE>;	/* PD13 gpio, conflicted with RK1 */
+					};
+
 				};
 
 				pwm0 {
@@ -170,6 +183,12 @@
 			lcd@00500000 {
 				status = "okay";
 			};
+		};
+
+		isi: isi@fffb4000 {
+			pinctrl-names = "default";
+			pinctrl-0 = <&pinctrl_isi_data_0_7 &pinctrl_isi_pck_as_mck &pinctrl_isi_power &pinctrl_isi_reset>;
+			status = "okay";
 		};
 
 		usb0: ohci@00700000 {
@@ -258,5 +277,9 @@
 			gpios = <&pioB 18 GPIO_ACTIVE_LOW>;
 			linux,code = <28>;
 		};
+	};
+
+	i2c@0 {
+		status = "okay";
 	};
 };
