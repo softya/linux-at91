@@ -271,6 +271,7 @@ static int atmel_hlcdfb_setup_core_base(struct fb_info *info)
 	unsigned long required_pixclk, updated_pixclk;
 
 	dev_dbg(info->device, "%s:\n", __func__);
+	atmel_hlcdfb_stop(sinfo, ATMEL_LCDC_STOP_NOWAIT);
 
 	/* Set pixel clock */
 	clk_value_khz = clk_get_rate(sinfo->lcdc_clk) / 1000;
