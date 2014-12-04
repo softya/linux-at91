@@ -31,6 +31,24 @@
 
 #define ATMEL_LCDC_CVAL_DEFAULT         0xc8
 
+/* Wait for the SIPSTS in status register until synchronization is done */
+static void wait_sync_SIPSTS(struct atmel_lcdfb_info *sinfo)
+{
+	while (lcdc_readl(sinfo, ATMEL_LCDC_LCDSR) & LCDC_LCDSR_SIPSTS)
+		msleep(1);
+}
+
+/*
+ * When access LCDC_LCDEN, LCDC_LCDDIS, and LCDC_LCDCCFG[0..6], we need to
+ * use this function to wait for the synchronization of clock domain.
+ */
+static void lcdc_writel_wait_sync(struct atmel_lcdfb_info *sinfo,
+		u32 lcdc_reg, u32 val)
+{
+	wait_sync_SIPSTS(sinfo);
+	lcdc_writel(sinfo, lcdc_reg, val);
+}
+
 static void atmel_hlcdfb_update_dma_base(struct fb_info *info,
 
 			       struct fb_var_screeninfo *var)
@@ -161,38 +179,36 @@ static const struct backlight_ops atmel_hlcdc_bl_ops = {
 
 void atmel_hlcdfb_start(struct atmel_lcdfb_info *sinfo)
 {
-	lcdc_writel(sinfo, ATMEL_LCDC_LCDEN, LCDC_LCDEN_CLKEN);
+	lcdc_writel_wait_sync(sinfo, ATMEL_LCDC_LCDEN, LCDC_LCDEN_CLKEN);
 	while (!(lcdc_readl(sinfo, ATMEL_LCDC_LCDSR) & LCDC_LCDSR_CLKSTS))
 		msleep(1);
-	lcdc_writel(sinfo, ATMEL_LCDC_LCDEN, LCDC_LCDEN_SYNCEN);
+	lcdc_writel_wait_sync(sinfo, ATMEL_LCDC_LCDEN, LCDC_LCDEN_SYNCEN);
 	while (!(lcdc_readl(sinfo, ATMEL_LCDC_LCDSR) & LCDC_LCDSR_LCDSTS))
 		msleep(1);
-	lcdc_writel(sinfo, ATMEL_LCDC_LCDEN, LCDC_LCDEN_DISPEN);
+	lcdc_writel_wait_sync(sinfo, ATMEL_LCDC_LCDEN, LCDC_LCDEN_DISPEN);
 	while (!(lcdc_readl(sinfo, ATMEL_LCDC_LCDSR) & LCDC_LCDSR_DISPSTS))
 		msleep(1);
-	lcdc_writel(sinfo, ATMEL_LCDC_LCDEN, LCDC_LCDEN_PWMEN);
+	lcdc_writel_wait_sync(sinfo, ATMEL_LCDC_LCDEN, LCDC_LCDEN_PWMEN);
 	while (!(lcdc_readl(sinfo, ATMEL_LCDC_LCDSR) & LCDC_LCDSR_PWMSTS))
-		msleep(1);
-	while (lcdc_readl(sinfo, ATMEL_LCDC_LCDSR) & LCDC_LCDSR_SIPSTS)
 		msleep(1);
 }
 
 static void atmel_hlcdfb_stop(struct atmel_lcdfb_info *sinfo, u32 flags)
 {
 	/* Disable DISP signal */
-	lcdc_writel(sinfo, ATMEL_LCDC_LCDDIS, LCDC_LCDDIS_DISPDIS);
+	lcdc_writel_wait_sync(sinfo, ATMEL_LCDC_LCDDIS, LCDC_LCDDIS_DISPDIS);
 	while ((lcdc_readl(sinfo, ATMEL_LCDC_LCDSR) & LCDC_LCDSR_DISPSTS))
 		msleep(1);
 	/* Disable synchronization */
-	lcdc_writel(sinfo, ATMEL_LCDC_LCDDIS, LCDC_LCDDIS_SYNCDIS);
+	lcdc_writel_wait_sync(sinfo, ATMEL_LCDC_LCDDIS, LCDC_LCDDIS_SYNCDIS);
 	while ((lcdc_readl(sinfo, ATMEL_LCDC_LCDSR) & LCDC_LCDSR_LCDSTS))
 		msleep(1);
 	/* Disable pixel clock */
-	lcdc_writel(sinfo, ATMEL_LCDC_LCDDIS, LCDC_LCDDIS_CLKDIS);
+	lcdc_writel_wait_sync(sinfo, ATMEL_LCDC_LCDDIS, LCDC_LCDDIS_CLKDIS);
 	while ((lcdc_readl(sinfo, ATMEL_LCDC_LCDSR) & LCDC_LCDSR_CLKSTS))
 		msleep(1);
 	/* Disable PWM */
-	lcdc_writel(sinfo, ATMEL_LCDC_LCDDIS, LCDC_LCDDIS_PWMDIS);
+	lcdc_writel_wait_sync(sinfo, ATMEL_LCDC_LCDDIS, LCDC_LCDDIS_PWMDIS);
 	while ((lcdc_readl(sinfo, ATMEL_LCDC_LCDSR) & LCDC_LCDSR_PWMSTS))
 		msleep(1);
 
@@ -255,6 +271,7 @@ static int atmel_hlcdfb_setup_core_base(struct fb_info *info)
 	unsigned long required_pixclk, updated_pixclk;
 
 	dev_dbg(info->device, "%s:\n", __func__);
+
 	/* Set pixel clock */
 	clk_value_khz = clk_get_rate(sinfo->lcdc_clk) / 1000;
 
@@ -264,7 +281,7 @@ static int atmel_hlcdfb_setup_core_base(struct fb_info *info)
 	if (value < 1) {
 		dev_notice(info->device, "using system clock as pixel clock\n");
 		value = LCDC_LCDCFG0_CLKPWMSEL | LCDC_LCDCFG0_CGDISBASE;
-		lcdc_writel(sinfo, ATMEL_LCDC_LCDCFG0, value);
+		lcdc_writel_wait_sync(sinfo, ATMEL_LCDC_LCDCFG0, value);
 	} else {
 		info->var.pixclock = KHZ2PICOS(clk_value_khz / value);
 		dev_dbg(info->device, "  updated pixclk:     %lu KHz\n",
@@ -275,7 +292,7 @@ static int atmel_hlcdfb_setup_core_base(struct fb_info *info)
 		value = (value << LCDC_LCDCFG0_CLKDIV_OFFSET)
 			| LCDC_LCDCFG0_CGDISBASE
 			| LCDC_LCDCFG0_CLKPWMSEL;
-		lcdc_writel(sinfo, ATMEL_LCDC_LCDCFG0, value);
+		lcdc_writel_wait_sync(sinfo, ATMEL_LCDC_LCDCFG0, value);
 	}
 
 	updated_pixclk = info->var.pixclock;
@@ -315,29 +332,29 @@ static int atmel_hlcdfb_setup_core_base(struct fb_info *info)
 		value |= LCDC_LCDCFG5_VSPHO;
 
 	dev_dbg(info->device, "  * LCDC_LCDCFG5 = %08lx\n", value);
-	lcdc_writel(sinfo, ATMEL_LCDC_LCDCFG5, value);
+	lcdc_writel_wait_sync(sinfo, ATMEL_LCDC_LCDCFG5, value);
 
 	/* Vertical & Horizontal Timing */
 	value = (info->var.vsync_len - 1) << LCDC_LCDCFG1_VSPW_OFFSET;
 	value |= (info->var.hsync_len - 1) << LCDC_LCDCFG1_HSPW_OFFSET;
 	dev_dbg(info->device, "  * LCDC_LCDCFG1 = %08lx\n", value);
-	lcdc_writel(sinfo, ATMEL_LCDC_LCDCFG1, value);
+	lcdc_writel_wait_sync(sinfo, ATMEL_LCDC_LCDCFG1, value);
 
 	value = (info->var.upper_margin) << LCDC_LCDCFG2_VBPW_OFFSET;
 	value |= (info->var.lower_margin - 1) << LCDC_LCDCFG2_VFPW_OFFSET;
 	dev_dbg(info->device, "  * LCDC_LCDCFG2 = %08lx\n", value);
-	lcdc_writel(sinfo, ATMEL_LCDC_LCDCFG2, value);
+	lcdc_writel_wait_sync(sinfo, ATMEL_LCDC_LCDCFG2, value);
 
 	value = (info->var.left_margin - 1) << LCDC_LCDCFG3_HBPW_OFFSET;
 	value |= (info->var.right_margin - 1) << LCDC_LCDCFG3_HFPW_OFFSET;
 	dev_dbg(info->device, "  * LCDC_LCDCFG3 = %08lx\n", value);
-	lcdc_writel(sinfo, ATMEL_LCDC_LCDCFG3, value);
+	lcdc_writel_wait_sync(sinfo, ATMEL_LCDC_LCDCFG3, value);
 
 	/* Display size */
 	value = (info->var.yres - 1) << LCDC_LCDCFG4_RPF_OFFSET;
 	value |= (info->var.xres - 1) << LCDC_LCDCFG4_PPL_OFFSET;
 	dev_dbg(info->device, "  * LCDC_LCDCFG4 = %08lx\n", value);
-	lcdc_writel(sinfo, ATMEL_LCDC_LCDCFG4, value);
+	lcdc_writel_wait_sync(sinfo, ATMEL_LCDC_LCDCFG4, value);
 
 	lcdc_writel(sinfo, ATMEL_LCDC_BASECFG0, LCDC_OVRCFG0_SIF
 			| LCDC_BASECFG0_BLEN_AHB_INCR16 | LCDC_BASECFG0_DLBO);
