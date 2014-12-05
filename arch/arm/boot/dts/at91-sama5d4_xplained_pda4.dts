@@ -1,6 +1,5 @@
 /*
- * at91-sama5d4_xplained_pda4.dts - Device Tree file for SAMA5D4 Xplained ULTRA
- * with PDA4.
+ * at91-sama5d4_xplained_pda4.dts - Device Tree file for SAMA5D4 Xplained ULTRA with TM43xx display panel
  *
  *  Copyright (C) 2014 Atmel,
  *                2014 Josh Wu <josh.wu@atmel.com>
@@ -12,7 +11,7 @@
 #include "at91-sama5d4_xplained_dm_pda4.dtsi"
 
 / {
-	model = "Atmel SAMA5D4 Xplained ULTRA";
+	model = "Atmel SAMA5D4 Xplained ULTRA TM43xx";
 	compatible = "atmel,sama5d4-xplained", "atmel,sama5d4", "atmel,sama5", "pda,tm43xx";
 
 	chosen {

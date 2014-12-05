@@ -1,5 +1,5 @@
 /*
- * at91-sama5d3_xplained_pda7.dts - Device Tree file for the SAMA5D3 Xplained board
+ * at91-sama5d3_xplained_pda7.dts - Device Tree file for the SAMA5D3 Xplained board with TM70xx display panel
  *
  *  Copyright (C) 2014 Atmel,
  *		  2014 Ludovic Desroches <ludovic.desroches@atmel.com>
@@ -11,7 +11,7 @@
 #include "at91-sama5d3_xplained_dm_pda7.dtsi"
 
 / {
-	model = "SAMA5D3 Xplained";
+	model = "Atmel SAMA5D3 Xplained TM70xx";
 	compatible = "atmel,sama5d3-xplained", "pda,tm70xx", "atmel,sama5d3", "atmel,sama5";
 
 	chosen {
