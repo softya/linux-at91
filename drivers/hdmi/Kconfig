@@ -5,9 +5,10 @@ if HDMI
 
 config HDMI_SII902x
 	tristate "Silicon Image sii902x HDMI support"
+	select REGMAP_I2C
 
 config SND_SOC_SII9022
-	tristate
-	depends on HDMI_SII902x
+	tristate "Enable Audio support on Sii902x"
+	depends on HDMI_SII902x && SND_SOC
 
 endif
