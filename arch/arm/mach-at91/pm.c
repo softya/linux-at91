@@ -128,6 +128,7 @@ static int at91_pm_begin(suspend_state_t state)
 	return 0;
 }
 
+#ifdef CONFIG_AT91_SLOW_CLOCK
 /*
  * Verify that all the clocks are correct before entering
  * slow-clock mode.
@@ -169,6 +170,7 @@ static int at91_pm_verify_clocks(void)
 
 	return 1;
 }
+#endif
 
 /*
  * Call this from platform driver suspend() to see how deeply to suspend.
