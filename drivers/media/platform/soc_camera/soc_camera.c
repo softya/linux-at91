@@ -566,7 +566,8 @@ static int soc_camera_open(struct file *file)
 
 		/* The camera could have been already on, try to reset */
 		if (sdesc->subdev_desc.reset)
-			sdesc->subdev_desc.reset(icd->pdev);
+			if (icd->control)
+				sdesc->subdev_desc.reset(icd->control);
 
 		ret = ici->ops->add(icd);
 		if (ret < 0) {
@@ -1164,7 +1165,8 @@ static int soc_camera_probe(struct soc_camera_device *icd)
 
 	/* The camera could have been already on, try to reset */
 	if (ssdd->reset)
-		ssdd->reset(icd->pdev);
+		if (icd->control)
+			ssdd->reset(icd->control);
 
 	mutex_lock(&ici->host_lock);
 	ret = ici->ops->add(icd);
