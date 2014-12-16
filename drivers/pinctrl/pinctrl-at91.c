@@ -581,6 +581,7 @@ static int at91_pmx_enable(struct pinctrl_dev *pctldev, unsigned selector,
 	int i, ret;
 	unsigned mask;
 	void __iomem *pio;
+	bool irq_enabled;
 
 	dev_dbg(info->dev, "enable function %s group %s\n",
 		info->functions[selector].name, info->groups[group].name);
@@ -599,6 +600,7 @@ static int at91_pmx_enable(struct pinctrl_dev *pctldev, unsigned selector,
 		at91_pin_dbg(info->dev, pin);
 		pio = pin_to_controller(info, pin->bank);
 		mask = pin_to_mask(pin->pin);
+		irq_enabled = __raw_readl(pio + PIO_IMR) & mask;
 		at91_mux_disable_interrupt(pio, mask);
 		switch (pin->mux) {
 		case AT91_MUX_GPIO:
@@ -623,6 +625,8 @@ static int at91_pmx_enable(struct pinctrl_dev *pctldev, unsigned selector,
 		}
 		if (pin->mux)
 			at91_mux_gpio_disable(pio, mask);
+		if (irq_enabled)
+			__raw_writel(mask, pio + PIO_IER);
 	}
 
 	return 0;
