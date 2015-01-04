@@ -25,8 +25,13 @@
 				status = "okay";
 			};
 
-			/* Conflict with ISI, so disable it */
+			/* Conflict with ISI PA13 pin, so disable it */
 			spi0: spi@f0000000 {
+				status = "disabled";
+			};
+
+			/* Conflict with ISI PA13 pin, so disable it */
+			mmc1: mmc@f000c000 {
 				status = "disabled";
 			};
 		};
