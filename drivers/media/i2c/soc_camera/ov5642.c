@@ -5567,6 +5567,9 @@ static int ov5642_s_power(struct v4l2_subdev *sd, int on)
 	if (ret < 0)
 		return ret;
 
+	if (ssdd->reset)
+		ssdd->reset(&client->dev);
+
 	/* ov5640 */
 	if (priv->is_ov5640) {
 		ret = ov5642_write_array(client, ov5640_default_regs_init);
