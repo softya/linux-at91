@@ -583,11 +583,11 @@ usba_ep_enable(struct usb_ep *_ep, const struct usb_endpoint_descriptor *desc)
 		break;
 	case USB_ENDPOINT_XFER_BULK:
 		ept_cfg |= USBA_BF(EPT_TYPE, USBA_EPT_TYPE_BULK);
-		ept_cfg |= USBA_BF(BK_NUMBER, USBA_BK_NUMBER_DOUBLE);
+		ept_cfg |= USBA_BF(BK_NUMBER, USBA_BK_NUMBER_ONE);
 		break;
 	case USB_ENDPOINT_XFER_INT:
 		ept_cfg |= USBA_BF(EPT_TYPE, USBA_EPT_TYPE_INT);
-		ept_cfg |= USBA_BF(BK_NUMBER, USBA_BK_NUMBER_DOUBLE);
+		ept_cfg |= USBA_BF(BK_NUMBER, USBA_BK_NUMBER_ONE);
 		break;
 	}
 
@@ -1385,7 +1385,6 @@ static void usba_control_irq(struct usba_udc *udc, struct usba_ep *ep)
 	u32 epstatus;
 	u32 epctrl;
 
-restart:
 	epstatus = usba_ep_readl(ep, STA);
 	epctrl = usba_ep_readl(ep, CTL);
 
@@ -1407,7 +1406,6 @@ restart:
 			usba_ep_writel(ep, CTL_DIS, USBA_TX_PK_RDY);
 			usba_ep_writel(ep, CTL_ENB, USBA_TX_COMPLETE);
 		}
-		goto restart;
 	}
 	if ((epstatus & epctrl) & USBA_TX_COMPLETE) {
 		usba_ep_writel(ep, CLR_STA, USBA_TX_COMPLETE);
@@ -1447,8 +1445,6 @@ restart:
 			set_protocol_stall(udc, ep);
 			break;
 		}
-
-		goto restart;
 	}
 	if ((epstatus & epctrl) & USBA_RX_BK_RDY) {
 		switch (ep->state) {
@@ -1476,8 +1472,6 @@ restart:
 			set_protocol_stall(udc, ep);
 			break;
 		}
-
-		goto restart;
 	}
 	if (epstatus & USBA_RX_SETUP) {
 		union {
@@ -1578,7 +1572,7 @@ static void usba_ep_irq(struct usba_udc *udc, struct usba_ep *ep)
 
 	DBG(DBG_INT, "%s: interrupt, status: 0x%08x\n", ep->ep.name, epstatus);
 
-	while ((epctrl & USBA_TX_PK_RDY) && !(epstatus & USBA_TX_PK_RDY)) {
+	if ((epctrl & USBA_TX_PK_RDY) && !(epstatus & USBA_TX_PK_RDY)) {
 		DBG(DBG_BUS, "%s: TX PK ready\n", ep->ep.name);
 
 		if (list_empty(&ep->queue)) {
@@ -1606,17 +1600,18 @@ static void usba_ep_irq(struct usba_udc *udc, struct usba_ep *ep)
 
 			if (req->last_transaction) {
 				list_del_init(&req->queue);
-				submit_next_request(ep);
 				request_complete(ep, req, 0);
 			}
 		}
-
-		epstatus = usba_ep_readl(ep, STA);
-		epctrl = usba_ep_readl(ep, CTL);
 	}
 	if ((epstatus & epctrl) & USBA_RX_BK_RDY) {
 		DBG(DBG_BUS, "%s: RX data ready\n", ep->ep.name);
 		receive_data(ep);
+	}
+	if ((epstatus & epctrl) & USBA_TX_COMPLETE) {
+		usba_ep_writel(ep, CLR_STA, USBA_TX_COMPLETE);
+		usba_ep_writel(ep, CTL_DIS, USBA_TX_COMPLETE);
+		usba_ep_writel(ep, CTL_DIS, USBA_TX_PK_RDY);
 	}
 }
 
