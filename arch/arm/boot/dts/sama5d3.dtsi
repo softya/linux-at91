@@ -985,7 +985,6 @@
 				reg = <1>;
 				atmel,fifo-size = <1024>;
 				atmel,nb-banks = <3>;
-				atmel,can-dma;
 				atmel,can-isoc;
 			};
 
@@ -993,7 +992,6 @@
 				reg = <2>;
 				atmel,fifo-size = <1024>;
 				atmel,nb-banks = <3>;
-				atmel,can-dma;
 				atmel,can-isoc;
 			};
 
@@ -1001,35 +999,30 @@
 				reg = <3>;
 				atmel,fifo-size = <1024>;
 				atmel,nb-banks = <2>;
-				atmel,can-dma;
 			};
 
 			ep4 {
 				reg = <4>;
 				atmel,fifo-size = <1024>;
 				atmel,nb-banks = <2>;
-				atmel,can-dma;
 			};
 
 			ep5 {
 				reg = <5>;
 				atmel,fifo-size = <1024>;
 				atmel,nb-banks = <2>;
-				atmel,can-dma;
 			};
 
 			ep6 {
 				reg = <6>;
 				atmel,fifo-size = <1024>;
 				atmel,nb-banks = <2>;
-				atmel,can-dma;
 			};
 
 			ep7 {
 				reg = <7>;
 				atmel,fifo-size = <1024>;
 				atmel,nb-banks = <2>;
-				atmel,can-dma;
 			};
 
 			ep8 {
