@@ -3277,7 +3277,6 @@ static struct i2c_driver mxt_driver = {
 	.driver = {
 		.name	= "atmel_mxt_ts",
 		.owner	= THIS_MODULE,
-		.pm	= &mxt_pm_ops,
 	},
 	.probe		= mxt_probe,
 	.remove		= mxt_remove,
