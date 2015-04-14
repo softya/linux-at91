@@ -795,7 +795,6 @@ int drm_fb_helper_check_var(struct fb_var_screeninfo *var,
 			  var->xres, var->yres, var->bits_per_pixel,
 			  var->xres_virtual, var->yres_virtual,
 			  fb->width, fb->height, fb->bits_per_pixel);
-		return -EINVAL;
 	}
 
 	switch (var->bits_per_pixel) {
