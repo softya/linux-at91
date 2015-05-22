@@ -49,7 +49,7 @@ extern void wilc_debugfs_remove(void);
 extern atomic_t REGION;
 extern atomic_t DEBUG_LEVEL;
 
-#define DEBUG		(1 << 0)
+#define DEBUG		(1 << 3)
 #define INFO		(1 << 1)
 #define WRN			(1 << 2)
 #define ERR			(1 << 3)
