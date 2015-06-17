@@ -232,14 +232,32 @@ struct functionfs_config {
 	struct ffs_data *data;
 };
 
+static struct usb_function_instance *fi_ffs;
+static int functionfs_ready_callback(struct ffs_data *ffs);
+static void functionfs_closed_callback(struct ffs_data *ffs);
+static void *functionfs_acquire_dev_callback(const char *dev_name);
+static void functionfs_release_dev_callback(struct ffs_data *ffs_data);
+
 static int ffs_function_init(struct android_usb_function *f,
 			     struct usb_composite_dev *cdev)
 {
+	int ret = 0;
+	struct f_fs_opts *opts;
+
 	f->config = kzalloc(sizeof(struct functionfs_config), GFP_KERNEL);
 	if (!f->config)
 		return -ENOMEM;
 
-	return functionfs_init();
+	fi_ffs = usb_get_function_instance("ffs");
+	opts = to_f_fs_opts(fi_ffs);
+	ret = ffs_single_dev(opts->dev);
+	opts->dev->ffs_ready_callback = functionfs_ready_callback;
+	opts->dev->ffs_closed_callback = functionfs_closed_callback;
+	opts->dev->ffs_acquire_dev_callback = functionfs_acquire_dev_callback;
+	opts->dev->ffs_release_dev_callback = functionfs_release_dev_callback;
+	opts->no_configfs = true;
+
+	return ret;
 }
 
 static void ffs_function_cleanup(struct android_usb_function *f)
@@ -275,8 +293,21 @@ static void ffs_function_disable(struct android_usb_function *f)
 static int ffs_function_bind_config(struct android_usb_function *f,
 				    struct usb_configuration *c)
 {
-	struct functionfs_config *config = f->config;
-	return functionfs_bind_config(c->cdev, c, config->data);
+	static struct usb_function *f_ffs = NULL;
+	int ret = 0;
+
+	f_ffs  = usb_get_function(fi_ffs);
+	if (IS_ERR(f_ffs)) {
+		ret = PTR_ERR(f_ffs);
+	goto err_put_func_inst_ss;
+	}
+	ret = usb_add_function(c, f_ffs);
+
+	return ret;
+err_put_func_inst_ss:
+	usb_put_function_instance(fi_ffs);
+	fi_ffs = NULL;
+	return ret;
 }
 
 static ssize_t
@@ -339,7 +370,6 @@ static int functionfs_ready_callback(struct ffs_data *ffs)
 
 	mutex_lock(&dev->mutex);
 
-	ret = functionfs_bind(ffs, dev->cdev);
 	if (ret)
 		goto err;
 
@@ -366,8 +396,6 @@ static void functionfs_closed_callback(struct ffs_data *ffs)
 
 	config->opened = false;
 	config->data = NULL;
-
-	functionfs_unbind(ffs);
 
 	mutex_unlock(&dev->mutex);
 }
