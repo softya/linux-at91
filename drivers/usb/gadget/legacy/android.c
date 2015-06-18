@@ -1484,7 +1484,7 @@ android_setup(struct usb_gadget *gadget, const struct usb_ctrlrequest *c)
 	}
 	spin_unlock_irqrestore(&cdev->lock, flags);
 
-	return value;
+	return value ? 0 : value;
 }
 
 static void android_disconnect(struct usb_composite_dev *cdev)
