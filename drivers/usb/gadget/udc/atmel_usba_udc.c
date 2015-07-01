@@ -25,6 +25,7 @@
 #include <linux/platform_data/atmel.h>
 #include <linux/of.h>
 #include <linux/of_gpio.h>
+#include <linux/pm_wakeup.h>
 
 #include <asm/gpio.h>
 
@@ -1803,6 +1804,38 @@ static void usba_stop(struct usba_udc *udc)
 	stop_clock(udc);
 }
 
+struct usba_lock {
+        char name[40];
+        struct wakeup_source wakelock;
+        bool held;
+};
+
+static struct usba_lock atmel_usba_lock;
+
+static void usba_hold(struct usba_lock *lock)
+{
+        if (!lock->held) {
+                __pm_stay_awake(&lock->wakelock);
+                lock->held = true;
+        }
+}
+
+
+static void usba_drop(struct usba_lock *lock)
+{
+        if (lock->held) {
+                __pm_relax(&lock->wakelock);
+                lock->held = false;
+        }
+}
+
+static int usba_wakelock_init(void)
+{
+        wakeup_source_init(&atmel_usba_lock.wakelock, "atmel_usba");
+
+        return 0;
+}
+
 static irqreturn_t usba_vbus_irq_thread(int irq, void *devid)
 {
 	struct usba_udc *udc = devid;
@@ -1816,10 +1849,11 @@ static irqreturn_t usba_vbus_irq_thread(int irq, void *devid)
 	vbus = vbus_is_present(udc);
 	if (vbus != udc->vbus_prev) {
 		if (vbus) {
+            		usba_hold(&atmel_usba_lock);
 			usba_start(udc);
 		} else {
 			usba_stop(udc);
-
+            		usba_drop(&atmel_usba_lock);
 			if (udc->driver->disconnect)
 				udc->driver->disconnect(&udc->gadget);
 		}
@@ -1854,6 +1888,7 @@ static int atmel_usba_start(struct usb_gadget *gadget,
 	udc->vbus_prev = vbus_is_present(udc);
 	if (udc->vbus_prev) {
 		ret = usba_start(udc);
+		usba_hold(&atmel_usba_lock);
 		if (ret)
 			goto err;
 	}
@@ -2183,6 +2218,7 @@ static int usba_udc_probe(struct platform_device *pdev)
 	if (ret)
 		return ret;
 	device_init_wakeup(&pdev->dev, 1);
+	usba_wakelock_init();
 
 	usba_init_debugfs(udc);
 	for (i = 1; i < udc->num_ep; i++)
