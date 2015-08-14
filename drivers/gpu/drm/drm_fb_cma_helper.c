@@ -270,7 +270,7 @@ static int drm_fbdev_cma_create(struct drm_fb_helper *helper,
 	mode_cmd.pixel_format = drm_mode_legacy_fb_format(sizes->surface_bpp,
 		sizes->surface_depth);
 
-	size = mode_cmd.pitches[0] * mode_cmd.height * 2;
+	size = mode_cmd.pitches[0] * mode_cmd.height;
 	obj = drm_gem_cma_create(dev, size);
 	if (IS_ERR(obj))
 		return -ENOMEM;
