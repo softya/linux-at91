@@ -156,10 +156,10 @@ static const struct atmel_hlcdc_layer_desc atmel_hlcdc_sama5d3_layers[] = {
 		},
 	},
 	{
-		.name = "overlay1",
+		.name = "overlay2",
 		.formats = &atmel_hlcdc_plane_rgb_formats,
-		.regs_offset = 0x140,
-		.id = 1,
+		.regs_offset = 0x240,
+		.id = 2,
 		.type = ATMEL_HLCDC_OVERLAY_LAYER,
 		.nconfigs = 10,
 		.layout = {
@@ -174,10 +174,10 @@ static const struct atmel_hlcdc_layer_desc atmel_hlcdc_sama5d3_layers[] = {
 		},
 	},
 	{
-		.name = "overlay2",
+		.name = "overlay1",
 		.formats = &atmel_hlcdc_plane_rgb_formats,
-		.regs_offset = 0x240,
-		.id = 2,
+		.regs_offset = 0x140,
+		.id = 1,
 		.type = ATMEL_HLCDC_OVERLAY_LAYER,
 		.nconfigs = 10,
 		.layout = {
@@ -259,10 +259,10 @@ static const struct atmel_hlcdc_layer_desc atmel_hlcdc_sama5d4_layers[] = {
 		},
 	},
 	{
-		.name = "overlay1",
+		.name = "overlay2",
 		.formats = &atmel_hlcdc_plane_rgb_formats,
-		.regs_offset = 0x140,
-		.id = 1,
+		.regs_offset = 0x240,
+		.id = 2,
 		.type = ATMEL_HLCDC_OVERLAY_LAYER,
 		.nconfigs = 10,
 		.layout = {
@@ -277,10 +277,10 @@ static const struct atmel_hlcdc_layer_desc atmel_hlcdc_sama5d4_layers[] = {
 		},
 	},
 	{
-		.name = "overlay2",
+		.name = "overlay1",
 		.formats = &atmel_hlcdc_plane_rgb_formats,
-		.regs_offset = 0x240,
-		.id = 2,
+		.regs_offset = 0x140,
+		.id = 1,
 		.type = ATMEL_HLCDC_OVERLAY_LAYER,
 		.nconfigs = 10,
 		.layout = {
