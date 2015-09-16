@@ -1,3 +1,15 @@
+/*
+ * Atmel SDMMC controller driver.
+ *
+ * Copyright (C) 2015 Atmel,
+ *		 2015 Ludovic Desroches <ludovic.desroches@atmel.com>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or (at
+ * your option) any later version.
+ */
+
 #include <linux/clk.h>
 #include <linux/err.h>
 #include <linux/io.h>
@@ -7,6 +19,10 @@
 #include <linux/of_device.h>
 
 #include "sdhci-pltfm.h"
+
+#define SDMMC_CACR	0x230
+#define		SDMMC_CACR_CAPWREN	BIT(0)
+#define		SDMMC_CACR_KEY		(0x46 << 8)
 
 struct sdhci_at91_priv {
 	struct clk *hclock;
@@ -30,6 +46,59 @@ static const struct of_device_id sdhci_at91_dt_match[] = {
 	{}
 };
 
+#ifdef CONFIG_PM_SLEEP
+static int sdhci_at91_suspend(struct device *dev)
+{
+	struct platform_device *pdev = to_platform_device(dev);
+	struct sdhci_host *host = platform_get_drvdata(pdev);
+	struct sdhci_pltfm_host *pltfm_host = sdhci_priv(host);
+	struct sdhci_at91_priv *priv = pltfm_host->priv;
+	int ret;
+
+	ret = sdhci_suspend_host(host);
+	if (ret)
+		return ret;
+
+	clk_disable_unprepare(priv->gck);
+	clk_disable_unprepare(priv->hclock);
+	clk_disable_unprepare(priv->mainck);
+
+	return 0;
+}
+
+static int sdhci_at91_resume(struct device *dev)
+{
+	struct platform_device *pdev = to_platform_device(dev);
+	struct sdhci_host *host = platform_get_drvdata(pdev);
+	struct sdhci_pltfm_host *pltfm_host = sdhci_priv(host);
+	struct sdhci_at91_priv *priv = pltfm_host->priv;
+	int ret;
+
+	ret = clk_prepare_enable(priv->mainck);
+	if (ret) {
+		dev_err(dev, "can't enable mainck\n");
+		return ret;
+	}
+
+	ret = clk_prepare_enable(priv->hclock);
+	if (ret) {
+		dev_err(dev, "can't enable hclock\n");
+		return ret;
+	}
+
+	ret = clk_prepare_enable(priv->gck);
+	if (ret) {
+		dev_err(dev, "can't enable gck\n");
+		return ret;
+	}
+
+	return sdhci_resume_host(host);
+}
+#endif /* CONFIG_PM_SLEEP */
+
+static SIMPLE_DEV_PM_OPS(sdhci_at91_dev_pm_ops, sdhci_at91_suspend,
+			 sdhci_at91_resume);
+
 static int sdhci_at91_probe(struct platform_device *pdev)
 {
 	const struct of_device_id	*match;
@@ -37,6 +106,9 @@ static int sdhci_at91_probe(struct platform_device *pdev)
 	struct sdhci_host		*host;
 	struct sdhci_pltfm_host		*pltfm_host;
 	struct sdhci_at91_priv		*priv;
+	unsigned int			caps0, caps1;
+	unsigned int			clk_base, clk_mul;
+	unsigned int			gck_rate, real_gck_rate;
 	int				ret;
 
 	match = of_match_device(sdhci_at91_dt_match, &pdev->dev);
@@ -53,59 +125,85 @@ static int sdhci_at91_probe(struct platform_device *pdev)
 	priv->mainck = devm_clk_get(&pdev->dev, "baseclk");
 	if (IS_ERR(priv->mainck)) {
 		dev_err(&pdev->dev, "failed to get baseclk\n");
-		//return PTR_ERR(priv->mainck);
+		return PTR_ERR(priv->mainck);
 	}
 
 	priv->hclock = devm_clk_get(&pdev->dev, "hclock");
 	if (IS_ERR(priv->hclock)) {
 		dev_err(&pdev->dev, "failed to get hclock\n");
-		//return PTR_ERR(priv->hclock);
+		return PTR_ERR(priv->hclock);
 	}
 
 	priv->gck = devm_clk_get(&pdev->dev, "multclk");
 	if (IS_ERR(priv->gck)) {
 		dev_err(&pdev->dev, "failed to get multclk\n");
-		//return PTR_ERR(priv->gck);
-	}
-
-	/*
-	 * Set gck rate according to values set in the capabilities register
-	 * then check if the rate set is the one requested. If not, because
-	 * of round down/up, fix the capabilities.
-	 */
-	ret = clk_set_rate(priv->gck, 12000000 * 33);
-	if (ret < 0) {
-		dev_err(&pdev->dev, "failed to set gck");
-		return -EINVAL;
+		return PTR_ERR(priv->gck);
 	}
 
 	host = sdhci_pltfm_init(pdev, soc_data, 0);
 	if (IS_ERR(host))
 		return PTR_ERR(host);
-	
+
+	/*
+	 * The mult clock is provided by as a generated clock by the PMC
+	 * controller. In order to set the rate of gck, we have to get the
+	 * base clock rate and the clock mult from capabilities.
+	 */
+	clk_prepare_enable(priv->hclock);
+	caps0 = readl(host->ioaddr + SDHCI_CAPABILITIES);
+	caps1 = readl(host->ioaddr + SDHCI_CAPABILITIES_1);
+	clk_base = (caps0 & SDHCI_CLOCK_V3_BASE_MASK) >> SDHCI_CLOCK_BASE_SHIFT;
+	clk_mul = (caps1 & SDHCI_CLOCK_MUL_MASK) >> SDHCI_CLOCK_MUL_SHIFT;
+	gck_rate = clk_base * 1000000 * (clk_mul + 1);
+	ret = clk_set_rate(priv->gck, gck_rate);
+	if (ret < 0) {
+		dev_err(&pdev->dev, "failed to set gck");
+		goto hclock_disable_unprepare;
+		return -EINVAL;
+	}
+	/*
+	 * We need to check if we have the requested rate for gck because in
+	 * some cases this rate could be not supported. If it happens, the rate
+	 * is the closest one gck can provide. We have to update the value
+	 * of clk mul.
+	 */
+	real_gck_rate = clk_get_rate(priv->gck);
+	if (real_gck_rate != gck_rate) {
+		clk_mul = real_gck_rate / (clk_base * 1000000) - 1;
+		caps1 &= (~SDHCI_CLOCK_MUL_MASK);
+		caps1 |= ((clk_mul << SDHCI_CLOCK_MUL_SHIFT) & SDHCI_CLOCK_MUL_MASK);
+		/* Set capabilities in r/w mode. */
+		writel(SDMMC_CACR_KEY | SDMMC_CACR_CAPWREN, host->ioaddr + SDMMC_CACR);
+		writel(caps1, host->ioaddr + SDHCI_CAPABILITIES_1);
+		/* Set capabilities in ro mode. */
+		writel(0, host->ioaddr + SDMMC_CACR);
+		dev_info(&pdev->dev, "update clk mul to %u as gck rate is %u Hz\n",
+			 clk_mul, real_gck_rate);
+	}
+
+	clk_prepare_enable(priv->mainck);
+	clk_prepare_enable(priv->gck);
+
 	pltfm_host = sdhci_priv(host);
 	pltfm_host->priv = priv;
 
-	clk_prepare_enable(priv->mainck);
-	clk_prepare_enable(priv->hclock);
-	clk_prepare_enable(priv->gck);
-
 	ret = mmc_of_parse(host->mmc);
 	if (ret)
-		goto err_sdhci_add;
+		goto clocks_disable_unprepare;
 
 	sdhci_get_of_property(pdev);
 
 	ret = sdhci_add_host(host);
 	if (ret)
-		goto err_sdhci_add;
+		goto clocks_disable_unprepare;
 
 	return 0;
 
-err_sdhci_add:
+clocks_disable_unprepare:
 	clk_disable_unprepare(priv->gck);
-	clk_disable_unprepare(priv->hclock);
 	clk_disable_unprepare(priv->mainck);
+hclock_disable_unprepare:
+	clk_disable_unprepare(priv->hclock);
 	sdhci_pltfm_free(pdev);
 	return ret;
 }
@@ -130,7 +228,7 @@ static struct platform_driver sdhci_at91_driver = {
 		.name	= "sdhci-at91",
 		.owner	= THIS_MODULE,
 		.of_match_table = sdhci_at91_dt_match,
-		.pm	= SDHCI_PLTFM_PMOPS,
+		.pm	= &sdhci_at91_dev_pm_ops,
 	},
 	.probe		= sdhci_at91_probe,
 	.remove		= sdhci_at91_remove,
