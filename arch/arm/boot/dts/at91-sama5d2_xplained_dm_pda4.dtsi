@@ -141,98 +141,56 @@
 				};
 
 				pinctrl_i2c1_default: i2c1_default {
-					mux {
-						function = "A";
-						groups = "i2c1_0";
-					};
-
-					conf {
-						group = "i2c1_0";
-						bias-disable;
-					};
+					pinmux = <PIN_PD4__TWD1>,
+						 <PIN_PD5__TWCK1>;
+					bias-disable;
 				};
 
 				pinctrl_lcd_base: pinctrl_lcd_base {
-					mux {
-						function = "A";
-						groups = "lcd_base_0";
-					};
-
-					conf {
-						pins = <PIN_PC30__LCDVSYNC>,	/* LCDVSYNC */
-						       <PIN_PC31__LCDHSYNC>,	/* LCDHSYNC */
-						       <PIN_PD1__LCDDEN>,	/* LCDDEN */
-						       <PIN_PD0__LCDPCK>;	/* LCDPCK */
-						bias-disable;
-					};
-
+					pinmux = <PIN_PC30__LCDVSYNC>,
+						 <PIN_PC31__LCDHSYNC>,
+						 <PIN_PD1__LCDDEN>,
+						 <PIN_PD0__LCDPCK>;
+					bias-disable;
 				};
 
 				pinctrl_lcd_pwm: pinctrl_lcd_pwm {
-					mux {
-						function = "A";
-						groups = "lcd_pwm_0";
-					};
-
-					conf {
-						pins = <PIN_PC28__LCDPWM>;	/* LCDPWM */
-						bias-disable;
-					};
+					pinmux = <PIN_PC28__LCDPWM>;
+					bias-disable;
 				};
 
 				pinctrl_lcd_rgb666: pinctrl_lcd_rgb666 {
-					mux {
-						function = "A";
-						groups = "lcd_rgb666_0";
-					};
-
-					conf {
-						pins = <PIN_PC10__LCDDAT2>,
-						       <PIN_PC11__LCDDAT3>,
-						       <PIN_PC12__LCDDAT4>,
-						       <PIN_PC13__LCDDAT5>,
-						       <PIN_PC14__LCDDAT6>,
-						       <PIN_PC15__LCDDAT7>,
-						       <PIN_PC16__LCDDAT10>,
-						       <PIN_PC17__LCDDAT11>,
-						       <PIN_PC18__LCDDAT12>,
-						       <PIN_PC19__LCDDAT13>,
-						       <PIN_PC20__LCDDAT14>,
-						       <PIN_PC21__LCDDAT15>,
-						       <PIN_PC22__LCDDAT18>,
-						       <PIN_PC23__LCDDAT19>,
-						       <PIN_PC24__LCDDAT20>,
-						       <PIN_PC25__LCDDAT21>,
-						       <PIN_PC26__LCDDAT22>,
-						       <PIN_PC27__LCDDAT23>;
-						bias-disable;
-					};
+					pinmux = <PIN_PC10__LCDDAT2>,
+						 <PIN_PC11__LCDDAT3>,
+						 <PIN_PC12__LCDDAT4>,
+						 <PIN_PC13__LCDDAT5>,
+						 <PIN_PC14__LCDDAT6>,
+						 <PIN_PC15__LCDDAT7>,
+						 <PIN_PC16__LCDDAT10>,
+						 <PIN_PC17__LCDDAT11>,
+						 <PIN_PC18__LCDDAT12>,
+						 <PIN_PC19__LCDDAT13>,
+						 <PIN_PC20__LCDDAT14>,
+						 <PIN_PC21__LCDDAT15>,
+						 <PIN_PC22__LCDDAT18>,
+						 <PIN_PC23__LCDDAT19>,
+						 <PIN_PC24__LCDDAT20>,
+						 <PIN_PC25__LCDDAT21>,
+						 <PIN_PC26__LCDDAT22>,
+						 <PIN_PC27__LCDDAT23>;
+					bias-disable;
 				};
 
 				pinctrl_mxt_irq: pinctrl_mxt_irq {
-					mux {
-						function = "GPIO";
-						groups = "mxt_irq";
-					};
-
-					conf {
-						pins = <PIN_PB7>;
-						bias-pull-up;
-						input-debounce = <1>;
-					};
+					pinmux = <PIN_PB7__GPIO>;
+					bias-pull-up;
+					input-debounce = <1>;
 				};
 
 				pinctrl_qt1070_irq: pinctrl_qt1070_irq {
-					mux {
-						function = "GPIO";
-						groups = "qt1070_irq";
-					};
-
-					conf {
-						pins = <PIN_PB8>;
-						bias-pull-up;
-						input-debounce = <1>;
-					};
+					pinmux = <PIN_PB8__GPIO>;
+					bias-pull-up;
+					input-debounce = <1>;
 				};
 			};
 		};

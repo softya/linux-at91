@@ -162,6 +162,16 @@ static const struct regulator_desc act8865_regulators[] = {
 	ACT88xx_REG("LDO_REG4", ACT8865, LDO4, VSET),
 };
 
+static const struct regulator_desc act8865_alt_regulators[] = {
+	ACT88xx_REG("DCDC_REG1", ACT8865, DCDC1, VSET2),
+	ACT88xx_REG("DCDC_REG2", ACT8865, DCDC2, VSET2),
+	ACT88xx_REG("DCDC_REG3", ACT8865, DCDC3, VSET2),
+	ACT88xx_REG("LDO_REG1", ACT8865, LDO1, VSET),
+	ACT88xx_REG("LDO_REG2", ACT8865, LDO2, VSET),
+	ACT88xx_REG("LDO_REG3", ACT8865, LDO3, VSET),
+	ACT88xx_REG("LDO_REG4", ACT8865, LDO4, VSET),
+};
+
 #ifdef CONFIG_OF
 static const struct of_device_id act8865_dt_ids[] = {
 	{ .compatible = "active-semi,act8846", .data = (void *)ACT8846 },
@@ -285,6 +295,7 @@ static int act8865_pmic_probe(struct i2c_client *client,
 	int i, ret, num_regulators;
 	struct act8865 *act8865;
 	unsigned long type;
+	int voltage_select = 0;
 
 	pdata = dev_get_platdata(dev);
 
@@ -296,6 +307,10 @@ static int act8865_pmic_probe(struct i2c_client *client,
 			return -ENODEV;
 
 		type = (unsigned long) id->data;
+
+		voltage_select = !!of_get_property(dev->of_node,
+						   "active-semi,vsel-high",
+						   NULL);
 	} else {
 		type = i2c_id->driver_data;
 	}
@@ -306,8 +321,13 @@ static int act8865_pmic_probe(struct i2c_client *client,
 		num_regulators = ARRAY_SIZE(act8846_regulators);
 		break;
 	case ACT8865:
-		regulators = act8865_regulators;
-		num_regulators = ARRAY_SIZE(act8865_regulators);
+		if (voltage_select) {
+			regulators = act8865_alt_regulators;
+			num_regulators = ARRAY_SIZE(act8865_alt_regulators);
+		} else {
+			regulators = act8865_regulators;
+			num_regulators = ARRAY_SIZE(act8865_regulators);
+		}
 		break;
 	default:
 		dev_err(dev, "invalid device id %lu\n", type);

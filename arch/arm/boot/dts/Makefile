@@ -78,6 +78,7 @@ dtb-$(CONFIG_ARCH_AT91)	+= sama5d36ek_revc_pda7.dtb
 dtb-$(CONFIG_ARCH_AT91)	+= at91-sama5d4_xplained.dtb
 dtb-$(CONFIG_ARCH_AT91)	+= at91-sama5d4_xplained_hdmi.dtb
 dtb-$(CONFIG_ARCH_AT91)	+= at91-sama5d4_xplained_pda4.dtb
+dtb-$(CONFIG_ARCH_AT91)	+= at91-sama5d4_xplained_pda7.dtb
 dtb-$(CONFIG_ARCH_AT91)	+= at91-sama5d4ek.dtb
 
 dtb-$(CONFIG_ARCH_ATLAS6) += atlas6-evb.dtb
