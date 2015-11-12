@@ -396,8 +396,11 @@ static void buffer_queue(struct vb2_buffer *vb)
 
 	spin_lock_irqsave(&isc->lock, flags);
 	list_add(&buf->list, &isc->frame_buffer_list);
-	if (isc->active == NULL)
+	if (isc->active == NULL) {
 		isc->active = buf;
+		if (vb2_is_streaming(vb->vb2_queue))
+			start_dma(isc, buf);
+	}
 
 	spin_unlock_irqrestore(&isc->lock, flags);
 }
