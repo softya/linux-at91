@@ -267,6 +267,7 @@ struct usba_dma_desc {
 
 struct usba_ep {
 	int					state;
+	bool                                    need_disable_et;
 	void __iomem				*ep_regs;
 	void __iomem				*dma_regs;
 	void __iomem				*fifo;

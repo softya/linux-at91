@@ -728,6 +728,11 @@ static int queue_dma(struct usba_udc *udc, struct usba_ep *ep,
 	if (!ep->is_in)
 		req->ctrl |= USBA_DMA_END_TR_EN | USBA_DMA_END_TR_IE;
 
+	if (ep->need_disable_et) {
+		req->ctrl &= ~USBA_DMA_END_TR_EN;
+		req->ctrl &= ~USBA_DMA_END_TR_IE;
+	}
+
 	/*
 	 * Add this request to the queue and submit for DMA if
 	 * possible. Check if we're still alive first -- we may have
@@ -1641,6 +1646,7 @@ static void usba_dma_irq(struct usba_udc *udc, struct usba_ep *ep)
 		 * try to pretend nothing happened. We might have to
 		 * do something here...
 		 */
+		ep->need_disable_et = true;
 	}
 
 	if (list_empty(&ep->queue))
