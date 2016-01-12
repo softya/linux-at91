@@ -915,8 +915,10 @@ static int ov2643_set_params(struct i2c_client *client, u32 *width, u32 *height,
 	/* select win */
 	priv->win = ov2643_select_win(width, height);
 
-	if (code != MEDIA_BUS_FMT_UYVY8_2X8 && code != MEDIA_BUS_FMT_RGB565_2X8_LE &&
-			code != MEDIA_BUS_FMT_SBGGR8_1X8) {
+	if (code != MEDIA_BUS_FMT_YUYV8_2X8 &&
+		code != MEDIA_BUS_FMT_UYVY8_2X8 &&
+		code != MEDIA_BUS_FMT_RGB565_2X8_LE &&
+		code != MEDIA_BUS_FMT_SBGGR8_1X8) {
 		dev_err(&client->dev, "Not supported format: %d\n", code);
 		return -1;
 	}
@@ -1003,7 +1005,7 @@ static int ov2640_s_fmt(struct v4l2_subdev *sd,
 		mf->colorspace = V4L2_COLORSPACE_SRGB;
 		break;
 	default:
-		mf->code = MEDIA_BUS_FMT_UYVY8_2X8;
+		/* mf->code = MEDIA_BUS_FMT_UYVY8_2X8; */
 	case MEDIA_BUS_FMT_YUYV8_2X8:
 	case MEDIA_BUS_FMT_UYVY8_2X8:
 		mf->colorspace = V4L2_COLORSPACE_JPEG;
@@ -1041,7 +1043,7 @@ static int ov2640_try_fmt(struct v4l2_subdev *sd,
 		mf->colorspace = V4L2_COLORSPACE_SRGB;
 		break;
 	default:
-		mf->code = MEDIA_BUS_FMT_UYVY8_2X8;
+		/* mf->code = MEDIA_BUS_FMT_UYVY8_2X8; */
 	case MEDIA_BUS_FMT_YUYV8_2X8:
 	case MEDIA_BUS_FMT_UYVY8_2X8:
 		mf->colorspace = V4L2_COLORSPACE_JPEG;

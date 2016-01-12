@@ -650,6 +650,7 @@ static const struct regval_list ov2643_yuv_vga[]= {
 };
 
 static u32 ov2643_codes[] = {
+	MEDIA_BUS_FMT_YUYV8_2X8,
 	MEDIA_BUS_FMT_UYVY8_2X8,
 	MEDIA_BUS_FMT_RGB565_2X8_LE,
 	MEDIA_BUS_FMT_SBGGR8_1X8,
