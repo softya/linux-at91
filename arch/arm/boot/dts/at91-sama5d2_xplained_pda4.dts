@@ -134,7 +134,7 @@
 			isc: isc@f0008000 {
 				pinctrl-names = "default";
 				pinctrl-0 = <&pinctrl_isc_base &pinctrl_isc_data_8bit &pinctrl_isc_data_9_10 &pinctrl_isc_data_11_12>;
-				status = "okay";
+				status = "disabled";
 				port {
 					isc_0: endpoint@0 {
 						remote-endpoint = <&ov2640_0>;
@@ -167,6 +167,16 @@
 				pinctrl-names = "default";
 				pinctrl-0 = <&pinctrl_macb0_rmii>;
 				phy-mode = "rmii";
+				status = "okay";
+			};
+
+			pdmic@f8018000 {
+				pinctrl-names = "default";
+				pinctrl-0 = <&pinctrl_pdmic_default>;
+				atmel,model = "PDMIC @ sama5d2_xplained";
+				atmel,mic-min-freq = <1000000>;
+				atmel,mic-max-freq = <3246000>;
+				atmel,mic-offset = <0x0>;
 				status = "okay";
 			};
 
@@ -291,6 +301,12 @@
 						 <PIN_PB3__CLASSD_R2>,
 						 <PIN_PB4__CLASSD_R3>;
 					bias-pull-up;
+				};
+
+				pinctrl_pdmic_default: pdmic_default {
+					pinmux = <PIN_PB26__PDMIC_DAT>,
+						 <PIN_PB27__PDMIC_CLK>;
+					bias-disable;
 				};
 
 				pinctrl_flx0_default: flx0_default {
