@@ -474,6 +474,30 @@ static void __init sama5_dt_device_init(void)
 
 		printk("LCD parameters updated for PDA7 display module\n");
 	}
+	if (of_machine_is_compatible("panel,ls028v7dx01")) {
+		__u8 manufacturer[6] = "sharp";
+		__u8 monitor[14] = "ls028v7dx01";
+
+		/* set LCD configuration */
+		at91_tft_vga_modes[0].name = "ls028v7dx01";
+		at91_tft_vga_modes[0].xres = 480;
+		at91_tft_vga_modes[0].yres = 640;
+		at91_tft_vga_modes[0].pixclock = KHZ2PICOS(21000);
+		at91_tft_vga_modes[0].left_margin = 8;
+		at91_tft_vga_modes[0].right_margin = 44;
+		at91_tft_vga_modes[0].upper_margin = 2;
+		at91_tft_vga_modes[0].lower_margin = 4;
+		at91_tft_vga_modes[0].hsync_len = 1;
+		at91_tft_vga_modes[0].vsync_len = 1;
+
+		memcpy(at91fb_default_monspecs.manufacturer, manufacturer, 5);
+		memcpy(at91fb_default_monspecs.monitor, monitor, 10);
+
+		ek_lcdc_data.smem_len = 480 * 640 * 4;
+
+		printk("LCD parameters updated for Sharp ls028v7dx01 display module\n");
+	}
+
 	if (of_machine_is_compatible("pda,tm43xx")) {
 		__u8 manufacturer[4] = "Inlx";
 		__u8 monitor[14] = "AT043TN24";
