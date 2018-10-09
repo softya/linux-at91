@@ -1,17 +1,17 @@
 /*
- * at91-sama5d4_xplained_pda4.dts - Device Tree file for SAMA5D4 Xplained ULTRA with TM43xx display panel
+ * at91-sama5d4_xplained_pda4.dts - Device Tree file for SAMA5D4 Xplained ULTRA with Sharp ls028v7dx01 display panel
  *
- *  Copyright (C) 2014 Atmel,
- *                2014 Josh Wu <josh.wu@atmel.com>
+ *  Copyright (C) 2018 DoseNTRX,
+ *                2018 Yechiel Cohen <yechielco@embedded-softya.com>
  *
  * Licensed under GPLv2 or later.
  */
 /dts-v1/;
 #include "sama5d4.dtsi"
-#include "at91-sama5d4_xplained_dm_pda4.dtsi"
+#include "at91-sama5d4_xplained_dm_rex-ii_sharp.dtsi"
 
 / {
-	model = "Atmel SAMA5D4 Xplained ULTRA TM43xx";
+	model = "Atmel SAMA5D4 Xplained ULTRA + Sharp ls028v7dx01";
 	compatible = "atmel,sama5d4-xplained", "atmel,sama5d4", "atmel,sama5", "panel,ls028v7dx01";
 
 	chosen {
@@ -50,6 +50,20 @@
 					spi-max-frequency = <50000000>;
 					reg = <0>;
 				};
+			};
+
+			spi1: spi@fc018000 {
+				cs-gpios = <&pioB 23 0>, <0>, <0> , <0>;
+				// cs-gpios = <&pioB 23 0>;
+				status = "okay";
+
+				spidev@0x00 {
+					compatible = "spidev";
+					spi-max-frequency = <1000000>;
+					spi-cpol;
+					reg = <0>;
+				};
+
 			};
 
 			macb0: ethernet@f8020000 {

@@ -498,6 +498,31 @@ static void __init sama5_dt_device_init(void)
 		printk("LCD parameters updated for Sharp ls028v7dx01 display module\n");
 	}
 
+	// DisplayTech LCD (based on ILITEK ILI9341)
+	if (of_machine_is_compatible("panel,ili9341")) {
+		__u8 manufacturer[6] = "ilitek";
+		__u8 monitor[14] = "ili9341";
+
+		/* set LCD configuration */
+		at91_tft_vga_modes[0].name = "ili9341";
+		at91_tft_vga_modes[0].xres = 240;
+		at91_tft_vga_modes[0].yres = 320;
+		at91_tft_vga_modes[0].pixclock = KHZ2PICOS(21000);
+		at91_tft_vga_modes[0].left_margin = 10;
+		at91_tft_vga_modes[0].right_margin = 20;
+		at91_tft_vga_modes[0].upper_margin = 2;
+		at91_tft_vga_modes[0].lower_margin = 2;
+		at91_tft_vga_modes[0].hsync_len = 10;
+		at91_tft_vga_modes[0].vsync_len = 2;
+
+		memcpy(at91fb_default_monspecs.manufacturer, manufacturer, 6);
+		memcpy(at91fb_default_monspecs.monitor, monitor, 7);
+
+		ek_lcdc_data.smem_len = 240 * 320 * 4;
+
+		printk("LCD parameters updated for ilitek ili9341 display module\n");
+	}
+
 	if (of_machine_is_compatible("pda,tm43xx")) {
 		__u8 manufacturer[4] = "Inlx";
 		__u8 monitor[14] = "AT043TN24";

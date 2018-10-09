@@ -1,18 +1,18 @@
 /*
- * at91-sama5d4_xplained_pda4.dts - Device Tree file for SAMA5D4 Xplained ULTRA with TM43xx display panel
+ * at91-sama5d4_xplained_rex-ii_displaytech.dts - Device Tree file for SAMA5D4 Xplained ULTRA with DT028ATFT display panel (based on ILITEK ILI9341)
  *
- *  Copyright (C) 2014 Atmel,
- *                2014 Josh Wu <josh.wu@atmel.com>
+ *  Copyright (C) 2018 DoseNTRX,
+ *                2018 Yechiel Cohen <yechielco@embedded-softya.com>
  *
  * Licensed under GPLv2 or later.
  */
 /dts-v1/;
 #include "sama5d4.dtsi"
-#include "at91-sama5d4_xplained_dm_pda4.dtsi"
+#include "at91-sama5d4_xplained_dm_rex-ii_displaytech.dtsi"
 
 / {
-	model = "Atmel SAMA5D4 Xplained ULTRA TM43xx";
-	compatible = "atmel,sama5d4-xplained", "atmel,sama5d4", "atmel,sama5", "panel,ls028v7dx01";
+	model = "Atmel SAMA5D4 Xplained ULTRA + DisplayTech DT028ATFT";
+	compatible = "atmel,sama5d4-xplained", "atmel,sama5d4", "atmel,sama5", "panel,ili9341";
 
 	chosen {
 		bootargs = "console=ttyS0,115200 ignore_loglevel earlyprintk";
@@ -50,6 +50,26 @@
 					spi-max-frequency = <50000000>;
 					reg = <0>;
 				};
+			};
+
+			spi1: spi@fc018000 {
+				cs-gpios = <&pioB 23 0>, <0>, <0> , <0>;
+				status = "okay";
+
+                ili9341@0 {
+//                    rotate = <180>;
+                    bgr;
+                    fps = <30>;
+                    compatible = "ilitek,ili9341";
+                    spi-max-frequency = <32000000>;
+                    reg = <0>;
+                    regwidth = <8>;
+                    buswidth = <8>;
+                    verbose = <3>;
+//                    reset-gpios = <&pioC 3 0>; // PC3 - J4.33
+                    dc-gpios = <&pioE 9 0>;    // PC4 - J4.31
+                };
+
 			};
 
 			macb0: ethernet@f8020000 {
