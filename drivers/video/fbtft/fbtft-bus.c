@@ -125,6 +125,69 @@ EXPORT_SYMBOL(fbtft_write_reg8_bus9);
  *   int (*write_vmem)(struct fbtft_par *par);
  *
  *****************************************************************************/
+/* 18 bit pixel over 8-bit databus */
+int fbtft_write_vmem32_bus8(struct fbtft_par *par, size_t offset, size_t len)
+{
+	u32 *vmem32;
+	u32 u32value = 0x00000000;
+	u8 *txbuf8 = (u8 *)par->txbuf.buf;
+	size_t remain;
+	size_t to_copy;
+	size_t tx_array_size;
+	int i,j;
+	int ret = 0;
+	size_t startbyte_size = 0;
+
+	fbtft_par_dbg(DEBUG_WRITE_VMEM, par, "%s(offset=%zu, len=%zu)\n",
+		__func__, offset, len);
+
+	remain = len / 4;
+	vmem32 = (u32 *)(par->info->screen_base + offset);
+
+	if (par->gpio.dc != -1)
+		gpio_set_value(par->gpio.dc, 1);
+
+	/* non buffered write */
+	if (!par->txbuf.buf){
+		printk("%s(): non buffered write...", __func__);
+		return par->fbtftops.write(par, vmem32, len);
+	}
+	/* buffered write */
+	tx_array_size = par->txbuf.len / 4;
+
+	if (par->startbyte) {
+		txbuf8 = (u8 *)(par->txbuf.buf + 1);
+		tx_array_size -= 1;
+		*(u8 *)(par->txbuf.buf) = par->startbyte | 0x2;
+		startbyte_size = 1;
+	}
+
+	while (remain) {
+		to_copy = remain > tx_array_size ? tx_array_size : remain;
+		dev_dbg(par->info->device, "    to_copy=%zu, remain=%zu\n",
+						to_copy, remain - to_copy);
+
+		for (j = 0,i = 0; i < to_copy; i++){
+
+			u32value = cpu_to_be32(vmem32[i]);
+
+			txbuf8[j++] = (u8)((u32value >>  8) & 0x000000FF);
+			txbuf8[j++] = (u8)((u32value >> 16) & 0x000000FF);
+			txbuf8[j++] = (u8)((u32value >> 24) & 0x000000FF);
+
+		}
+
+		vmem32 = vmem32 + to_copy;
+		ret = par->fbtftops.write(par, par->txbuf.buf,
+						startbyte_size + to_copy * 3);
+		if (ret < 0)
+			return ret;
+		remain -= to_copy;
+	}
+
+	return ret;
+}
+EXPORT_SYMBOL(fbtft_write_vmem32_bus8);
 
 /* 16 bit pixel over 8-bit databus */
 int fbtft_write_vmem16_bus8(struct fbtft_par *par, size_t offset, size_t len)

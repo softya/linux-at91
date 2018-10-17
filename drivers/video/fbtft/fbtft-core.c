@@ -711,8 +711,6 @@ struct fb_info *fbtft_framebuffer_alloc(struct fbtft_display *display,
 	/* defaults */
 	if (!fps)
 		fps = 20;
-	if (!bpp)
-		bpp = 16;
 
 	if (!pdata) {
 		dev_err(dev, "platform data is missing\n");
@@ -740,6 +738,27 @@ struct fb_info *fbtft_framebuffer_alloc(struct fbtft_display *display,
 		display->buswidth = pdata->display.buswidth;
 	if (pdata->display.regwidth)
 		display->regwidth = pdata->display.regwidth;
+	if (pdata->display.bpp)
+		display->bpp = pdata->display.bpp;
+
+	/*
+	 * Bits per pixel parameter will determine the display type we use.
+	 * At the moment, we support only two formats:
+	 *     RGB565 ( 16 bits/pixel)
+	 *     RGB666 ( 18 bits/pixel)
+	 *
+	 * For the RGB565 - We'll use a 16bit aligned video memory.
+	 *
+	 * For the RGB666 - Since there is no support in Android EGL platform for the RGB666,
+	 * we'll use a 32bit aligned video memory and set up framebuffer settings to RGBX_8888 instead.
+	 * Later during fbtft_write_vmem32_bus8() operation, we'll skip the transparency byte and write only 3 bytes per pixel.
+	 *
+	 */
+	if(display->bpp == 18){
+		bpp = 32;
+	} else{
+		bpp = 16;
+	}
 
 	display->debug |= debug;
 	fbtft_expand_debug_value(&display->debug);
@@ -818,15 +837,31 @@ struct fb_info *fbtft_framebuffer_alloc(struct fbtft_display *display,
 	info->var.bits_per_pixel = bpp;
 	info->var.nonstd =         1;
 
-	/* RGB565 */
-	info->var.red.offset =     11;
-	info->var.red.length =     5;
-	info->var.green.offset =   5;
-	info->var.green.length =   6;
-	info->var.blue.offset =    0;
-	info->var.blue.length =    5;
-	info->var.transp.offset =  0;
-	info->var.transp.length =  0;
+	if(bpp == 32){ /* RGB666 */
+
+		// Android EGL lib doesn't have an RGB666 format (see comment above).
+		// Thus we apply for Google RGBX888 (GGL_PIXEL_FORMAT_RGBX_8888) instead.
+
+		info->var.red.offset =     24;
+		info->var.red.length =     8;
+		info->var.green.offset =   16;
+		info->var.green.length =   8;
+		info->var.blue.offset =    8;
+		info->var.blue.length =    8;
+		info->var.transp.offset =  0;
+		info->var.transp.length =  0;
+
+	} else { /* RGB565 fallback */
+		// Apply for Google RGB565 (GGL_PIXEL_FORMAT_RGB_565)
+		info->var.red.offset =     11;
+		info->var.red.length =     5;
+		info->var.green.offset =   5;
+		info->var.green.length =   6;
+		info->var.blue.offset =    0;
+		info->var.blue.length =    5;
+		info->var.transp.offset =  0;
+		info->var.transp.length =  0;
+	}
 
 	info->flags =              FBINFO_FLAG_DEFAULT | FBINFO_VIRTFB;
 
@@ -1423,9 +1458,14 @@ int fbtft_probe_common(struct fbtft_display *display,
 	}
 
 	/* write_vmem() functions */
-	if (display->buswidth == 8)
-		par->fbtftops.write_vmem = fbtft_write_vmem16_bus8;
-	else if (display->buswidth == 9)
+	if (display->buswidth == 8){
+		if(display->bpp == 16){
+			par->fbtftops.write_vmem = fbtft_write_vmem16_bus8;
+		}
+		if(display->bpp == 18){
+			par->fbtftops.write_vmem = fbtft_write_vmem32_bus8;
+		}
+	} else if (display->buswidth == 9)
 		par->fbtftops.write_vmem = fbtft_write_vmem16_bus9;
 	else if (display->buswidth == 16)
 		par->fbtftops.write_vmem = fbtft_write_vmem16_bus16;

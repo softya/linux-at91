@@ -33,6 +33,7 @@
 				};
 			};
 
+*/
 
 			lcd_bus@f0000000 {
 				status = "okay";
@@ -54,6 +55,7 @@
 				};
 			};
 
+/*
 			pinctrl@fc06a000 {
 				board {
 					pinctrl_qt1070_irq: qt1070_irq {

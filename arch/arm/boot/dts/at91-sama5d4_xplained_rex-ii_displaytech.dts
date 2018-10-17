@@ -66,6 +66,7 @@
                     regwidth = <8>;
                     buswidth = <8>;
                     verbose = <3>;
+                    bpp = <16>;
 //                    reset-gpios = <&pioC 3 0>; // PC3 - J4.33
                     dc-gpios = <&pioE 9 0>;    // PC4 - J4.31
                 };

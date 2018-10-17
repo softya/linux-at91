@@ -495,6 +495,7 @@ static void __init sama5_dt_device_init(void)
 
 		ek_lcdc_data.smem_len = 480 * 640 * 4;
 
+//		ek_lcdc_data.default_lcdcon2 = LCDC_LCDCFG5_MODE_OUTPUT_18BPP;
 		printk("LCD parameters updated for Sharp ls028v7dx01 display module\n");
 	}
 
@@ -507,11 +508,11 @@ static void __init sama5_dt_device_init(void)
 		at91_tft_vga_modes[0].name = "ili9341";
 		at91_tft_vga_modes[0].xres = 240;
 		at91_tft_vga_modes[0].yres = 320;
-		at91_tft_vga_modes[0].pixclock = KHZ2PICOS(21000);
-		at91_tft_vga_modes[0].left_margin = 10;
-		at91_tft_vga_modes[0].right_margin = 20;
+		at91_tft_vga_modes[0].pixclock = KHZ2PICOS(6350);
+		at91_tft_vga_modes[0].left_margin = 20;
+		at91_tft_vga_modes[0].right_margin = 10;
 		at91_tft_vga_modes[0].upper_margin = 2;
-		at91_tft_vga_modes[0].lower_margin = 2;
+		at91_tft_vga_modes[0].lower_margin = 4;
 		at91_tft_vga_modes[0].hsync_len = 10;
 		at91_tft_vga_modes[0].vsync_len = 2;
 
@@ -520,6 +521,8 @@ static void __init sama5_dt_device_init(void)
 
 		ek_lcdc_data.smem_len = 240 * 320 * 4;
 
+		ek_lcdc_data.default_lcdcon2 = LCDC_LCDCFG5_MODE_OUTPUT_18BPP;
+//		ek_lcdc_data.default_bpp = 18; <<== caused kernel freeze...
 		printk("LCD parameters updated for ilitek ili9341 display module\n");
 	}
 
