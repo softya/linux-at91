@@ -521,8 +521,8 @@ static void __init sama5_dt_device_init(void)
 
 		ek_lcdc_data.smem_len = 240 * 320 * 4;
 
-		ek_lcdc_data.default_lcdcon2 = LCDC_LCDCFG5_MODE_OUTPUT_18BPP;
-//		ek_lcdc_data.default_bpp = 18; <<== caused kernel freeze...
+		ek_lcdc_data.default_lcdcon2 = BPP_OUT_DEFAULT_LCDCFG5;//LCDC_LCDCFG5_MODE_OUTPUT_18BPP;
+		ek_lcdc_data.default_bpp = 16; //<<== a value of 18 caused kernel freeze...
 		printk("LCD parameters updated for ilitek ili9341 display module\n");
 	}
 

@@ -137,6 +137,7 @@ int fbtft_write_vmem32_bus8(struct fbtft_par *par, size_t offset, size_t len)
 	int i,j;
 	int ret = 0;
 	size_t startbyte_size = 0;
+	unsigned long counter = 0;
 
 	fbtft_par_dbg(DEBUG_WRITE_VMEM, par, "%s(offset=%zu, len=%zu)\n",
 		__func__, offset, len);
@@ -162,19 +163,37 @@ int fbtft_write_vmem32_bus8(struct fbtft_par *par, size_t offset, size_t len)
 		startbyte_size = 1;
 	}
 
+	if(par->debug)
+		printk("[ FB Start ] (len=%d, bpp=18)\n", remain);
+
 	while (remain) {
 		to_copy = remain > tx_array_size ? tx_array_size : remain;
 		dev_dbg(par->info->device, "    to_copy=%zu, remain=%zu\n",
 						to_copy, remain - to_copy);
 
-		for (j = 0,i = 0; i < to_copy; i++){
+		for (j = 0,i = 0; i < to_copy; i++, counter++){
 
 			u32value = cpu_to_be32(vmem32[i]);
 
+			/* Skip the Alpha byte and send the RGB888 as RGB666 in 3 bytes format.
+			 * Only the 6 highest bits for each color:
+			 *
+			 * MSB                    LSB
+			 * ============================>=========================>==========================>
+			 * |          BYTE 1         |          BYTE 2         |          BYTE 3         |
+			 * ============================>=========================>==========================>
+			 * | D7 D6 D5 D4 D3 D2 D1 D0 | D7 D6 D5 D4 D3 D2 D1 D0 | D7 D6 D5 D4 D3 D2 D1 D0 |
+			 * ============================>====================================================>
+			 * | R  R  R  R  R  R  0  0  | G  G  G  G  G  G  0  0  | B  B  B  B  B  B  0  0  |
+			 * ============================>=========================>==========================>
+			 */
 			txbuf8[j++] = (u8)((u32value >>  8) & 0x000000FF);
 			txbuf8[j++] = (u8)((u32value >> 16) & 0x000000FF);
 			txbuf8[j++] = (u8)((u32value >> 24) & 0x000000FF);
 
+			if(par->debug)
+				if( (counter % par->info->var.xres) == 0)
+					printk("%.6X\b\b\n", u32value >> 8);
 		}
 
 		vmem32 = vmem32 + to_copy;
@@ -184,6 +203,8 @@ int fbtft_write_vmem32_bus8(struct fbtft_par *par, size_t offset, size_t len)
 			return ret;
 		remain -= to_copy;
 	}
+	if(par->debug)
+		printk("[ FB End ] (number of pixels printed = %lu, bpp=18)\n", counter);
 
 	return ret;
 }
@@ -200,6 +221,8 @@ int fbtft_write_vmem16_bus8(struct fbtft_par *par, size_t offset, size_t len)
 	int i;
 	int ret = 0;
 	size_t startbyte_size = 0;
+	unsigned long counter = 0;
+
 
 	fbtft_par_dbg(DEBUG_WRITE_VMEM, par, "%s(offset=%zu, len=%zu)\n",
 		__func__, offset, len);
@@ -224,13 +247,21 @@ int fbtft_write_vmem16_bus8(struct fbtft_par *par, size_t offset, size_t len)
 		startbyte_size = 1;
 	}
 
+	if(par->debug)
+		printk("[ FB Start ] (len=%d, bpp=16)\n", remain);
+
 	while (remain) {
 		to_copy = remain > tx_array_size ? tx_array_size : remain;
 		dev_dbg(par->info->device, "    to_copy=%zu, remain=%zu\n",
 						to_copy, remain - to_copy);
 
-		for (i = 0; i < to_copy; i++)
+		for (i = 0; i < to_copy; i++, counter++){
 			txbuf16[i] = cpu_to_be16(vmem16[i]);
+
+			if(par->debug)
+				if( (counter % par->info->var.xres) == 0)
+					printk("%.4X\n", txbuf16[i]);
+		}
 
 		vmem16 = vmem16 + to_copy;
 		ret = par->fbtftops.write(par, par->txbuf.buf,
@@ -239,6 +270,8 @@ int fbtft_write_vmem16_bus8(struct fbtft_par *par, size_t offset, size_t len)
 			return ret;
 		remain -= to_copy;
 	}
+	if(par->debug)
+		printk("[ FB End ] (number of bytes printed = %lu, bpp=16)\n", counter);
 
 	return ret;
 }

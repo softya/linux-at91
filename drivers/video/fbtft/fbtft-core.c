@@ -872,6 +872,7 @@ struct fb_info *fbtft_framebuffer_alloc(struct fbtft_display *display,
 	par->buf = buf;
 	spin_lock_init(&par->dirty_lock);
 	par->bgr = pdata->bgr;
+	par->lcd_iface = pdata->lcd_iface;
 	par->startbyte = pdata->startbyte;
 	par->init_sequence = init_sequence;
 	par->gamma.curves = gamma_curves;
@@ -1005,10 +1006,16 @@ int fbtft_register_framebuffer(struct fb_info *fb_info)
 	ret = par->fbtftops.init_display(par);
 	if (ret < 0)
 		goto reg_fail;
-	if (par->fbtftops.set_var) {
-		ret = par->fbtftops.set_var(par);
-		if (ret < 0)
-			goto reg_fail;
+
+	if(par->lcd_iface == LCD_INTERFACE_SPI_RGB)
+	{
+		printk("%s() LCD config is LCD_INTERFACE_SPI_RGB. Calling set_var()...\n", __func__);
+
+		if (par->fbtftops.set_var) {
+			ret = par->fbtftops.set_var(par);
+			if (ret < 0)
+				goto reg_fail;
+		}
 	}
 
 	/* update the entire display */
@@ -1334,6 +1341,41 @@ int fbtft_verify_gpios(struct fbtft_par *par)
 }
 
 #ifdef CONFIG_OF
+
+/**
+ * It maps 'enum tft_lcd_interface_t'
+ * into the device tree binding of 'lcd-iface', so that Ethernet
+ * device driver can get LCD interface from device tree.
+ */
+static const char *lcd_hw_ifaces[] = {
+        [LCD_INTERFACE_NA]         = "",
+        [LCD_INTERFACE_SPI_RGB]         = "spi-rgb",
+        [LCD_INTERFACE_PARALLEL_RGB]    = "parallel-rgb",
+};
+
+/**
+ * of_get_lcd_hw_iface - Get lcd hardware interface for given device_node
+ * @np: Pointer to the given device_node
+ *
+ * The function gets lcd interface string from property 'lcd-iface',
+ * and return its index in lcd_hw_ifaces table, or errno in error case.
+ */
+static const int of_get_lcd_hw_iface(struct device_node *np)
+{
+	const char *lhi;
+	int err, i;
+
+	err = of_property_read_string(np, "hw-iface", &lhi);
+	if (err < 0)
+	   return err;
+
+	for (i = 0; i < ARRAY_SIZE(lcd_hw_ifaces); i++)
+	   if (!strcasecmp(lhi, lcd_hw_ifaces[i]))
+		   return i;
+
+	return -ENODEV;
+}
+
 /* returns 0 if the property is not present */
 static u32 fbtft_of_value(struct device_node *node, const char *propname)
 {
@@ -1351,6 +1393,7 @@ static struct fbtft_platform_data *fbtft_probe_dt(struct device *dev)
 {
 	struct device_node *node = dev->of_node;
 	struct fbtft_platform_data *pdata;
+	int iface_id = 0;
 
 	if (!node) {
 		dev_err(dev, "Missing platform data or DT\n");
@@ -1374,6 +1417,15 @@ static struct fbtft_platform_data *fbtft_probe_dt(struct device *dev)
 	pdata->txbuflen = fbtft_of_value(node, "txbuflen");
 	pdata->startbyte = fbtft_of_value(node, "startbyte");
 	of_property_read_string(node, "gamma", (const char **)&pdata->gamma);
+
+
+	iface_id = of_get_lcd_hw_iface(node);
+	if (iface_id <= 0) {
+		// Default to parallel interface
+		pdata->lcd_iface = LCD_INTERFACE_PARALLEL_RGB;
+	} else {
+		pdata->lcd_iface = iface_id;
+	}
 
 	if (of_find_property(node, "led-gpios", NULL))
 		pdata->display.backlight = 1;

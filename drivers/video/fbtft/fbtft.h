@@ -43,6 +43,13 @@
 #define FBTFT_OF_INIT_CMD	BIT(24)
 #define FBTFT_OF_INIT_DELAY	BIT(25)
 
+/* Interface Mode definitions */
+typedef enum {
+	LCD_INTERFACE_NA,
+	LCD_INTERFACE_SPI_RGB, // Use this fbtft spi driver for framebuffer ops
+	LCD_INTERFACE_PARALLEL_RGB // skip the 'framebuffer over spi' part of this driver and leave it to other drivers under the hood
+} tft_lcd_interface_t;
+
 /**
  * struct fbtft_gpio - Structure that holds one pinname to gpio mapping
  * @name: pinname (reset, dc, etc.)
@@ -166,6 +173,7 @@ struct fbtft_platform_data {
 	u8 startbyte;
 	char *gamma;
 	void *extra;
+	int lcd_iface;
 };
 
 /**
@@ -253,6 +261,7 @@ struct fbtft_par {
 	bool first_update_done;
 	struct timespec update_time;
 	bool bgr;
+	int lcd_iface;
 	void *extra;
 };
 

@@ -85,17 +85,8 @@ static int set_var(struct fbtft_par *par)
 	return 0;
 }
 
-/********************************************************
-*
-* Function:
-* 	ili9341_controller_init
-*
-* Purpose:
-*   Initializes the display controller
-*********************************************************/
-static int ili9341_controller_init(struct fbtft_par *par)
+static int ili9341_controller_init_parallel_rgb(struct fbtft_par *par)
 {
-
     fbtft_par_dbg(DEBUG_INIT_DISPLAY, par, "%s()\n", __func__);
 
 
@@ -106,10 +97,16 @@ static int ili9341_controller_init(struct fbtft_par *par)
 	write_reg(par, 0x28); // display off
 
 	write_reg(par,0xEF
-			,0x03
-			,0x80
-			,0x02);
-#if 0
+				 ,0x03
+				 ,0x80
+				 ,0x02);
+
+	write_reg(par, 0xCA
+	              ,0xC3
+	              ,0x08
+	              ,0x50);
+
+#if 1
 	write_reg(par, 0xCF, 0x00, 0xC1, 0x30);
 	write_reg(par, 0xED, 0x64, 0x03, 0x12, 0x81);
 	write_reg(par, 0xE8, 0x85, 0x00, 0x78);
@@ -120,18 +117,49 @@ static int ili9341_controller_init(struct fbtft_par *par)
 	write_reg(par, 0xF7, 0x20);
 	write_reg(par, 0xEA, 0x00, 0x00);
 	/* ------------power control-------------------------------- */
-	write_reg(par, 0xC0, 0x23);
-	write_reg(par, 0xC1, 0x10);
-	/* ------------VCOM --------- */
-	write_reg(par, 0xC5, 0x3e, 0x28);
-	write_reg(par, 0xC7, 0x86);
+//	write_reg(par, 0xC0, 0x23);
+//	write_reg(par, 0xC1, 0x10);
+//	/* ------------VCOM --------- */
+//	write_reg(par, 0xC5, 0x3e, 0x28);
+//	write_reg(par, 0xC7, 0x86);
+	write_reg(par, 0xB6
+	              ,0x0A
+	              ,0xA2);
+
+	write_reg(par, 0xC0
+	              ,0x10);
+
+	write_reg(par, 0xC1
+	              ,0x10);
+
+	write_reg(par, 0xC5
+	              ,0x45
+	              ,0x15);
+
+	write_reg(par, 0xC7
+	              ,0x90);
+
+
+	/* ------------memory access control------------------------ */
+	if(par->pdata->display.bpp == 18)
+	    write_reg(par, 0x3A, 0x66); /* 18bit pixel */
+	else
+	    write_reg(par, 0x3A, 0x55); /* 16bit pixel */
+
+	/* ------------frame rate----------------------------------- */
+	write_reg(par, 0xB0, 0xC0); // RCM
+
+	/* Frame Rate Control */
+	/* Division ratio = fosc, Frame Rate = 79Hz */
+	write_reg(par, 0xB1, 0x00, 0x18);
+
+	write_reg(par, 0xB6, 0x08, 0x82, 0x27);
+
+	/* ------------Gamma---------------------------------------- */
+//	write_reg(par, 0xF2, 0x00); /* Gamma Function Disable */
+
 #else
 	/*Configure ILI9341*/
-	write_reg(par, 0xCA
-	              ,0xC3
-	              ,0x08
-	              ,0x50);
-
 	write_reg(par, 0xCF
 	              ,0x00
 	              ,0xC1
@@ -183,7 +211,7 @@ static int ili9341_controller_init(struct fbtft_par *par)
 	write_reg(par, 0xC7
 	              ,0x90);
 
-#endif
+
 
 	if(par->pdata->display.bpp == 18)
 	    write_reg(par, 0x3A, 0x66); /* 18bit pixel */
@@ -191,7 +219,7 @@ static int ili9341_controller_init(struct fbtft_par *par)
 	    write_reg(par, 0x3A, 0x55); /* 16bit pixel */
 
 	/* ------------frame rate----------------------------------- */
-	write_reg(par, 0xB0, 0xC0); // RCM
+//	write_reg(par, 0xB0, 0xC0); // RCM
 
 	/* Frame Rate Control */
 	/* Division ratio = fosc, Frame Rate = 79Hz */
@@ -201,8 +229,8 @@ static int ili9341_controller_init(struct fbtft_par *par)
 	/* ------------Gamma---------------------------------------- */
 //	write_reg(par, 0xF2, 0x00); /* Gamma Function Disable */
 
-	write_reg(par, 0x36
-	              ,0xc8);
+//	write_reg(par, 0x36
+//	              ,0xc8);
 
 	write_reg(par, 0xF2
 	              ,0x00);
@@ -210,11 +238,20 @@ static int ili9341_controller_init(struct fbtft_par *par)
 	write_reg(par, 0xB0
 	              ,0xC0);
 
+	write_reg(par, 0xB5
+	              ,0x04   // VFP =  4 lines
+	              ,0x02   // VBP =  2 lines
+	              ,0x0A   // HFP = 10 clks
+	              ,0x14); // HBP = 20 clks
+
 	write_reg(par, 0xB6
 	              ,0x0A
 	              ,0xA7
 	              ,0x27
 	              ,0x04);
+#endif
+
+	set_var(par);
 
 	/* colomn address set */
 	write_reg(par, 0x2A
@@ -280,7 +317,7 @@ static int ili9341_controller_init(struct fbtft_par *par)
 	write_reg(par, 0x29);
 
 	/* GRAM start writing */
-	write_reg(par, 0x2C);
+//	write_reg(par, 0x2C);
 
 	return 0;
 }
@@ -326,7 +363,7 @@ static int init_display2(struct fbtft_par *par)
        return 0;
 }
 
-static int init_display(struct fbtft_par *par)
+static int ili9341_controller_init_spi_rgb(struct fbtft_par *par)
 {
 	fbtft_par_dbg(DEBUG_INIT_DISPLAY, par, "%s()\n", __func__);
 
@@ -426,6 +463,26 @@ static int init_display(struct fbtft_par *par)
 
 	return 0;
 }
+/********************************************************
+*
+* Function:
+* 	ili9341_controller_init
+*
+* Purpose:
+*   Initializes the display controller
+*********************************************************/
+static int ili9341_controller_init(struct fbtft_par *par)
+{
+	if(par->lcd_iface == LCD_INTERFACE_PARALLEL_RGB){
+		printk("%s() Initialize LCD conroller config for LCD_INTERFACE_PARALLEL_RGB...\n", __func__);
+		ili9341_controller_init_parallel_rgb(par);
+	} else {
+		printk("%s() Initialize LCD conroller config for LCD_INTERFACE_SPI_RGB...\n", __func__);
+		ili9341_controller_init_spi_rgb(par);
+	}
+
+	return 0;
+}
 
 
 /*
@@ -463,6 +520,7 @@ static struct fbtft_display display = {
 	.gamma = DEFAULT_GAMMA,
 	.fbtftops = {
 		.init_display = ili9341_controller_init,
+//		.init_display = init_display,
 		.set_addr_win = ili9341_set_addr_win,
 		.set_var = set_var,
 		.set_gamma = set_gamma,
