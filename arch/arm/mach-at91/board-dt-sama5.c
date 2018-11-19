@@ -230,19 +230,25 @@ static struct i2c_board_info i2c_ov9740 = {
 	I2C_BOARD_INFO("ov9740", 0x10),
 };
 static struct i2c_board_info i2c_ov7740 = {
-	I2C_BOARD_INFO("ov7740", 0x21),
+	I2C_BOARD_INFO("ov7740", 0x42),
 };
 
-LINK_SENSOR_MODULE_TO_SOC_CAMERA(ov2640, 0, 1);
-LINK_SENSOR_MODULE_TO_SOC_CAMERA(ov5642, 1, 1);
-LINK_SENSOR_MODULE_TO_SOC_CAMERA(ov9740, 2, 1);
-LINK_SENSOR_MODULE_TO_SOC_CAMERA(ov7740, 3, 1);
+static struct i2c_board_info i2c_ov7692 = {
+	I2C_BOARD_INFO("ov7692", 0x21),
+};
+
+// LINK_SENSOR_MODULE_TO_SOC_CAMERA(ov2640, 0, 1);
+// LINK_SENSOR_MODULE_TO_SOC_CAMERA(ov5642, 1, 1);
+// LINK_SENSOR_MODULE_TO_SOC_CAMERA(ov9740, 2, 1);
+//LINK_SENSOR_MODULE_TO_SOC_CAMERA(ov7740, 0, 0);
+ LINK_SENSOR_MODULE_TO_SOC_CAMERA(ov7692, 0, 0);
 
 static struct platform_device *sensors[] __initdata = {
-	&isi_ov2640,
-	&isi_ov5642,	/* compatible for ov5640 */
-	&isi_ov9740,
-	&isi_ov7740,
+	// &isi_ov2640,
+	// &isi_ov5642,	/* compatible for ov5640 */
+	// &isi_ov9740,
+//	&isi_ov7740,
+	 &isi_ov7692,
 };
 
 static void at91_fixup_isi_sensor_bus(struct platform_device **sensors,
@@ -441,12 +447,19 @@ static void __init sama5_dt_device_init(void)
 	if (np) {
 		if (of_device_is_available(np)) {
 			if (of_machine_is_compatible("atmel,sama5d3xmb")) {
+				printk("%s() machine is - atmel,sama5d3xmb\n", __func__);
 				camera_set_gpio_pins(AT91_PIN_PE24, AT91_PIN_PE29);
 				at91_config_isi(true, "pck1");
 			} else if (of_machine_is_compatible("atmel,sama5d4ek")) {
+				printk("%s() machine is - atmel,sama5d4ek\n", __func__);
 				at91_fixup_isi_sensor_bus(sensors, ARRAY_SIZE(sensors), 0);
 				camera_set_gpio_pins(AT91_PIN_PB11, AT91_PIN_PB5);
 				at91_config_isi(true, "pck1");
+			} else if (of_machine_is_compatible("atmel,sama5d4-xplained")) {
+				printk("%s() machine is - atmel,sama5d4-xplained\n", __func__);
+				at91_fixup_isi_sensor_bus(sensors, ARRAY_SIZE(sensors), 0);
+//				camera_set_gpio_pins(AT91_PIN_PB11, AT91_PIN_PB5);
+				at91_config_isi(true, "pck0");
 			}
 		}
 	}
@@ -524,6 +537,36 @@ static void __init sama5_dt_device_init(void)
 		ek_lcdc_data.default_lcdcon2 = BPP_OUT_DEFAULT_LCDCFG5;//LCDC_LCDCFG5_MODE_OUTPUT_18BPP;
 		ek_lcdc_data.default_bpp = 16; //<<== a value of 18 caused kernel freeze...
 		printk("LCD parameters updated for ilitek ili9341 display module\n");
+	}
+
+	// Frida LCD (based on Sitronix st7789v2)
+	if (of_machine_is_compatible("panel,st7789v2")) {
+		__u8 manufacturer[6] = "sitronix";
+		__u8 monitor[14] = "st7789";
+
+		/* set LCD configuration */
+		at91_tft_vga_modes[0].name = "st7789v2";
+		at91_tft_vga_modes[0].xres = 240;
+		at91_tft_vga_modes[0].yres = 320;
+		at91_tft_vga_modes[0].pixclock = KHZ2PICOS(7000);
+		at91_tft_vga_modes[0].left_margin = 38;
+		at91_tft_vga_modes[0].right_margin = 10;
+		at91_tft_vga_modes[0].upper_margin = 4;
+		at91_tft_vga_modes[0].lower_margin = 8;
+		at91_tft_vga_modes[0].hsync_len = 10;
+		at91_tft_vga_modes[0].vsync_len = 4;
+//		at91_tft_vga_modes[0].sync = FB_SYNC_HOR_HIGH_ACT |
+//					     FB_SYNC_VERT_HIGH_ACT;
+
+
+		memcpy(at91fb_default_monspecs.manufacturer, manufacturer, 6);
+		memcpy(at91fb_default_monspecs.monitor, monitor, 6);
+
+		ek_lcdc_data.smem_len = 240 * 320 * 4;
+
+		ek_lcdc_data.default_lcdcon2 = BPP_OUT_DEFAULT_LCDCFG5;//LCDC_LCDCFG5_MODE_OUTPUT_18BPP;
+		ek_lcdc_data.default_bpp = 32; //<<== a value of 18 caused kernel freeze...
+		printk("LCD parameters updated for sitronix st7789v2 display module\n");
 	}
 
 	if (of_machine_is_compatible("pda,tm43xx")) {

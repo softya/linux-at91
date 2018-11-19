@@ -9,10 +9,12 @@
 /dts-v1/;
 #include "sama5d4.dtsi"
 #include "at91-sama5d4_xplained_dm_rex-ii_displaytech.dtsi"
+//#include "at91-sama5d4_xplained_ov7690.dtsi"
+
 
 / {
 	model = "Atmel SAMA5D4 Xplained ULTRA + DisplayTech DT028ATFT";
-	compatible = "atmel,sama5d4-xplained", "atmel,sama5d4", "atmel,sama5", "panel,ili9341";
+	compatible = "atmel,sama5d4-xplained", "atmel,sama5d4", "atmel,sama5", "panel,st7789v2";
 
 	chosen {
 		bootargs = "console=ttyS0,115200 ignore_loglevel earlyprintk";
@@ -56,23 +58,89 @@
 				cs-gpios = <&pioB 23 0>, <0>, <0> , <0>;
 				status = "okay";
 
-                ili9341@0 {
-//                    rotate = <180>;
-                    bgr;
-                    fps = <30>;
-                    compatible = "ilitek,ili9341";
-                    spi-max-frequency = <32000000>;
-                    reg = <0>;
-                    regwidth = <8>;
-                    buswidth = <8>;
-                    verbose = <3>;
-                    bpp = <18>;
-                    hw-iface = "parallel-rgb";
-//                    hw-iface = "spi-rgb";
-//                    reset-gpios = <&pioC 3 0>; // PC3 - J4.33
-                    dc-gpios = <&pioE 9 0>;    // PC4 - J4.31
-                };
+/*
+ *******************************************************************
+ * We aren't using ili9341 LCD. But we keep it as reference for now:
+ *******************************************************************
+				ili9341@0 {
+					rotate = <180>;
+					bgr;
+					fps = <30>;
+					compatible = "ilitek,ili9341";
+					spi-max-frequency = <32000000>;
+					reg = <0>;
+					regwidth = <8>;
+					buswidth = <8>;
+					verbose = <3>;
+					bpp = <16>;
+					hw-iface = "parallel-rgb";
+//					hw-iface = "spi-rgb";
+//					reset-gpios = <&pioC 3 0>; // PC3 - J4.33
+					dc-gpios = <&pioE 9 0>;    // PC4 - J4.31
+				};
+*******************************************************************/
 
+				st7789@0 {
+					rotate = <180>;
+//					bgr;
+					fps = <30>;
+					compatible = "sitronix,st7789v1";
+					spi-max-frequency = <32000000>;
+					pinctrl-names = "default";
+					pinctrl-0 = <&pinctrl_frida_pins>;
+					reg = <0>;
+					regwidth = <8>;
+					buswidth = <8>;
+					verbose = <3>;
+					bpp = <18>;
+					hw-iface = "parallel-rgb";
+//					hw-iface = "spi-rgb";
+//					reset-gpios = <&pioC 3 0>; // PC3 - J4.33
+					dc-gpios = <&pioE 10 0>;    // PC4 - J4.31
+		                };
+
+			};
+			
+			isi: isi@f0008000 {
+//				pinctrl-names = "default";
+//				pinctrl-0 = <&pinctrl_isi &pinctrl_isi_mck>;
+				status = "okay";
+
+//				port {
+//					isi_0: endpoint@0 {
+//						remote-endpoint = <&ov7690_0>;
+//						hsync-active = <1>;
+//						vsync-active = <1>;
+//						// pclk-sample = <1>;
+//					};
+//				};
+			};
+
+            i2c0: i2c@f8014000 {
+			status = "okay";
+		        
+//		        ov7670: camera@21 {
+//		                compatible = "ovti,ov7690";
+//		                reg = <0x21>;
+//		                pinctrl-names = "default";
+//		                // pinctrl-0 = <&pinctrl_pck1_as_isi_mck /* &pinctrl_sensor_power &pinctrl_sensor_reset*/>;
+//		                // resetb-gpios = <&pioB 11 GPIO_ACTIVE_LOW>;
+//		                // pwdn-gpios = <&pioB 5 GPIO_ACTIVE_HIGH>;
+//		                /* use pck1 for the master clock of ov2640 */
+//		                //clocks = <&pck0>;
+//
+//                        clock-frequency = <24000000>;
+//                        // clocks = <&pck0>;
+//                        // clock-names = "xvclk";
+//		                //assigned-clocks = <&pck0>;
+//		                assigned-clock-rates = <24000000>;
+//
+//		                port {
+//		                    ov7690_0: endpoint {
+//		                        remote-endpoint = <&isi_0>;
+//		                    };
+//		                };
+//		        };
 			};
 
 			macb0: ethernet@f8020000 {
@@ -116,6 +184,22 @@
 					pinctrl_key_gpio: key_gpio_0 {
 						atmel,pins =
 							<AT91_PIOE 8 AT91_PERIPH_GPIO AT91_PINCTRL_PULL_UP_DEGLITCH>;
+					};
+
+					pinctrl_pck1_as_isi_mck: pck1_as_isi_mck-0 {
+						atmel,pins =
+							<AT91_PIOB 26 AT91_PERIPH_A AT91_PINCTRL_NONE>; /* PC4 periph C ISI_MCK */
+					};
+
+
+					pinctrl_edt_ft5x06_pins: edt_ft5x06_pins-0 {
+						atmel,pins =
+							<AT91_PIOE  9 AT91_PERIPH_GPIO AT91_PINCTRL_PULL_UP_DEGLITCH>;
+					};
+
+					pinctrl_frida_pins: frida_pins-0 {
+						atmel,pins =
+							<AT91_PIOE 10 AT91_PERIPH_GPIO AT91_PINCTRL_PULL_UP_DEGLITCH>;
 					};
 				};
 			};

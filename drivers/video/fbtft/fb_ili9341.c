@@ -29,6 +29,7 @@
 #include <linux/init.h>
 #include <linux/delay.h>
 
+#include <video/mipi_display.h>
 #include "fbtft.h"
 
 #define DRVNAME		"fb_ili9341"
