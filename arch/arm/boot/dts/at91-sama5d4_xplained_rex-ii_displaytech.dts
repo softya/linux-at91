@@ -97,7 +97,7 @@
 //					hw-iface = "spi-rgb";
 //					reset-gpios = <&pioC 3 0>; // PC3 - J4.33
 					dc-gpios = <&pioE 10 0>;    // PC4 - J4.31
-		                };
+		       };
 
 			};
 			
@@ -119,29 +119,18 @@
             i2c0: i2c@f8014000 {
 			status = "okay";
 		        
-//		        ov7670: camera@21 {
-//		                compatible = "ovti,ov7690";
-//		                reg = <0x21>;
-//		                pinctrl-names = "default";
-//		                // pinctrl-0 = <&pinctrl_pck1_as_isi_mck /* &pinctrl_sensor_power &pinctrl_sensor_reset*/>;
-//		                // resetb-gpios = <&pioB 11 GPIO_ACTIVE_LOW>;
-//		                // pwdn-gpios = <&pioB 5 GPIO_ACTIVE_HIGH>;
-//		                /* use pck1 for the master clock of ov2640 */
-//		                //clocks = <&pck0>;
-//
-//                        clock-frequency = <24000000>;
-//                        // clocks = <&pck0>;
-//                        // clock-names = "xvclk";
-//		                //assigned-clocks = <&pck0>;
-//		                assigned-clock-rates = <24000000>;
-//
-//		                port {
-//		                    ov7690_0: endpoint {
-//		                        remote-endpoint = <&isi_0>;
-//		                    };
-//		                };
-//		        };
+			polytouch: edt-ft5x06@38 {
+				compatible = "focaltech,ft6236";
+				reg = <0x38>;
+				pinctrl-names = "default";
+				pinctrl-0 = <&pinctrl_edt_ft5x06_pins>;
+				interrupt-parent = <&pioE>;
+				interrupts = <9 GPIO_ACTIVE_LOW>;
+		//		reset-gpios = <&gpio2 6 GPIO_ACTIVE_LOW>;
+//				wake-gpios = <&pioE 9 GPIO_ACTIVE_HIGH>;
 			};
+
+		};
 
 			macb0: ethernet@f8020000 {
 				phy-mode = "rmii";
